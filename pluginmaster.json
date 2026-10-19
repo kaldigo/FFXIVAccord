@@ -3,10 +3,10 @@
     "Author": "kaldigo",
     "Name": "Accord",
     "InternalName": "Accord",
-    "AssemblyVersion": "0.2.13.0",
-    "Description": "Configures the compatible Wrathful Combo engine through its settings API and manages static/live hotbars. Hotbar Bridge remains separate. Development preview.",
+    "AssemblyVersion": "0.2.15.1",
+    "Description": "Configures the compatible Wrathful Combo engine through its settings API and manages static/live hotbars. Includes compact PvE/PvP layouts, three-bar manual logout fallback with login restoration, and automatic Sprint conversion on active hotbars. Development preview.",
     "ApplicableVersion": "any",
-    "RepoUrl": "https://github.com/kaldigo/Accord",
+    "RepoUrl": "https://github.com/kaldigo/FFXIVAccord",
     "Tags": [
       "hotbars",
       "configuration",
@@ -18,12 +18,12 @@
     "LoadSync": false,
     "CanUnloadAsync": false,
     "LoadPriority": 0,
-    "IconUrl": "https://raw.githubusercontent.com/kaldigo/HotbarTools/main/assets/icons/accord-512.png",
+    "IconUrl": "https://raw.githubusercontent.com/kaldigo/FFXIVAccord/main/assets/icon.png",
     "Punchline": "Reviewed intent settings and matching hotbars.",
     "AcceptsFeedback": true,
-    "DownloadLinkInstall": "https://github.com/kaldigo/Accord/releases/download/v0.2.13-preview/Accord.zip",
-    "DownloadLinkUpdate": "https://github.com/kaldigo/Accord/releases/download/v0.2.13-preview/Accord.zip",
-    "DownloadLinkTesting": "https://github.com/kaldigo/Accord/releases/download/v0.2.13-preview/Accord.zip",
-    "Changelog": "Restore WrathCombo identity and migrate current WrathFork settings once with backups. Accord detects the compatible WrathCombo build. Remove legacy WrathFork before loading."
+    "Changelog": "Validated source update. Development preview; native acceptance remains separate.",
+    "DownloadLinkInstall": "https://github.com/kaldigo/FFXIVAccord/releases/download/v0.2.15.1/Accord.zip",
+    "DownloadLinkUpdate": "https://github.com/kaldigo/FFXIVAccord/releases/download/v0.2.15.1/Accord.zip",
+    "DownloadLinkTesting": "https://github.com/kaldigo/FFXIVAccord/releases/download/v0.2.15.1/Accord.zip"
   }
 ]
