@@ -16,9 +16,6 @@ internal static class HotbarLayoutStore
     private static Dictionary<string, HashSet<uint>> Observed => observed ??=
         File.Exists(PathName) ? JsonSerializer.Deserialize<Dictionary<string, HashSet<uint>>>(File.ReadAllText(PathName))
             ?? throw new InvalidDataException("Invalid PvP initialization record.") : new();
-    internal static HashSet<Position> ProtectedSlots() => Defaults.Maps().Where(m => m.SharedAcrossJobs)
-        .SelectMany(m => new[] { m.Regular, m.Cross })
-        .Concat(Enumerable.Range(2, 8).SelectMany(bar => Enumerable.Range(0, 12).Select(slot => new Position(bar, slot)))).ToHashSet();
     internal static unsafe void Ready(bool pvp)
     {
         if (!Player.Available || !Svc.ClientState.IsLoggedIn) throw new InvalidOperationException("Wait for a character.");

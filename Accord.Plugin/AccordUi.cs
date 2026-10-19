@@ -38,13 +38,13 @@ internal static class AccordUi
         ImGui.Separator();
         bool cleanup = setup.Settings.ClearOtherActions;
         if (ImGui.Checkbox("Clear other actions", ref cleanup)) setup.Run(() => setup.SetCleanup(cleanup));
-        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Keep only the designed job layout. Preserves game-shared bars, utility bars, shared slots and existing Sprint buttons. Writes a recovery backup.");
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Keep only the designed job layout on every non-shared regular and controller bar. Only bars marked shared in the game are preserved. Writes a recovery backup.");
         if (!setup.Settings.LiveMode && ImGui.Button("Set selected class hotbars")) setup.Run(setup.ApplyHotbars);
         if (ImGui.Button(setup.Settings.LiveMode ? "Disable live mode" : "Enable live mode")) setup.Run(() => setup.SetLive(!setup.Settings.LiveMode));
         ImGui.TextWrapped(setup.Settings.LiveMode
             ? "Live: refresh the current selected class on changes and check every second. Clear other actions also removes newly added leveling actions."
             : "Static: variants change behaviour. Use a setup button to update hotbars.");
-        ImGui.TextWrapped("Keyboard actions close gaps within each bar; fixed controls and controller positions stay in place. Accord manages both regular and controller layouts. Sprint switches between PvE and PvP on all active hotbars, including utility bars.");
+        ImGui.TextWrapped("Accord manages regular and controller layouts. Gatherers use the complete toolkit across non-shared bars in order. Sprint switches between PvE and PvP on non-shared hotbars. Bars marked shared in the game are preserved.");
         ImGui.Separator();
         bool manualLogout = setup.Settings.ManualLogoutFallback;
         if (ImGui.Checkbox("Save manual hotbars before logout", ref manualLogout)) setup.Run(() => setup.SetManualFallback(manualLogout));

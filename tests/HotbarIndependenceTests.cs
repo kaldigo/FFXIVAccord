@@ -23,7 +23,7 @@ internal static class HotbarIndependenceTests
         {
             // A stale or damaged Bridge configuration must have no effect on Accord.
             File.WriteAllText(Path.Combine(root,"HotbarBridge.json"),"not a valid Bridge configuration");
-            Check(HotbarLayoutStore.ProtectedSlots().Contains(new(9,7)),"Accord utility protection missing");
+            Check(!Defaults.Maps().Any(m=>m.SharedAcrossJobs),"Legacy slot reservations remain");
             Check(ModeActions.SprintEdits(19,true,_=>new(10,4)).Count==248,"scan did not cover every regular/cross slot");
             foreach(var pvp in new[]{false,true})
             foreach(var sprint in new[]{new SlotValue(1,3),new SlotValue(1,29057),new SlotValue(10,4)})
@@ -39,9 +39,9 @@ internal static class HotbarIndependenceTests
                 Check(edits.All(e=>ModeActions.IsSprint(e.Before)),"scan changed non-Sprint assignments");
                 SprintHotbars.Refresh(pvp);
                 foreach(var position in new[]{new Position(9,7),new Position(17,15),new Position(4,8),new Position(1,8)})
-                    Check(NativeHotbars.Read(19,position,pvp:pvp)==ModeActions.ForMode(sprint,pvp),"Sprint not converted on utility/cross/job bar");
+                    Check(NativeHotbars.Read(19,position,pvp:pvp)==(position.Bar==9 ? sprint : ModeActions.ForMode(sprint,pvp)),"Sprint not converted on utility/cross/job bar");
                 Check(NativeHotbars.Read(19,new(9,1),pvp:pvp)==new SlotValue(10,3) && NativeHotbars.Read(19,new(9,2),pvp:pvp)==new SlotValue(9,4),"general actions or macros changed");
-                Check(ModeActions.SprintEdits(19,pvp,p=>NativeHotbars.Read(19,p,pvp:pvp)).Count==0,"stable Sprint caused repeat writes");
+                Check(ModeActions.SprintEdits(19,pvp,p=>p.Bar==9 ? default : NativeHotbars.Read(19,p,pvp:pvp)).Count==0,"stable Sprint caused repeat writes");
             }
             Check(HotbarLayoutStore.Initialized(19),"current PvP job not recorded");
             Svc.PlayerState.ContentId=456;
@@ -49,7 +49,7 @@ internal static class HotbarIndependenceTests
             Svc.PlayerState.ContentId=123;
             var pack=new SetupPack();
             var hotbars=new HotbarSetup();
-            NativeHotbars.Mode=false;NativeHotbars.Slots.Clear();NativeHotbars.Shared.Clear();
+            NativeHotbars.Mode=false;NativeHotbars.Slots.Clear();NativeHotbars.Shared.Clear();NativeHotbars.Shared.UnionWith([9,4]);
             NativeHotbars.Put(19,new(9,7),new(1,3));
             NativeHotbars.Put(19,new(4,8),new(1,999));
             var choices=new AccordSettings{ActiveJobs=[19]};

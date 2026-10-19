@@ -13,8 +13,6 @@ public static class HotbarCleanup
     {
         if(job is 0 or >42)throw new InvalidDataException("Invalid cleanup job.");
         var keep=layout.ToHashSet();
-        // Preserve shared pairs even when disabled or belonging to another profile.
-        keep.UnionWith(bridgeMaps.Where(m=>m.SharedAcrossJobs).SelectMany(m=>new[]{m.Regular,m.Cross}));
         if(keep.Any(p=>!p.Valid))throw new InvalidDataException("Invalid protected cleanup position.");
         var result=new List<SlotEdit>();
         for(var bar=0;bar<18;bar++)

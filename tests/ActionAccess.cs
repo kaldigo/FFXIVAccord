@@ -33,6 +33,16 @@ internal static class ActionAccess
 
     internal static int Verify(string job, JObject settings, JObject names)
     {
+        if (job is "MIN" or "BTN" or "FSH")
+        {
+            string[] replacements = job=="FSH"
+                ? ["FSH_CastHook","FSH_Swim","FSH_CastGig","FSH_SurfaceTrade","FSH_PrizeBounty","FSH_SnaggingSalvage","FSH_CastLight_ElectricCurrent","FSH_Mooch_SharkEye","FSH_FishEyes_VitalSight","FSH_Chum_BaitedBreath"]
+                : ["DOL_Eureka","DOL_NodeSearchingBuffs"];
+            var current=settings["EnabledActionsV6"]!.Values<int>().ToHashSet();
+            foreach(var name in replacements)
+                if(!current.Contains(names.Value<int>(name)))throw new Exception("Gatherer replacement is unavailable: "+name);
+            return replacements.Length;
+        }
         if (!Required.TryGetValue(job, out var suffixes)) return 0;
         var enabled = settings["EnabledActionsV6"]!.Values<int>().ToHashSet();
         foreach (string suffix in suffixes)

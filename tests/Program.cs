@@ -25,6 +25,7 @@ foreach(var sprint in new[]{new SlotValue(1,3),new SlotValue(1,29057),new SlotVa
 }
 Check(!ModeActions.IsSprint(new SlotValue(10,3)) && !ModeActions.IsSprint(new SlotValue(9,4)),"Other general actions or macros mistaken for Sprint.");
 var pack = new SetupPack();
+checks += GatheringTests.Run();
 var sharedChoices=new AccordSettings {ActiveJobs=[19,38],LiveMode=true,ClearOtherActions=true};
 sharedChoices.Variants[VariantId.Burst]=true;
 sharedChoices.PvP.ActiveJobs=[31];sharedChoices.PvP.Variants[VariantId.Support]=true;
@@ -51,6 +52,7 @@ for (int mask = 0; mask < 16; mask++)
     var choices = new AccordSettings();
     foreach (var variant in VariantDefinitions.All) choices.Variants[variant.Id] = (mask & (1 << (int)variant.Id)) != 0;
     var resolved = pack.Resolve(preset, choices);
+    if (PveLayoutPlan.IsGatherer(preset.JobId)) continue; // Full gatherer routing is exercised by GatheringTests.
     foreach(var targetJob in new[]{preset.JobId}.Concat(preset.BaseClasses))
     foreach(bool existingExtra in new[]{false,true})
     foreach(bool sharedControllers in new[]{false,true})
@@ -58,10 +60,10 @@ for (int mask = 0; mask < 16; mask++)
     {
         var planningMaps=Defaults.Maps();
         if(existingExtra && targetJob is 1 or 19)planningMaps.Add(ExtraJobMappings.For(targetJob));
-        bool Protected(Position p)=> (sharedControllers && p.Bar>=10) || p.Bar is >=2 and <10 ||
-            planningMaps.Any(m=>m.SharedAcrossJobs && (m.Regular==p || m.Cross==p));
+        bool Protected(Position p)=> sharedControllers && p.Bar>=10;
         var plan=PveLayoutPlan.Create(targetJob,resolved,planningMaps,Protected,sprintFallback);
-        if(Defaults.IsCombat(targetJob))Check(plan.Count(e=>e.Slot?.Action=="Sprint")== (sprintFallback?1:0),"Sprint fallback missing or duplicated.");
+        Check(plan.Count(e=>e.Slot?.Action=="Sprint")== (sprintFallback?1:0),"Sprint fallback missing or duplicated.");
+        if(sprintFallback && !sharedControllers)Check(plan.Single(e=>e.Slot?.Action=="Sprint").Cross is not null,"Planned Sprint is missing on controller.");
         var required=resolved.Slots.Where(s=>s.Action!="Empty").ToArray();
         foreach(var slot in required)
             Check(plan.Count(e=>ReferenceEquals(e.Slot,slot))==1,$"{preset.Job}/{mask}: required action missing or duplicated: {slot.Action}");
@@ -165,10 +167,10 @@ foreach (var job in pack.Data.Jobs)
         pack.ApplyMembership(job, settings, current);
         Check(current.Except(pack.ControlledPresets(job)).ToHashSet().SetEquals(uncontrolled), "Feature-only switch changed unrelated presets.");
         Check(current.Intersect(pack.ControlledPresets(job)).ToHashSet().SetEquals(ids.Intersect(pack.ControlledPresets(job))), "Switch result depends on previous variants.");
-        Check(resolved.Slots.Length <= 20, $"Layout overflow: {job.Job}/{mask}");
+        Check(resolved.Slots.Length <= (PveLayoutPlan.IsGatherer(job.JobId) ? 36 : 20), $"Layout overflow: {job.Job}/{mask}");
         Check(resolved.Slots.Select(s => (s.RegularBar, s.RegularSlot)).Distinct().Count() == resolved.Slots.Length, $"Layout overlap: {job.Job}/{mask}");
-        Check(resolved.Slots.All(s => (KeyboardLayout.Positions.Contains(new(s.RegularBar - 1, s.RegularSlot - 1)) || (s.LogicalSlot >= 13 && new Position(s.RegularBar - 1, s.RegularSlot - 1) == ExtraJobMappings.For(job.JobId,s.LogicalSlot).Regular))), $"Unknown layout position: {job.Job}/{mask}");
-        if (job.JobId is >= 8 and <= 18) Check(resolved.Slots.Length == 12, "Noncombat page must remain complete.");
+        Check(PveLayoutPlan.IsGatherer(job.JobId) || resolved.Slots.All(s => (KeyboardLayout.Positions.Contains(new(s.RegularBar - 1, s.RegularSlot - 1)) || (s.LogicalSlot >= 13 && new Position(s.RegularBar - 1, s.RegularSlot - 1) == ExtraJobMappings.For(job.JobId,s.LogicalSlot).Regular))), $"Unknown layout position: {job.Job}/{mask}");
+        if (job.JobId is >= 8 and <= 15) Check(resolved.Slots.Length == 12, "Crafting page must remain complete.");
         if (job.Job == "DNC")
         {
             Check(ids.Contains(4018) && ids.Contains(4045), "DNC completion must survive manual variants.");
@@ -387,7 +389,7 @@ var kept = new Position(0, 0);
 var cleanup = HotbarCleanup.Plan(19, [kept], maps, bar => bar == 6, _ => new SlotValue(1, 123));
 Check(cleanup.All(e => e.Position != kept && e.Position.Bar != 6), "Cleanup removed layout/native shared controls.");
 foreach (var shared in maps.Where(m => m.SharedAcrossJobs))
-    Check(cleanup.All(e => e.Position != shared.Regular && e.Position != shared.Cross), "Cleanup removed Bridge shared controls, including disabled pairs.");
+    Check(cleanup.Any(e => e.Position == shared.Regular) && cleanup.Any(e => e.Position == shared.Cross), "Legacy slot reservations still prevent cleanup.");
 Check(cleanup.Any(e => e.Position == new Position(4, 0)), "Cleanup did not clear an undesigned filled slot.");
 var edits = Enumerable.Range(0, 4).Select(i => new SlotEdit(19, new(0, i), new(1, (uint)i + 1), new(1, (uint)i + 10))).ToList();
 for (int failAt = 0; failAt <= edits.Count; failAt++)

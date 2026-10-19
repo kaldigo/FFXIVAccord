@@ -30,9 +30,8 @@ internal sealed class PvPHotbars
         if(Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.InCombat] || Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas] || Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas51])
             throw new InvalidOperationException("PvP hotbar changes wait for combat and loading to finish.");
         HotbarLayoutStore.Ready(true);
-        var protectedSlots=HotbarLayoutStore.ProtectedSlots();
         var maps=Defaults.Maps().Where(m=>m.Profile!="Noncombat").ToList();
-        bool Protected(Position p) => protectedSlots.Contains(p) || NativeHotbars.Ready(current,true)->IsHotbarShared((uint)p.Bar);
+        bool Protected(Position p) => NativeHotbars.Ready(current,true)->IsHotbarShared((uint)p.Bar);
         Notice="";
         var extras=jobs.SelectMany(j=>PvPLayout.AvailableExtras(j,maps,Protected)).ToArray();
         foreach(var extra in extras)if(maps.All(m=>m.Id!=extra.Id))maps.Add(extra);
@@ -44,7 +43,7 @@ internal sealed class PvPHotbars
             if (job.JobId!=current && !Initialized(job.JobId)) throw new InvalidOperationException("Visit PvP on "+job.Job+" before writing its saved layout.");
             var pairs=PvPLayout.Pairs(job,maps);
             var values=job.Controls.Select(c=>PvPPack.Resolve(c,settings,snapshot)).ToArray();
-            bool existingSprint=ModeActions.HasSharedSprint(_=>true, p=>NativeHotbars.Read(job.JobId,p,pvp:true));
+            bool existingSprint=ModeActions.HasSharedSprint(Protected, p=>NativeHotbars.Read(job.JobId,p,pvp:true));
             if(existingSprint)
                 for(int i=0;i<values.Length;i++)if(job.Controls[i].Binding is { Type:1, Id:29057 })values[i]=default;
             foreach (var control in job.Controls) ValidateBinding(control.Binding);
@@ -64,16 +63,15 @@ internal sealed class PvPHotbars
                     for(int slot=0;slot<(bar<10?12:16);slot++)
                     {
                         var p=new Position(bar,slot);
-                        if(!keep.Contains(p) && !Protected(p) && !ModeActions.IsSprint(NativeHotbars.Read(job.JobId,p,pvp:true))) Add(p,default);
+                        if(!keep.Contains(p) && !Protected(p)) Add(p,default);
                     }
             foreach(var p in Enumerable.Range(0,2).SelectMany(b=>Enumerable.Range(0,12).Select(s=>new Position(b,s))))
                 if(!keep.Contains(p) && !Protected(p) && design.Contains(NativeHotbars.Read(job.JobId,p,pvp:true)))Add(p,default);
             void Add(Position p,SlotValue value)
             {
                 if(!keep.Add(p) || !p.Valid)throw new InvalidDataException("Duplicate or invalid PvP destination.");
-                if(Protected(p))throw new InvalidOperationException($"{p} is shared or linked across modes; PvP setup preserves it. Choose job-specific controller pairs.");
+                if(Protected(p))throw new InvalidOperationException($"{p} is on a shared game hotbar; PvP setup preserves it. Choose job-specific bars.");
                 var before=NativeHotbars.Read(job.JobId,p,pvp:true);
-                if(value==default && ModeActions.IsSprint(before))return;
                 if(value==default && !settings.ClearOtherActions && !design.Contains(before))return;
                 if(before!=value)backup.Edits.Add(new(job.JobId,p,before,value));
             }
@@ -103,12 +101,11 @@ internal sealed class PvPHotbars
         uint current=(uint)Player.Job;
         HotbarLayoutStore.Ready(true);
         if(!backup.PvP || backup.Character!=NativeHotbars.CharacterKey(Svc.PlayerState.ContentId))throw new InvalidOperationException("Wrong mode or character for this backup.");
-        var protectedSlots=HotbarLayoutStore.ProtectedSlots();
         if(backup.Edits.Select(e=>(e.Job,e.Position)).Distinct().Count()!=backup.Edits.Count)throw new InvalidDataException("Duplicate backup destinations.");
         foreach(var e in backup.Edits)
         {
             if(e.Job!=current && !Initialized(e.Job))throw new InvalidOperationException("Visit PvP on this class before restoring its saved layout.");
-            if(!e.Position.Valid || protectedSlots.Contains(e.Position) || NativeHotbars.Ready(current,true)->IsHotbarShared((uint)e.Position.Bar))throw new InvalidOperationException("A backup destination is now shared or linked; restore blocked.");
+            if(!e.Position.Valid || NativeHotbars.Ready(current,true)->IsHotbarShared((uint)e.Position.Bar))throw new InvalidOperationException("A backup destination is now shared; restore blocked.");
             if(NativeHotbars.Read(e.Job,e.Position,pvp:true)!=e.Before)throw new InvalidOperationException("PvP hotbars changed during setup.");
         }
         var path=Path.Combine(Svc.PluginInterface.GetPluginConfigDirectory(),"hotbar-backups-pvp",backup.Character,$"{DateTime.UtcNow:yyyyMMdd-HHmmss-ffff}-{Guid.NewGuid():N}.json");

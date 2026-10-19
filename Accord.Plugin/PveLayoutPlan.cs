@@ -9,10 +9,12 @@ namespace Accord;
 // Plan keyboard destinations independently of whether a controller mirror can be written.
 internal static class PveLayoutPlan
 {
+    internal static bool IsGatherer(uint job) => job is 16 or 17 or 18;
     internal sealed record Entry(PresetSlot? Slot, SlotMap Map, Position Regular, Position? Cross, bool Registered);
 
     internal static Entry[] Create(uint job, JobPreset preset, IReadOnlyList<SlotMap> maps, Func<Position,bool> protectedSlot, bool sprint=false)
     {
+        if (IsGatherer(job)) return Gathering(job, preset, protectedSlot, sprint);
         var layout=KeyboardLayout.Compile(preset,true);
         var extras = preset.Slots.Where(s=>s.LogicalSlot>12).Select(s=>ExtraJobMappings.For(job,s.LogicalSlot))
             .Concat(maps.Where(m=>m.Applies(job) && m.Id.StartsWith($"extra-job-{job}-")))
@@ -44,12 +46,15 @@ internal static class PveLayoutPlan
             used.Add(regular);
             result.Add(new(slot,map,regular,registered && !protectedSlot(map.Cross) ? map.Cross : null,registered));
         }
-        if(sprint && Defaults.IsCombat(job))
+        if(sprint)
         {
             var p=Enumerable.Range(0,12).Select(s=>new Position(1,s)).Where(p=>!result.Any(e=>e.Regular==p) && !protectedSlot(p))
                 .Select(p=>(Position?)p).FirstOrDefault() ?? throw new InvalidOperationException("No job slot available for Sprint.");
             var slot=new PresetSlot{LogicalSlot=99,Action="Sprint",Function="Travel",RegularBar=2,RegularSlot=p.Slot+1};
-            result.Add(new(slot,new SlotMap{Id=$"pve-sprint-{job}",JobId=job,RegularBar=2,RegularSlot=p.Slot+1},p,null,false));
+            var cross=Enumerable.Range(10,8).SelectMany(b=>Enumerable.Range(0,16).Select(s=>new Position(b,s)))
+                .Where(c=>!protectedSlot(c) && !result.Any(e=>e.Cross==c))
+                .Select(c=>(Position?)c).FirstOrDefault();
+            result.Add(new(slot,new SlotMap{Id=$"pve-sprint-{job}",JobId=job,RegularBar=2,RegularSlot=p.Slot+1},p,cross,false));
         }
         // Extras are job controls too: include them in the same per-bar compaction,
         // without moving the reserved tank/healer controls or controller endpoints.
@@ -68,5 +73,22 @@ internal static class PveLayoutPlan
         }
         if(result.Select(e=>e.Regular).Distinct().Count()!=result.Count)throw new InvalidDataException("Duplicate keyboard destinations.");
         return result.ToArray();
+    }
+
+    // Gatherers need their full toolkit, rather than the twelve combat-intent positions.
+    // Allocate whole unshared bars in order; shared pages never consume an action.
+    private static Entry[] Gathering(uint job, JobPreset preset, Func<Position,bool> protectedSlot, bool sprint)
+    {
+        var slots = preset.Slots.ToList();
+        if (sprint) slots.Add(new PresetSlot { LogicalSlot=99, Action="Sprint", Function="Travel" });
+        var regular = Enumerable.Range(0,10).SelectMany(b=>Enumerable.Range(0,12).Select(s=>new Position(b,s)))
+            .Where(p=>!protectedSlot(p)).ToArray();
+        var cross = Enumerable.Range(10,8).SelectMany(b=>Enumerable.Range(0,16).Select(s=>new Position(b,s)))
+            .Where(p=>!protectedSlot(p)).ToArray();
+        if (regular.Length < slots.Count) throw new InvalidOperationException("Not enough non-shared regular hotbar slots for the complete gathering layout.");
+        return slots.Select((slot,i)=>new Entry(slot,
+            new SlotMap { Id=$"gather-{job}-{slot.LogicalSlot}", JobId=job, Profile="Noncombat",
+                RegularBar=regular[i].Bar+1, RegularSlot=regular[i].Slot+1 },
+            regular[i], i<cross.Length ? cross[i] : null, false)).ToArray();
     }
 }

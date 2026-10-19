@@ -15,7 +15,6 @@ internal sealed class HotbarSetup
 {
     internal string Notice { get; private set; } = "";
     private ActionCatalog? actions;
-    private HashSet<Position> ProtectedSlots() => HotbarLayoutStore.ProtectedSlots();
 
     internal sealed class Backup
     {
@@ -37,10 +36,9 @@ internal sealed class HotbarSetup
         var module = NativeHotbars.Ready(current);
         string character = NativeHotbars.CharacterKey(Svc.PlayerState.ContentId);
         HotbarLayoutStore.Ready(false);
-        var protectedSlots = ProtectedSlots();
-        bool Protected(Position p) => protectedSlots.Contains(p) || NativeHotbars.Ready(current)->IsHotbarShared((uint)p.Bar);
+        bool Protected(Position p) => NativeHotbars.Ready(current)->IsHotbarShared((uint)p.Bar);
         Notice = "";
-        var extras = jobs.SelectMany(j => j.Preset.Slots.Where(s=>s.LogicalSlot>12)
+        var extras = jobs.Where(j=>!PveLayoutPlan.IsGatherer(j.Job)).SelectMany(j => j.Preset.Slots.Where(s=>s.LogicalSlot>12)
             .Select(s => ExtraJobMappings.For(j.Job,s.LogicalSlot))).Where(m => !Protected(m.Cross)).ToArray();
         var maps = ExtraJobMappings.Merge(Defaults.Maps(), extras, new());
         Defaults.Validate(maps);
@@ -56,7 +54,7 @@ internal sealed class HotbarSetup
                 .Where(a => !string.IsNullOrEmpty(a) && a != "Empty")
                 .Select(a => actions.ResolveSlot(preset.Job, a)).ToHashSet();
             var effectiveMaps = maps;
-            bool existingSprint = ModeActions.HasSharedSprint(_=>true, p=>NativeHotbars.Read(job,p));
+            bool existingSprint = ModeActions.HasSharedSprint(Protected, p=>NativeHotbars.Read(job,p));
             designActions.Add(new SlotValue(1,3));
             foreach (var entry in PveLayoutPlan.Create(job, preset, effectiveMaps, Protected, sprint:!existingSprint))
             {
@@ -74,19 +72,16 @@ internal sealed class HotbarSetup
             if (cleanup)
                 foreach (var edit in HotbarCleanup.Plan(job, keep, effectiveMaps,
                              bar => NativeHotbars.Ready(current)->IsHotbarShared((uint)bar), p => NativeHotbars.Read(job, p)))
-                    if (!Protected(edit.Position) && !ModeActions.IsSprint(edit.Before)) edits.Add((job, edit.Position), edit);
+                    if (!Protected(edit.Position)) edits.Add((job, edit.Position), edit);
 
             void Add(Position position, SlotValue value, SlotValue retired, bool keyboard = false)
             {
                 if (!position.Valid || !keep.Add(position)) throw new InvalidDataException("Invalid or duplicate layout destination.");
-                if (protectedSlots.Contains(position) || effectiveMaps.Any(m => m.SharedAcrossJobs && (m.Regular == position || m.Cross == position)))
-                    throw new InvalidOperationException($"{position} overlaps a protected shared slot.");
                 if (NativeHotbars.Ready(current)->IsHotbarShared((uint)position.Bar))
                     throw new InvalidOperationException($"{position} is a shared game hotbar. Choose job-specific bars first.");
                 // With cleanup off, an unused design position is not permission
                 // to erase an unrelated action. Recognised moved/retired design actions may be removed.
                 var old = NativeHotbars.Read(job, position);
-                if (value == default && ModeActions.IsSprint(old)) return;
                 if (value == default && !cleanup && (retired == default || old != retired) &&
                     !(keyboard && designActions.Contains(old))) return;
                 if (old != value) edits.Add((job, position), new(job, position, old, value));
@@ -104,13 +99,10 @@ internal sealed class HotbarSetup
             throw new InvalidOperationException("Character changed during hotbar setup.");
         if (backup.Edits.Select(e => (e.Job, e.Position)).Distinct().Count() != backup.Edits.Count)
             throw new InvalidDataException("Duplicate backup destinations.");
-        var map = Defaults.Maps();
         HotbarLayoutStore.Ready(false);
-        var protectedSlots = ProtectedSlots();
         foreach (var edit in backup.Edits)
         {
-            if (protectedSlots.Contains(edit.Position) || NativeHotbars.Ready(current)->IsHotbarShared((uint)edit.Position.Bar) ||
-                map?.Any(m => m.SharedAcrossJobs && (m.Regular == edit.Position || m.Cross == edit.Position)) == true)
+            if (NativeHotbars.Ready(current)->IsHotbarShared((uint)edit.Position.Bar))
                 throw new InvalidOperationException("A backup destination is now shared. Restore was blocked to protect shared controls.");
         }
         var directory = Path.Combine(Svc.PluginInterface.GetPluginConfigDirectory(), "hotbar-backups", backup.Character);

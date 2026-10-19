@@ -4534,7 +4534,7 @@
         }
       },
       "AutoBurst": {
-        "Description": "Enables Serpent\u2019s Ire. Continue pressing ST/AoE; scripted openers stay off. ",
+        "Description": "Enables Serpent’s Ire. Continue pressing ST/AoE; scripted openers stay off. ",
         "Enable": [
           30001,
           30005,
@@ -4802,7 +4802,7 @@
         ]
       },
       "AutoMitigation": {
-        "Description": "Enables Nature\u2019s Minne through ST, alongside the existing conditional Troubadour automation. Wrath applies its readiness, content, HP and damage-detection conditions. Keep manual defenses for deliberate timing and paths not covered by automation. Automated and manual uses share cooldowns.",
+        "Description": "Enables Nature’s Minne through ST, alongside the existing conditional Troubadour automation. Wrath applies its readiness, content, HP and damage-detection conditions. Keep manual defenses for deliberate timing and paths not covered by automation. Automated and manual uses share cooldowns.",
         "Enable": [
           3009,
           3070
@@ -6802,15 +6802,15 @@
           "LogicalSlot": 1,
           "RegularBar": 1,
           "RegularSlot": 1,
-          "CrossSlot": 16,
+          "CrossSlot": 1,
           "Action": "Bountiful Harvest",
-          "Function": "Next-hit yield"
+          "Function": "Next-hit yield / native upgrade"
         },
         {
           "LogicalSlot": 2,
           "RegularBar": 1,
           "RegularSlot": 2,
-          "CrossSlot": 15,
+          "CrossSlot": 2,
           "Action": "Blessed Harvest II",
           "Function": "Node yield"
         },
@@ -6818,7 +6818,7 @@
           "LogicalSlot": 3,
           "RegularBar": 1,
           "RegularSlot": 3,
-          "CrossSlot": 14,
+          "CrossSlot": 3,
           "Action": "Field Mastery III",
           "Function": "Gathering chance"
         },
@@ -6826,73 +6826,185 @@
           "LogicalSlot": 4,
           "RegularBar": 1,
           "RegularSlot": 4,
-          "CrossSlot": 12,
+          "CrossSlot": 4,
           "Action": "Ageless Words",
           "Function": "Integrity / Wise to the World"
         },
         {
           "LogicalSlot": 5,
-          "RegularBar": 2,
-          "RegularSlot": 1,
-          "CrossSlot": 13,
+          "RegularBar": 1,
+          "RegularSlot": 5,
+          "CrossSlot": 5,
           "Action": "Pioneer's Gift II",
           "Function": "Boon chance"
         },
         {
           "LogicalSlot": 6,
-          "RegularBar": 2,
-          "RegularSlot": 2,
-          "CrossSlot": 11,
+          "RegularBar": 1,
+          "RegularSlot": 6,
+          "CrossSlot": 6,
           "Action": "Nophica's Tidings",
           "Function": "Boon yield"
         },
         {
           "LogicalSlot": 7,
-          "RegularBar": 2,
-          "RegularSlot": 3,
-          "CrossSlot": 9,
+          "RegularBar": 1,
+          "RegularSlot": 7,
+          "CrossSlot": 7,
           "Action": "The Giving Land",
           "Function": "Crystal yield"
         },
         {
           "LogicalSlot": 8,
-          "RegularBar": 2,
-          "RegularSlot": 4,
-          "CrossSlot": 10,
-          "Action": "Collect",
-          "Function": "Collectable mode"
+          "RegularBar": 1,
+          "RegularSlot": 8,
+          "CrossSlot": 8,
+          "Action": "the Twelve's Bounty",
+          "Function": "Additional crystal yield"
         },
         {
           "LogicalSlot": 9,
-          "RegularBar": 2,
-          "RegularSlot": 12,
-          "CrossSlot": 4,
+          "RegularBar": 1,
+          "RegularSlot": 9,
+          "CrossSlot": 9,
+          "Action": "Collect",
+          "Function": "Collectable gathering"
+        },
+        {
+          "LogicalSlot": 10,
+          "RegularBar": 1,
+          "RegularSlot": 10,
+          "CrossSlot": 10,
           "Action": "Scour",
           "Function": "Collectability"
         },
         {
-          "LogicalSlot": 10,
-          "RegularBar": 2,
+          "LogicalSlot": 11,
+          "RegularBar": 1,
           "RegularSlot": 11,
-          "CrossSlot": 2,
+          "CrossSlot": 11,
           "Action": "Meticulous Woodsman",
           "Function": "Collectability / integrity preservation"
         },
         {
-          "LogicalSlot": 11,
-          "RegularBar": 2,
-          "RegularSlot": 5,
-          "CrossSlot": 3,
+          "LogicalSlot": 12,
+          "RegularBar": 1,
+          "RegularSlot": 12,
+          "CrossSlot": 12,
           "Action": "Scrutiny",
           "Function": "Next collectability buff"
         },
         {
-          "LogicalSlot": 12,
+          "LogicalSlot": 13,
+          "RegularBar": 2,
+          "RegularSlot": 1,
+          "CrossSlot": 13,
+          "Action": "Brazen Woodsman",
+          "Function": "Variable collectability"
+        },
+        {
+          "LogicalSlot": 14,
+          "RegularBar": 2,
+          "RegularSlot": 2,
+          "CrossSlot": 14,
+          "Action": "Collector's Focus",
+          "Function": "Collector intuition chance"
+        },
+        {
+          "LogicalSlot": 15,
+          "RegularBar": 2,
+          "RegularSlot": 3,
+          "CrossSlot": 15,
+          "Action": "Priming Touch",
+          "Function": "Integrity preservation buff"
+        },
+        {
+          "LogicalSlot": 16,
+          "RegularBar": 2,
+          "RegularSlot": 4,
+          "CrossSlot": 16,
+          "Action": "Triangulate",
+          "Function": "Detect botany nodes"
+        },
+        {
+          "LogicalSlot": 17,
+          "RegularBar": 2,
+          "RegularSlot": 5,
+          "CrossSlot": 1,
+          "Action": "Arbor Call",
+          "Function": "Nearest node / Triangulate"
+        },
+        {
+          "LogicalSlot": 18,
           "RegularBar": 2,
           "RegularSlot": 6,
-          "CrossSlot": 1,
+          "CrossSlot": 2,
           "Action": "Arbor Call II",
-          "Function": "Rare-node search / Truth"
+          "Function": "Highest-level node / Truth"
+        },
+        {
+          "LogicalSlot": 19,
+          "RegularBar": 2,
+          "RegularSlot": 7,
+          "CrossSlot": 3,
+          "Action": "Truth of Forests",
+          "Function": "Rare botany node detection"
+        },
+        {
+          "LogicalSlot": 20,
+          "RegularBar": 2,
+          "RegularSlot": 8,
+          "CrossSlot": 4,
+          "Action": "Sneak",
+          "Function": "Avoid nearby enemies"
+        },
+        {
+          "LogicalSlot": 21,
+          "RegularBar": 2,
+          "RegularSlot": 9,
+          "CrossSlot": 5,
+          "Action": "Flora Mastery",
+          "Function": "Next-hit gathering chance"
+        },
+        {
+          "LogicalSlot": 22,
+          "RegularBar": 2,
+          "RegularSlot": 10,
+          "CrossSlot": 6,
+          "Action": "Luck of the Pioneer",
+          "Function": "Reveal hidden items"
+        },
+        {
+          "LogicalSlot": 23,
+          "RegularBar": 2,
+          "RegularSlot": 11,
+          "CrossSlot": 7,
+          "Action": "Field Mastery",
+          "Function": "Low-cost gathering chance"
+        },
+        {
+          "LogicalSlot": 24,
+          "RegularBar": 2,
+          "RegularSlot": 12,
+          "CrossSlot": 8,
+          "Action": "Field Mastery II",
+          "Function": "Medium-cost gathering chance"
+        },
+        {
+          "LogicalSlot": 25,
+          "RegularBar": 3,
+          "RegularSlot": 1,
+          "CrossSlot": 9,
+          "Action": "Blessed Harvest",
+          "Function": "Lower-cost node yield"
+        },
+        {
+          "LogicalSlot": 26,
+          "RegularBar": 3,
+          "RegularSlot": 2,
+          "CrossSlot": 10,
+          "Action": "Pioneer's Gift I",
+          "Function": "Stackable boon chance"
         }
       ],
       "OwnedPresetIds": [
@@ -6905,21 +7017,10 @@
           51012
         ]
       },
-      "Usage": "Use yield and boon buffs to suit the node and available GP. Use the integrity button for Solid Reason/Ageless Words; Wrath offers Wise to the World during Eureka Moment. For collectables, enable Collect, then build collectability with Scrutiny and Scour or Meticulous before collecting. The search button first offers Truth when its buff is absent, then the rare-node search. Enable Prospect/Triangulate and Sneak through Actions & Traits when needed.",
+      "Usage": "Complete gathering toolkit across non-shared regular bars and controller pages, allocated in order. All activations are manual. Bountiful upgrades through the game; the integrity button becomes Wise to the World during Eureka Moment. Both search tiers, detection, Sneak, all collectability tools, stackable boon buffs and lower-cost buff alternatives remain accessible. Level and quest unlocks still apply.",
       "OmittedActions": [
-        "Arbor Call",
-        "Blessed Harvest",
-        "Brazen Woodsman",
-        "Collector's Focus",
-        "Field Mastery",
-        "Field Mastery II",
-        "Flora Mastery",
-        "Luck of the Pioneer",
-        "Pioneer's Gift I",
-        "Priming Touch",
-        "Sneak",
-        "Triangulate",
-        "the Twelve's Bounty"
+        "Bountiful Harvest II",
+        "Wise to the World"
       ],
       "AutoBurst": {
         "Description": "No change: this is a manual noncombat layout. The reviewed context replacements are already included in every variant; Wrath does not automatically gather or fish."
@@ -6929,7 +7030,8 @@
       },
       "AutoMechanics": {
         "Description": "No change: this is a manual noncombat layout. The reviewed context replacements are already included in every variant; Wrath does not automatically gather or fish."
-      }
+      },
+      "SetupRevision": 2
     },
     {
       "JobId": 8,
@@ -7224,7 +7326,7 @@
           "LogicalSlot": 1,
           "RegularBar": 1,
           "RegularSlot": 1,
-          "CrossSlot": 16,
+          "CrossSlot": 1,
           "Action": "Cast",
           "Function": "Cast / Hook / Gig"
         },
@@ -7232,89 +7334,241 @@
           "LogicalSlot": 2,
           "RegularBar": 1,
           "RegularSlot": 2,
-          "CrossSlot": 15,
-          "Action": "Mooch",
-          "Function": "Mooch / Shark Eye"
+          "CrossSlot": 2,
+          "Action": "Bait",
+          "Function": "Select bait"
         },
         {
           "LogicalSlot": 3,
           "RegularBar": 1,
           "RegularSlot": 3,
-          "CrossSlot": 14,
-          "Action": "Surface Slap",
-          "Function": "Exclude catch / Veteran Trade"
+          "CrossSlot": 3,
+          "Action": "Precision Hookset",
+          "Function": "Weak-bite hookset"
         },
         {
           "LogicalSlot": 4,
           "RegularBar": 1,
           "RegularSlot": 4,
-          "CrossSlot": 12,
-          "Action": "Prize Catch",
-          "Function": "Large catch / Nature's Bounty"
+          "CrossSlot": 4,
+          "Action": "Powerful Hookset",
+          "Function": "Strong-bite hookset"
         },
         {
           "LogicalSlot": 5,
-          "RegularBar": 2,
-          "RegularSlot": 1,
-          "CrossSlot": 13,
-          "Action": "Snagging",
-          "Function": "Special catches / Salvage"
+          "RegularBar": 1,
+          "RegularSlot": 5,
+          "CrossSlot": 5,
+          "Action": "Double Hook",
+          "Function": "Multiple catch"
         },
         {
           "LogicalSlot": 6,
-          "RegularBar": 2,
-          "RegularSlot": 2,
-          "CrossSlot": 11,
-          "Action": "Fish Eyes",
-          "Function": "Time restriction / Vital Sight"
+          "RegularBar": 1,
+          "RegularSlot": 6,
+          "CrossSlot": 6,
+          "Action": "Triple Hook",
+          "Function": "Larger multiple catch"
         },
         {
           "LogicalSlot": 7,
-          "RegularBar": 2,
-          "RegularSlot": 3,
+          "RegularBar": 1,
+          "RegularSlot": 7,
+          "CrossSlot": 7,
+          "Action": "Mooch",
+          "Function": "Mooch / Shark Eye"
+        },
+        {
+          "LogicalSlot": 8,
+          "RegularBar": 1,
+          "RegularSlot": 8,
+          "CrossSlot": 8,
+          "Action": "Mooch II",
+          "Function": "Cooldown mooch / Shark Eye II"
+        },
+        {
+          "LogicalSlot": 9,
+          "RegularBar": 1,
+          "RegularSlot": 9,
           "CrossSlot": 9,
           "Action": "Chum",
           "Function": "Bite speed / Baited Breath"
         },
         {
-          "LogicalSlot": 8,
-          "RegularBar": 2,
-          "RegularSlot": 4,
+          "LogicalSlot": 10,
+          "RegularBar": 1,
+          "RegularSlot": 10,
           "CrossSlot": 10,
-          "Action": "Cast Light",
-          "Function": "Light / Electric Current"
+          "Action": "Thaliak's Favor",
+          "Function": "GP recovery"
         },
         {
-          "LogicalSlot": 9,
-          "RegularBar": 2,
+          "LogicalSlot": 11,
+          "RegularBar": 1,
+          "RegularSlot": 11,
+          "CrossSlot": 11,
+          "Action": "Patience",
+          "Function": "Lower-cost large-catch chance"
+        },
+        {
+          "LogicalSlot": 12,
+          "RegularBar": 1,
           "RegularSlot": 12,
-          "CrossSlot": 4,
+          "CrossSlot": 12,
           "Action": "Patience II",
           "Function": "Large-catch chance"
         },
         {
-          "LogicalSlot": 10,
+          "LogicalSlot": 13,
           "RegularBar": 2,
-          "RegularSlot": 11,
-          "CrossSlot": 2,
-          "Action": "Precision Hookset",
-          "Function": "Weak-bite hookset"
+          "RegularSlot": 1,
+          "CrossSlot": 13,
+          "Action": "Prize Catch",
+          "Function": "Guaranteed large catch / Nature's Bounty"
         },
         {
-          "LogicalSlot": 11,
+          "LogicalSlot": 14,
+          "RegularBar": 2,
+          "RegularSlot": 2,
+          "CrossSlot": 14,
+          "Action": "Surface Slap",
+          "Function": "Exclude last catch / Veteran Trade"
+        },
+        {
+          "LogicalSlot": 15,
+          "RegularBar": 2,
+          "RegularSlot": 3,
+          "CrossSlot": 15,
+          "Action": "Identical Cast",
+          "Function": "Repeat last catch"
+        },
+        {
+          "LogicalSlot": 16,
+          "RegularBar": 2,
+          "RegularSlot": 4,
+          "CrossSlot": 16,
+          "Action": "Makeshift Bait",
+          "Function": "Mooch with average fish"
+        },
+        {
+          "LogicalSlot": 17,
           "RegularBar": 2,
           "RegularSlot": 5,
-          "CrossSlot": 3,
-          "Action": "Powerful Hookset",
-          "Function": "Strong-bite hookset"
+          "CrossSlot": 1,
+          "Action": "Spareful Hand",
+          "Function": "Store swimbait"
         },
         {
-          "LogicalSlot": 12,
+          "LogicalSlot": 18,
           "RegularBar": 2,
           "RegularSlot": 6,
-          "CrossSlot": 1,
-          "Action": "Thaliak's Favor",
-          "Function": "GP recovery"
+          "CrossSlot": 2,
+          "Action": "Big-game Fishing",
+          "Function": "Catch size"
+        },
+        {
+          "LogicalSlot": 19,
+          "RegularBar": 2,
+          "RegularSlot": 7,
+          "CrossSlot": 3,
+          "Action": "Modest Lure",
+          "Function": "Small-jawed fish lure"
+        },
+        {
+          "LogicalSlot": 20,
+          "RegularBar": 2,
+          "RegularSlot": 8,
+          "CrossSlot": 4,
+          "Action": "Ambitious Lure",
+          "Function": "Large-jawed fish lure"
+        },
+        {
+          "LogicalSlot": 21,
+          "RegularBar": 2,
+          "RegularSlot": 9,
+          "CrossSlot": 5,
+          "Action": "Snagging",
+          "Function": "Special catches / Salvage"
+        },
+        {
+          "LogicalSlot": 22,
+          "RegularBar": 2,
+          "RegularSlot": 10,
+          "CrossSlot": 6,
+          "Action": "Fish Eyes",
+          "Function": "Time restriction / Vital Sight"
+        },
+        {
+          "LogicalSlot": 23,
+          "RegularBar": 2,
+          "RegularSlot": 11,
+          "CrossSlot": 7,
+          "Action": "Collect",
+          "Function": "Collectable gathering"
+        },
+        {
+          "LogicalSlot": 24,
+          "RegularBar": 2,
+          "RegularSlot": 12,
+          "CrossSlot": 8,
+          "Action": "Cast Light",
+          "Function": "Rod light / Electric Current"
+        },
+        {
+          "LogicalSlot": 25,
+          "RegularBar": 3,
+          "RegularSlot": 1,
+          "CrossSlot": 9,
+          "Action": "Fathom",
+          "Function": "Detect teeming waters"
+        },
+        {
+          "LogicalSlot": 26,
+          "RegularBar": 3,
+          "RegularSlot": 2,
+          "CrossSlot": 10,
+          "Action": "Truth of Oceans",
+          "Function": "Swimming shadow detection"
+        },
+        {
+          "LogicalSlot": 27,
+          "RegularBar": 3,
+          "RegularSlot": 3,
+          "CrossSlot": 11,
+          "Action": "Sneak",
+          "Function": "Avoid nearby enemies"
+        },
+        {
+          "LogicalSlot": 28,
+          "RegularBar": 3,
+          "RegularSlot": 4,
+          "CrossSlot": 12,
+          "Action": "Rest",
+          "Function": "Stop fishing with equipment ready"
+        },
+        {
+          "LogicalSlot": 29,
+          "RegularBar": 3,
+          "RegularSlot": 5,
+          "CrossSlot": 13,
+          "Action": "Quit",
+          "Function": "Stop fishing and stow equipment"
+        },
+        {
+          "LogicalSlot": 30,
+          "RegularBar": 3,
+          "RegularSlot": 6,
+          "CrossSlot": 14,
+          "Action": "Release",
+          "Function": "Release catch"
+        },
+        {
+          "LogicalSlot": 31,
+          "RegularBar": 3,
+          "RegularSlot": 7,
+          "CrossSlot": 15,
+          "Action": "Release List",
+          "Function": "Configure automatic releases"
         }
       ],
       "OwnedPresetIds": [
@@ -7343,28 +7597,18 @@
           51011
         ]
       },
-      "Usage": "Select bait and enable Collect through Actions & Traits before fishing when needed. Cast changes to Hook while fishing and Gig while diving. Under Patience use Precision Hookset for weak bites and Powerful Hookset for strong bites. Mooch, Surface Slap, Prize Catch, Snagging, Fish Eyes, Chum and Cast Light change to their listed spearfishing functions while diving. Use Thaliak\u2019s Favor to recover GP when available. Bait, catch choice and every activation remain manual; specialized ocean-fishing and big-fish sequences need omitted actions.",
+      "Usage": "Complete rod and spear toolkit across non-shared regular bars and controller pages, allocated in order. Cast becomes Hook while fishing and Gig while diving. Mooch/Mooch II become Shark Eye/Shark Eye II; Surface Slap, Prize Catch, Snagging, Fish Eyes, Chum and Cast Light expose the corresponding spear actions while diving. Bait, both Patience tiers, hooksets, Double/Triple Hook, mooching, catch control, lures, collectables, detection and stopping controls remain accessible. All activations are manual and require their normal unlocks.",
       "OmittedActions": [
-        "Ambitious Lure",
-        "Bait",
-        "Big-game Fishing",
-        "Collect",
-        "Double Hook",
-        "Fathom",
-        "Identical Cast",
-        "Makeshift Bait",
-        "Modest Lure",
-        "Mooch II",
-        "Patience",
-        "Quit",
-        "Release",
-        "Release List",
-        "Rest",
+        "Hook",
+        "Gig",
+        "Shark Eye",
         "Shark Eye II",
-        "Sneak",
-        "Spareful Hand",
-        "Triple Hook",
-        "Truth of Oceans"
+        "Veteran Trade",
+        "Nature's Bounty",
+        "Salvage",
+        "Vital Sight",
+        "Baited Breath",
+        "Electric Current"
       ],
       "AutoBurst": {
         "Description": "No change: this is a manual noncombat layout. The reviewed context replacements are already included in every variant; Wrath does not automatically gather or fish."
@@ -7374,7 +7618,8 @@
       },
       "AutoMechanics": {
         "Description": "No change: this is a manual noncombat layout. The reviewed context replacements are already included in every variant; Wrath does not automatically gather or fish."
-      }
+      },
+      "SetupRevision": 2
     },
     {
       "JobId": 11,
@@ -7669,15 +7914,15 @@
           "LogicalSlot": 1,
           "RegularBar": 1,
           "RegularSlot": 1,
-          "CrossSlot": 16,
+          "CrossSlot": 1,
           "Action": "Bountiful Yield",
-          "Function": "Next-hit yield"
+          "Function": "Next-hit yield / native upgrade"
         },
         {
           "LogicalSlot": 2,
           "RegularBar": 1,
           "RegularSlot": 2,
-          "CrossSlot": 15,
+          "CrossSlot": 2,
           "Action": "King's Yield II",
           "Function": "Node yield"
         },
@@ -7685,7 +7930,7 @@
           "LogicalSlot": 3,
           "RegularBar": 1,
           "RegularSlot": 3,
-          "CrossSlot": 14,
+          "CrossSlot": 3,
           "Action": "Sharp Vision III",
           "Function": "Gathering chance"
         },
@@ -7693,73 +7938,185 @@
           "LogicalSlot": 4,
           "RegularBar": 1,
           "RegularSlot": 4,
-          "CrossSlot": 12,
+          "CrossSlot": 4,
           "Action": "Solid Reason",
           "Function": "Integrity / Wise to the World"
         },
         {
           "LogicalSlot": 5,
-          "RegularBar": 2,
-          "RegularSlot": 1,
-          "CrossSlot": 13,
+          "RegularBar": 1,
+          "RegularSlot": 5,
+          "CrossSlot": 5,
           "Action": "Mountaineer's Gift II",
           "Function": "Boon chance"
         },
         {
           "LogicalSlot": 6,
-          "RegularBar": 2,
-          "RegularSlot": 2,
-          "CrossSlot": 11,
+          "RegularBar": 1,
+          "RegularSlot": 6,
+          "CrossSlot": 6,
           "Action": "Nald'thal's Tidings",
           "Function": "Boon yield"
         },
         {
           "LogicalSlot": 7,
-          "RegularBar": 2,
-          "RegularSlot": 3,
-          "CrossSlot": 9,
+          "RegularBar": 1,
+          "RegularSlot": 7,
+          "CrossSlot": 7,
           "Action": "The Giving Land",
           "Function": "Crystal yield"
         },
         {
           "LogicalSlot": 8,
-          "RegularBar": 2,
-          "RegularSlot": 4,
-          "CrossSlot": 10,
-          "Action": "Collect",
-          "Function": "Collectable mode"
+          "RegularBar": 1,
+          "RegularSlot": 8,
+          "CrossSlot": 8,
+          "Action": "the Twelve's Bounty",
+          "Function": "Additional crystal yield"
         },
         {
           "LogicalSlot": 9,
-          "RegularBar": 2,
-          "RegularSlot": 12,
-          "CrossSlot": 4,
+          "RegularBar": 1,
+          "RegularSlot": 9,
+          "CrossSlot": 9,
+          "Action": "Collect",
+          "Function": "Collectable gathering"
+        },
+        {
+          "LogicalSlot": 10,
+          "RegularBar": 1,
+          "RegularSlot": 10,
+          "CrossSlot": 10,
           "Action": "Scour",
           "Function": "Collectability"
         },
         {
-          "LogicalSlot": 10,
-          "RegularBar": 2,
+          "LogicalSlot": 11,
+          "RegularBar": 1,
           "RegularSlot": 11,
-          "CrossSlot": 2,
+          "CrossSlot": 11,
           "Action": "Meticulous Prospector",
           "Function": "Collectability / integrity preservation"
         },
         {
-          "LogicalSlot": 11,
-          "RegularBar": 2,
-          "RegularSlot": 5,
-          "CrossSlot": 3,
+          "LogicalSlot": 12,
+          "RegularBar": 1,
+          "RegularSlot": 12,
+          "CrossSlot": 12,
           "Action": "Scrutiny",
           "Function": "Next collectability buff"
         },
         {
-          "LogicalSlot": 12,
+          "LogicalSlot": 13,
+          "RegularBar": 2,
+          "RegularSlot": 1,
+          "CrossSlot": 13,
+          "Action": "Brazen Prospector",
+          "Function": "Variable collectability"
+        },
+        {
+          "LogicalSlot": 14,
+          "RegularBar": 2,
+          "RegularSlot": 2,
+          "CrossSlot": 14,
+          "Action": "Collector's Focus",
+          "Function": "Collector intuition chance"
+        },
+        {
+          "LogicalSlot": 15,
+          "RegularBar": 2,
+          "RegularSlot": 3,
+          "CrossSlot": 15,
+          "Action": "Priming Touch",
+          "Function": "Integrity preservation buff"
+        },
+        {
+          "LogicalSlot": 16,
+          "RegularBar": 2,
+          "RegularSlot": 4,
+          "CrossSlot": 16,
+          "Action": "Prospect",
+          "Function": "Detect mining nodes"
+        },
+        {
+          "LogicalSlot": 17,
+          "RegularBar": 2,
+          "RegularSlot": 5,
+          "CrossSlot": 1,
+          "Action": "Lay of the Land",
+          "Function": "Nearest node / Prospect"
+        },
+        {
+          "LogicalSlot": 18,
           "RegularBar": 2,
           "RegularSlot": 6,
-          "CrossSlot": 1,
+          "CrossSlot": 2,
           "Action": "Lay of the Land II",
-          "Function": "Rare-node search / Truth"
+          "Function": "Highest-level node / Truth"
+        },
+        {
+          "LogicalSlot": 19,
+          "RegularBar": 2,
+          "RegularSlot": 7,
+          "CrossSlot": 3,
+          "Action": "Truth of Mountains",
+          "Function": "Rare mining node detection"
+        },
+        {
+          "LogicalSlot": 20,
+          "RegularBar": 2,
+          "RegularSlot": 8,
+          "CrossSlot": 4,
+          "Action": "Sneak",
+          "Function": "Avoid nearby enemies"
+        },
+        {
+          "LogicalSlot": 21,
+          "RegularBar": 2,
+          "RegularSlot": 9,
+          "CrossSlot": 5,
+          "Action": "Clear Vision",
+          "Function": "Next-hit gathering chance"
+        },
+        {
+          "LogicalSlot": 22,
+          "RegularBar": 2,
+          "RegularSlot": 10,
+          "CrossSlot": 6,
+          "Action": "Luck of the Mountaineer",
+          "Function": "Reveal hidden items"
+        },
+        {
+          "LogicalSlot": 23,
+          "RegularBar": 2,
+          "RegularSlot": 11,
+          "CrossSlot": 7,
+          "Action": "Sharp Vision",
+          "Function": "Low-cost gathering chance"
+        },
+        {
+          "LogicalSlot": 24,
+          "RegularBar": 2,
+          "RegularSlot": 12,
+          "CrossSlot": 8,
+          "Action": "Sharp Vision II",
+          "Function": "Medium-cost gathering chance"
+        },
+        {
+          "LogicalSlot": 25,
+          "RegularBar": 3,
+          "RegularSlot": 1,
+          "CrossSlot": 9,
+          "Action": "King's Yield",
+          "Function": "Lower-cost node yield"
+        },
+        {
+          "LogicalSlot": 26,
+          "RegularBar": 3,
+          "RegularSlot": 2,
+          "CrossSlot": 10,
+          "Action": "Mountaineer's Gift I",
+          "Function": "Stackable boon chance"
         }
       ],
       "OwnedPresetIds": [
@@ -7772,21 +8129,10 @@
           51012
         ]
       },
-      "Usage": "Use yield and boon buffs to suit the node and available GP. Use the integrity button for Solid Reason/Ageless Words; Wrath offers Wise to the World during Eureka Moment. For collectables, enable Collect, then build collectability with Scrutiny and Scour or Meticulous before collecting. The search button first offers Truth when its buff is absent, then the rare-node search. Enable Prospect/Triangulate and Sneak through Actions & Traits when needed.",
+      "Usage": "Complete gathering toolkit across non-shared regular bars and controller pages, allocated in order. All activations are manual. Bountiful upgrades through the game; the integrity button becomes Wise to the World during Eureka Moment. Both search tiers, detection, Sneak, all collectability tools, stackable boon buffs and lower-cost buff alternatives remain accessible. Level and quest unlocks still apply.",
       "OmittedActions": [
-        "Brazen Prospector",
-        "Clear Vision",
-        "Collector's Focus",
-        "King's Yield",
-        "Lay of the Land",
-        "Luck of the Mountaineer",
-        "Mountaineer's Gift I",
-        "Priming Touch",
-        "Prospect",
-        "Sharp Vision",
-        "Sharp Vision II",
-        "Sneak",
-        "the Twelve's Bounty"
+        "Bountiful Yield II",
+        "Wise to the World"
       ],
       "AutoBurst": {
         "Description": "No change: this is a manual noncombat layout. The reviewed context replacements are already included in every variant; Wrath does not automatically gather or fish."
@@ -7796,7 +8142,8 @@
       },
       "AutoMechanics": {
         "Description": "No change: this is a manual noncombat layout. The reviewed context replacements are already included in every variant; Wrath does not automatically gather or fish."
-      }
+      },
+      "SetupRevision": 2
     },
     {
       "JobId": 13,
