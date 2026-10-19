@@ -1,0 +1,16 @@
+{
+  "Author": "kaldigo",
+  "Name": "Accord",
+  "InternalName": "Accord",
+  "DalamudApiLevel": 15,
+  "Punchline": "Reviewed intent settings and matching hotbars.",
+  "Description": "Configures the compatible Wrathful Combo engine through its settings API and manages static/live hotbars. Includes compact PvE/PvP layouts, three-bar manual logout fallback with login restoration, and automatic Sprint conversion on active hotbars. Development preview.",
+  "RepoUrl": "https://github.com/kaldigo/FFXIVAccord",
+  "Tags": [
+    "hotbars",
+    "configuration",
+    "pve",
+    "pvp"
+  ],
+  "IconUrl": "https://raw.githubusercontent.com/kaldigo/FFXIVAccord/main/assets/icon.png"
+}

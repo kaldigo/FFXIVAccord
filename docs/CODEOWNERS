@@ -1,0 +1,47 @@
+﻿# Avoid notifying everyone every PR
+*
+
+# PvE Combos
+/WrathCombo/Combos/PvE/AST/                           
+/WrathCombo/Combos/PvE/BLM/                           @Kagekazu
+/WrathCombo/Combos/PvE/BLU/                           
+/WrathCombo/Combos/PvE/BRD/                           
+/WrathCombo/Combos/PvE/DNC/                           
+/WrathCombo/Combos/PvE/DRG/                           @Kagekazu
+/WrathCombo/Combos/PvE/DRK/                           
+/WrathCombo/Combos/PvE/GNB/                           @Akechi-kun
+/WrathCombo/Combos/PvE/MCH/                           @Kagekazu
+/WrathCombo/Combos/PvE/MNK/                           @Kagekazu
+/WrathCombo/Combos/PvE/NIN/                           
+/WrathCombo/Combos/PvE/PCT/                           
+/WrathCombo/Combos/PvE/PLD/                           @Kaeris-Tempest 
+/WrathCombo/Combos/PvE/RDM/                           
+/WrathCombo/Combos/PvE/RPR/                           @Kagekazu
+/WrathCombo/Combos/PvE/SAM/                           @Kagekazu
+/WrathCombo/Combos/PvE/SCH/                           
+/WrathCombo/Combos/PvE/SGE/                           @Kagekazu 
+/WrathCombo/Combos/PvE/SMN/                           
+/WrathCombo/Combos/PvE/VPR/                           @Kagekazu
+/WrathCombo/Combos/PvE/WAR/                           
+/WrathCombo/Combos/PvE/WHM/                           
+
+# PvP Combos
+/WrathCombo/Combos/PvP/                               @Kaeris-Tempest 
+/WrathCombo/Combos/PvP/BLMPVP.cs                      @Kaeris-Tempest
+/WrathCombo/Combos/PvP/RDMPVP.cs                      @Kaeris-Tempest
+/WrathCombo/Combos/PvP/SAMPVP.cs                      @Kaeris-Tempest
+/WrathCombo/Combos/PvP/VPRPVP.cs                      @Kaeris-Tempest
+
+# Other Owners
+/res/motd.txt                                         @Taurenkey
+/WrathCombo/Data/ActionWatching.cs                    @Taurenkey
+/WrathCombo/AutoRotation/                             @Taurenkey
+/WrathCombo/CustomCombo/                              @Taurenkey
+/WrathCombo/CustomCombo/Functions/                    @Taurenkey
+/WrathCombo/Core/                                     @Taurenkey
+/WrathCombo/Services/IPC_Subscriber/Orbwalker.cs      @Taurenkey
+/WrathCombo/CustomCombo/Functions/Target.cs           @Taurenkey @Kaeris-Tempest              
+/WrathCombo/Combos/PvE/Content/Bozja.cs               @Akechi-kun
+
+# Protect the owners file
+/docs/CODEOWNERS                                      @Taurenkey

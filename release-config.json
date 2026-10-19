@@ -1,0 +1,15 @@
+{
+  "internal_name": "Accord",
+  "repository": "kaldigo/FFXIVAccord",
+  "minimum_version": "0.2.15.0",
+  "project": "Accord.Plugin/Accord.csproj",
+  "build": "Accord.Plugin/bin/Release",
+  "required_dlls": [
+    "Accord.dll",
+    "ECommons.dll"
+  ],
+  "licenses": {
+    "LICENSE": "LICENSE",
+    "ECommons/LICENSE.md": "licenses/ECommons.md"
+  }
+}
