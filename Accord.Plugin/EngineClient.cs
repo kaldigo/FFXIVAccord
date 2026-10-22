@@ -27,6 +27,9 @@ internal sealed class EngineClient : IDisposable
             result.Value<string>("EngineVersion") != "1.0.4.27" ||
             Enum.GetNames<Feature>().Except(result["Features"]!.Values<string>()).Any())
             throw new InvalidOperationException("The fork API/settings capabilities do not match this reviewed setup.");
+        if (result["PresetIds"]?["DOL_ContextTools"]?.Value<int>() != 51013 ||
+            result["PresetIds"]?["FSH_ContextTools"]?.Value<int>() != 51014)
+            throw new InvalidOperationException("Update Wrath Combo through the plugin installer before applying the compact gathering layouts.");
         return result;
     }
 

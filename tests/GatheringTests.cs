@@ -31,9 +31,10 @@ internal static class GatheringTests
                 var settings=new AccordSettings();
                 foreach(var id in Enum.GetValues<VariantId>())settings.Variants[id]=(mask&(1<<(int)id))!=0;
                 var resolved=pack.Resolve(job,settings);
-                Check(resolved.Slots.Length== (job.JobId==18 ? 31 : 26),"toolkit was truncated by a variant");
+                Check(resolved.Slots.Length== (job.JobId==18 ? 22 : 14),"toolkit was truncated by a variant");
                 bool Protected(Position p)=>NativeHotbars.Shared.Contains(p.Bar);
                 var plan=PveLayoutPlan.Create(job.JobId,resolved,Defaults.Maps(),Protected,true);
+                Check(plan.Select(e=>e.Regular.Bar).Distinct().Count()<=2,"compact layout spilled into a third regular bar");
                 Check(plan.Select(e=>e.Regular).Distinct().Count()==plan.Length,"duplicate regular destination");
                 Check(plan.Where(e=>e.Cross.HasValue).Select(e=>e.Cross).Distinct().Count()==plan.Count(e=>e.Cross.HasValue),"duplicate controller destination");
                 var expected=new Dictionary<Position,SlotValue>();

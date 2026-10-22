@@ -36,8 +36,8 @@ internal static class ActionAccess
         if (job is "MIN" or "BTN" or "FSH")
         {
             string[] replacements = job=="FSH"
-                ? ["FSH_CastHook","FSH_Swim","FSH_CastGig","FSH_SurfaceTrade","FSH_PrizeBounty","FSH_SnaggingSalvage","FSH_CastLight_ElectricCurrent","FSH_Mooch_SharkEye","FSH_FishEyes_VitalSight","FSH_Chum_BaitedBreath"]
-                : ["DOL_Eureka","DOL_NodeSearchingBuffs"];
+                ? ["FSH_ContextTools"]
+                : ["DOL_Eureka","DOL_ContextTools"];
             var current=settings["EnabledActionsV6"]!.Values<int>().ToHashSet();
             foreach(var name in replacements)
                 if(!current.Contains(names.Value<int>(name)))throw new Exception("Gatherer replacement is unavailable: "+name);

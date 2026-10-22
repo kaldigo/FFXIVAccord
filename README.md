@@ -4,9 +4,9 @@ Accord owns intent settings, selected classes, and matching PvE/PvP hotbars. It 
 
 Install through the shared [Dalamud plugin repository](https://github.com/kaldigo/DalamudPlugins). Plugin identity, `/accord`, configuration, and migration behaviour are unchanged.
 
-The current preview includes three-bar manual PvE layouts saved before normal logout, with exact normal layouts restored when compatible Wrath is available. [Fallback behaviour](docs/manual-fallback.md) · [Button tables](docs/manual-layouts.md). Native in-game acceptance remains pending.
+The current preview includes three-bar manual PvE layouts saved before normal logout, with exact normal layouts restored when compatible Wrath is available. [Fallback behaviour](docs/manual-fallback.md) ï¿½ [Button tables](docs/manual-layouts.md). Native in-game acceptance remains pending.
 
-Cleanup protects only native game-shared bars. Former utility-slot and Sprint exceptions are removed. The complete [gathering layouts](docs/gathering-layouts.md) cover Miner, Botanist and Fisher beyond the old twelve-action limit, with direct access to every distinct action and reviewed native/engine replacements.
+Cleanup protects only native game-shared bars. Former utility-slot and Sprint exceptions are removed. The compact [gathering layouts](docs/gathering-layouts.md) use 14 Miner/Botanist and 22 Fisher controls, with context switching supplied by Wrath and deliberate manual choices retained. Update both plugins together.
 
 ## Build and release
 

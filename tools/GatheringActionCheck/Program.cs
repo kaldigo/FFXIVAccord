@@ -20,14 +20,13 @@ foreach(var job in pack.Jobs.Where(j=>j.JobId is 16 or 17 or 18))
     var assigned=job.Slots.Select(s=>s.Action).ToHashSet(StringComparer.OrdinalIgnoreCase);
     // Every unassigned current action needs a specific native upgrade or enabled engine replacement.
     var covered=job.JobId switch {
-        16=>new Dictionary<string,string>{{"Bountiful Yield II","Bountiful Yield"},{"Wise to the World","Solid Reason"}},
-        17=>new Dictionary<string,string>{{"Bountiful Harvest II","Bountiful Harvest"},{"Wise to the World","Ageless Words"}},
-        _=>new Dictionary<string,string>{{"Hook","Cast"},{"Gig","Cast"},{"Shark Eye","Mooch"},{"Shark Eye II","Mooch II"},
-            {"Veteran Trade","Surface Slap"},{"Nature's Bounty","Prize Catch"},{"Salvage","Snagging"},
-            {"Vital Sight","Fish Eyes"},{"Baited Breath","Chum"},{"Electric Current","Cast Light"}}
+        16=>new Dictionary<string,string>{{"Scour","Bountiful Yield"},{"Meticulous Prospector","King's Yield II"},{"Brazen Prospector","Sharp Vision III"},{"Collector's Focus","Mountaineer's Gift II"},{"Priming Touch","Nald'thal's Tidings"},{"Scrutiny","The Giving Land"},{"Collect","the Twelve's Bounty"},{"Prospect","Clear Vision"},{"Truth of Mountains","Luck of the Mountaineer"},{"Lay of the Land","Sharp Vision"},{"Lay of the Land II","Sharp Vision II"},{"Sneak","King's Yield"},{"Bountiful Yield II","Bountiful Yield"},{"Wise to the World","Solid Reason"}},
+        17=>new Dictionary<string,string>{{"Scour","Bountiful Harvest"},{"Meticulous Woodsman","Blessed Harvest II"},{"Brazen Woodsman","Field Mastery III"},{"Collector's Focus","Pioneer's Gift II"},{"Priming Touch","Nophica's Tidings"},{"Scrutiny","The Giving Land"},{"Collect","the Twelve's Bounty"},{"Triangulate","Flora Mastery"},{"Truth of Forests","Luck of the Pioneer"},{"Arbor Call","Field Mastery"},{"Arbor Call II","Field Mastery II"},{"Sneak","Blessed Harvest"},{"Bountiful Harvest II","Bountiful Harvest"},{"Wise to the World","Ageless Words"}},
+        18=>new Dictionary<string,string>{{"Precision Hookset","Patience"},{"Powerful Hookset","Patience II"},{"Double Hook","Prize Catch"},{"Triple Hook","Big-game Fishing"},{"Modest Lure","Surface Slap"},{"Ambitious Lure","Identical Cast"},{"Mooch","Mooch II"},{"Fathom","Bait"},{"Truth of Oceans","Spareful Hand"},{"Hook","Cast"},{"Gig","Cast"},{"Shark Eye","Makeshift Bait"},{"Shark Eye II","Mooch II"},{"Veteran Trade","Surface Slap"},{"Nature's Bounty","Prize Catch"},{"Salvage","Snagging"},{"Vital Sight","Fish Eyes"},{"Baited Breath","Chum"},{"Electric Current","Cast Light"}},
+        _=>throw new Exception("Unexpected job")
     };
     var enabled=job.Settings["EnabledActionsV6"]!.AsArray().Select(n=>n!.GetValue<int>()).ToHashSet();
-    var requiredPresets=job.JobId==18 ? new[]{51002,51008,51003,51004,51005,51006,51007,51009,51010,51011} : new[]{51001,51012};
+    var requiredPresets=job.JobId==18 ? new[]{51014} : new[]{51001,51013};
     if(!requiredPresets.All(enabled.Contains))throw new Exception(job.Job+": required context replacement disabled");
     foreach(var (replacement,root) in covered)
         if(!assigned.Contains(root))throw new Exception(job.Job+": replacement root missing: "+replacement);
