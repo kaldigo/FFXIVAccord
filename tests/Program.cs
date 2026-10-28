@@ -454,6 +454,8 @@ liveUpdates.Apply(31, 2, () => { });
 liveUpdates.Request();
 Check(liveUpdates.Poll(1253, 31, 2) && !liveUpdates.Applied, "Variant or cleanup change did not refresh current layout.");
 checks += HotbarIndependenceTests.Run();
+checks += LayoutPreferencesTests.Run();
+checks += ConfiguredHotbarTests.Run();
 checks += ManualFallbackTests.Run();
 checks += UpstreamMigrationTests.Run();
 checks += SeparationTests.Run();

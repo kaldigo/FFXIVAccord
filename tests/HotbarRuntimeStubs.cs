@@ -29,7 +29,9 @@ namespace ECommons.DalamudServices
     internal sealed class FakeConditions
     {
         internal bool Blocked;
-        internal bool this[Dalamud.Game.ClientState.Conditions.ConditionFlag flag] => Blocked;
+        internal bool InCombat;
+        internal bool this[Dalamud.Game.ClientState.Conditions.ConditionFlag flag] =>
+            flag == Dalamud.Game.ClientState.Conditions.ConditionFlag.InCombat ? InCombat : Blocked;
     }
     internal sealed class FakeData
     {

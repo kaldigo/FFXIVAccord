@@ -8,6 +8,9 @@
     <EngineSourceRoot Condition="'$(EngineSourceRoot)' == ''">$(MSBuildThisFileDirectory)../.engine</EngineSourceRoot>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Accord.Plugin/LayoutPreferences.cs" Link="LayoutPreferences.cs" />
+    <Compile Include="../Accord.Plugin/ConfiguredLayout.cs" Link="ConfiguredLayout.cs" />
+    <Compile Include="../Accord.Plugin/CombinedUpdate.cs" Link="CombinedUpdate.cs" />
     <Compile Include="../Contract/*.cs" Link="Contract/%(Filename)%(Extension)" />
     <Reference Include="Dalamud"><HintPath>$(appdata)/XIVLauncher/addon/Hooks/dev/Dalamud.dll</HintPath></Reference>
     <Compile Include="../Accord.Plugin/HotbarLayoutStore.cs" Link="HotbarLayoutStore.cs" />

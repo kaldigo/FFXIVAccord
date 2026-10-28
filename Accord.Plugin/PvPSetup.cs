@@ -77,8 +77,6 @@ internal sealed class PvPSetup
             if(character==0)return;
             if(Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas] || Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas51])
             {Status="PvP layout paused while loading.";return;}
-            if(Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.InCombat])
-            {Status="PvP layout paused during combat; it will resume afterwards.";return;}
             unsafe{NativeHotbars.Ready(job,true);}
             var profile=Pack.Find(job)!;
             var snapshot=engine.Read();

@@ -27,8 +27,8 @@ internal sealed class PvPHotbars
     {
         uint current=(uint)Player.Job;
         NativeHotbars.Ready(current,true);
-        if(Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.InCombat] || Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas] || Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas51])
-            throw new InvalidOperationException("PvP hotbar changes wait for combat and loading to finish.");
+        if(Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas] || Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas51])
+            throw new InvalidOperationException("PvP hotbar changes wait for loading to finish.");
         HotbarLayoutStore.Ready(true);
         var maps=Defaults.Maps().Where(m=>m.Profile!="Noncombat").ToList();
         bool Protected(Position p) => NativeHotbars.Ready(current,true)->IsHotbarShared((uint)p.Bar);

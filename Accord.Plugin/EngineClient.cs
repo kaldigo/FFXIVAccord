@@ -30,6 +30,8 @@ internal sealed class EngineClient : IDisposable
         if (result["PresetIds"]?["DOL_ContextTools"]?.Value<int>() != 51013 ||
             result["PresetIds"]?["FSH_ContextTools"]?.Value<int>() != 51014)
             throw new InvalidOperationException("Update Wrath Combo through the plugin installer before applying the compact gathering layouts.");
+        if (result["Settings"]?["ActionRoutes"] is not JObject || result.Value<uint?>("DirectActionOffset") != DirectAction.Offset)
+            throw new InvalidOperationException("Update the compatible Wrath fork before using configurable intent layouts.");
         return result;
     }
 
@@ -46,6 +48,14 @@ internal sealed class EngineClient : IDisposable
         File.WriteAllText(temporary, journal.ToString());
         File.Move(temporary, Journal, true);
         Recover();
+    }
+
+    internal void RestoreSettings(JObject before, AccordSettings choices)
+    {
+        if (HasPending && !Recover()) throw new InvalidOperationException("Cannot restore settings while an operation is unresolved.");
+        var current = Read();
+        var patch = SettingsPatch.RecoveryPatch((JObject)before["Settings"]!, (JObject)current["Settings"]!);
+        Apply(current, patch, choices);
     }
 
     internal bool Recover()

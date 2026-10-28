@@ -20,10 +20,9 @@ internal static class HotbarLayoutStore
     {
         if (!Player.Available || !Svc.ClientState.IsLoggedIn) throw new InvalidOperationException("Wait for a character.");
         NativeHotbars.Ready((uint)Player.Job, pvp);
-        if (Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.InCombat] ||
-            Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas] ||
+        if (Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas] ||
             Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas51])
-            throw new InvalidOperationException("Hotbar updates wait for combat and loading to finish.");
+            throw new InvalidOperationException("Hotbar updates wait for loading to finish.");
         if (Svc.PluginInterface.InstalledPlugins.Any(p => p.InternalName == "HotbarBridge" && p.IsLoaded))
             throw new InvalidOperationException("Disable or uninstall retired Hotbar Bridge before Accord changes hotbars.");
     }

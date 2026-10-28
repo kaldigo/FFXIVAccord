@@ -26,10 +26,19 @@ internal sealed class HotbarSetup
     internal string Apply(IEnumerable<(uint Job, JobPreset Preset)> jobs, bool cleanup) =>
         PlanAndApply(jobs, cleanup, false).Backup!;
 
+    internal string ApplyConfigured(IEnumerable<(uint Job, JobPreset Preset)> jobs, bool cleanup,
+        Dictionary<uint, Dictionary<Position, SlotValue>> regular, HashSet<int> bars) =>
+        PlanAndApply(jobs, cleanup, false, regular, bars).Backup ?? "";
+
+    internal bool NeedsConfiguredRefresh(uint job, JobPreset preset, bool cleanup,
+        Dictionary<Position, SlotValue> regular, HashSet<int> bars) =>
+        PlanAndApply([(job, preset)], cleanup, true, new() { [job] = regular }, bars).Changed;
+
     internal bool NeedsRefresh(uint job, JobPreset preset, bool cleanup) =>
         PlanAndApply([(job, preset)], cleanup, true).Changed;
 
-    private unsafe (string? Backup, bool Changed) PlanAndApply(IEnumerable<(uint Job, JobPreset Preset)> jobs, bool cleanup, bool inspectOnly)
+    private unsafe (string? Backup, bool Changed) PlanAndApply(IEnumerable<(uint Job, JobPreset Preset)> jobs, bool cleanup, bool inspectOnly,
+        Dictionary<uint, Dictionary<Position, SlotValue>>? regular = null, HashSet<int>? managedBars = null)
     {
         jobs = jobs.ToArray();
         uint current = (uint)Player.Job;
@@ -47,6 +56,10 @@ internal sealed class HotbarSetup
             Svc.Data.GetExcelSheet<Sheets.CraftAction>(ClientLanguage.English));
         foreach (var (job, preset) in jobs)
         {
+            var configured = regular?.GetValueOrDefault(job);
+            if (configured is not null)
+                foreach (int bar in managedBars!)
+                    if (Protected(new Position(bar - 1, 0))) throw new InvalidOperationException($"Bar {bar} is shared; configured layout is blocked.");
             var keep = new HashSet<Position>();
             // Vacated keyboard positions may contain actions moved by this or a prior variant.
             // Clear only recognised design actions when general cleanup is disabled.
@@ -61,18 +74,28 @@ internal sealed class HotbarSetup
                 var slot = entry.Slot;
                 var value = slot is null ? default : slot.Action == "Sprint" ? new SlotValue(1,3) : actions.ResolveSlot(preset.Job, slot.Action);
                 var retired = string.IsNullOrEmpty(slot?.RetiredAction) ? default : actions.ResolveSlot(preset.Job, slot.RetiredAction);
-                Add(entry.Regular, value, retired, true);
+                if (configured is null) Add(entry.Regular, value, retired, true);
                 if (entry.Cross is { } cross) Add(cross, value, retired);
                 else if (value != default) Notice = " Some controls are keyboard-only because their controller slots are shared or unavailable. Shared bars were preserved.";
             }
             // Clear recognised assignments at vacated destinations, including
             // positions used by an earlier compact layout or Sprint fallback.
-            foreach(var p in Enumerable.Range(0,2).SelectMany(b=>Enumerable.Range(0,12).Select(s=>new Position(b,s))))
+            foreach(var p in Enumerable.Range(0,configured is null ? 2 : 0).SelectMany(b=>Enumerable.Range(0,12).Select(s=>new Position(b,s))))
                 if(!keep.Contains(p) && !Protected(p) && designActions.Contains(NativeHotbars.Read(job,p)))Add(p,default,default,true);
             if (cleanup)
                 foreach (var edit in HotbarCleanup.Plan(job, keep, effectiveMaps,
                              bar => NativeHotbars.Ready(current)->IsHotbarShared((uint)bar), p => NativeHotbars.Read(job, p)))
-                    if (!Protected(edit.Position)) edits.Add((job, edit.Position), edit);
+                    if (!Protected(edit.Position) && (configured is null || edit.Position.Bar >= 10)) edits.Add((job, edit.Position), edit);
+
+            if (configured is not null)
+                foreach (int bar in managedBars!)
+                    for (int slot = 0; slot < 12; slot++)
+                    {
+                        var position = new Position(bar - 1, slot);
+                        var value = configured.GetValueOrDefault(position);
+                        var old = NativeHotbars.Read(job, position);
+                        if (old != value) edits[(job, position)] = new(job, position, old, value);
+                    }
 
             void Add(Position position, SlotValue value, SlotValue retired, bool keyboard = false)
             {
@@ -88,6 +111,7 @@ internal sealed class HotbarSetup
             }
         }
         if (inspectOnly) return (null, edits.Count != 0);
+        if (regular is not null && edits.Count == 0) return (null, false);
         return (Commit(current, new Backup { Character = character, Edits = edits.Values.ToList() }), true);
     }
 

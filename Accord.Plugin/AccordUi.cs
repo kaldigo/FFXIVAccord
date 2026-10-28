@@ -18,6 +18,7 @@ internal static class AccordUi
         ImGui.TextUnformatted("Accord — buttons express intent");
         ImGui.TextWrapped($"Current hotbars: {(SetupController.IsPvP ? "PvP" : "PvE")}. Active classes, variants and live mode are shared.");
         DrawClassSelection(setup);
+        LayoutEditor.Draw(setup);
         ImGui.Separator();
         ImGui.TextWrapped("Choose which decisions to delegate to your rotation presses. A = automatic; M = manual.");
         var job = Player.Available ? setup.Pack.Find((uint)Player.Job) : null;
@@ -37,14 +38,14 @@ internal static class AccordUi
         }
         ImGui.Separator();
         bool cleanup = setup.Settings.ClearOtherActions;
-        if (ImGui.Checkbox("Clear other actions", ref cleanup)) setup.Run(() => setup.SetCleanup(cleanup));
-        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Keep only the designed job layout on every non-shared regular and controller bar. Only bars marked shared in the game are preserved. Writes a recovery backup.");
+        if (ImGui.Checkbox("Clear other controller and noncombat actions", ref cleanup)) setup.Run(() => setup.SetCleanup(cleanup));
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Combat regular bars are always fully managed according to the bar selection. This option retains the existing cleanup behaviour for controller, noncombat and PvP layouts. Shared bars are preserved.");
         if (!setup.Settings.LiveMode && ImGui.Button("Set selected class hotbars")) setup.Run(setup.ApplyHotbars);
         if (ImGui.Button(setup.Settings.LiveMode ? "Disable live mode" : "Enable live mode")) setup.Run(() => setup.SetLive(!setup.Settings.LiveMode));
         ImGui.TextWrapped(setup.Settings.LiveMode
-            ? "Live: refresh the current selected class on changes and check every second. Clear other actions also removes newly added leveling actions."
+            ? "Live: apply automation and regular layouts together when choices change, including in combat. Check the current class for hotbar changes every second."
             : "Static: variants change behaviour. Use a setup button to update hotbars.");
-        ImGui.TextWrapped("Accord manages regular and controller layouts. Gatherers use the complete toolkit across non-shared bars in order. Sprint switches between PvE and PvP on non-shared hotbars. Bars marked shared in the game are preserved.");
+        ImGui.TextWrapped("Combat regular layouts own bars 1–3 and any additional bars selected in Layout settings. Controller mappings retain their existing placement. Gatherers and PvP retain their existing layouts. Shared managed bars block regular layout updates.");
         ImGui.Separator();
         bool manualLogout = setup.Settings.ManualLogoutFallback;
         if (ImGui.Checkbox("Save manual hotbars before logout", ref manualLogout)) setup.Run(() => setup.SetManualFallback(manualLogout));

@@ -39,3 +39,11 @@ foreach(var job in pack.Jobs.Where(j=>j.JobId is 16 or 17 or 18))
     Console.WriteLine($"{job.Job}: {assigned.Count} direct controls + {covered.Count} verified replacement paths cover all {available.Count} current class actions.");
 }
 Console.WriteLine($"All {assignments} PvE preset assignments resolve against installed game data.");
+foreach (var (job, names) in new (string, string[])[]
+{
+    ("BRD", ["The Wanderer's Minuet", "Mage's Ballad", "Army's Paeon", "Rain of Death", "Second Wind", "Head Graze", "Arm's Length"]),
+    ("DNC", ["Standard Step", "Technical Step"]),
+    ("AST", ["Astral Draw", "Play I", "Play II", "Play III", "Minor Arcana"]),
+})
+    foreach (string name in names)
+        Console.WriteLine($"Configurable control: {job} / {name} = {catalog.ResolveSlot(job, name)}");

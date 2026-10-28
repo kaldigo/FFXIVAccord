@@ -208,9 +208,12 @@ internal sealed class SetupPack
             if (job.JobId == 23) ReplaceSlot(6, "Empty", "Nature's Minne is handled by ST/AoE");
         }
         bool protection = settings.Enabled(VariantId.Protection);
+        var layoutValues = settings.Layouts.Resolve(job.JobId);
+        bool keepProtection = layoutValues.KeepManual || layoutValues.Mapping.Areas.SelectMany(a => a.Entries)
+            .Any(e => e.Intent == ControlIntent.Protection && e.KeepManual);
         foreach (int id in ManualProtectionPresets(job.JobId))
         {
-            if (protection) enabled.Remove(id);
+            if (protection && !keepProtection) enabled.Remove(id);
             else if (job.Settings["EnabledActionsV6"]!.AsArray().Any(n => n!.GetValue<int>() == id)) enabled.Add(id);
         }
         var manualProtection = !protection && job.JobId is 19 or 21 or 32 or 37 or 40

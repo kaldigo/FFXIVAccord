@@ -30,6 +30,135 @@ internal sealed class SetupController : IDisposable
     internal bool Live => Settings.LiveMode;
     internal bool VariantEnabled(VariantId id) => Settings.Enabled(id);
     internal AccordSettings Settings => Plugin.Instance.Settings;
+    internal string LayoutStatus { get; private set; } = "";
+    private ActionCatalog? layoutCatalog;
+    private ConfiguredLayout? configuredLayout;
+    private ConfiguredLayout Layouts => configuredLayout ??= new(Pack, (job, action) =>
+    {
+        layoutCatalog ??= new ActionCatalog(Svc.Data.GetExcelSheet<Lumina.Excel.Sheets.Action>(Dalamud.Game.ClientLanguage.English),
+            Svc.Data.GetExcelSheet<Lumina.Excel.Sheets.CraftAction>(Dalamud.Game.ClientLanguage.English));
+        return layoutCatalog.ResolveSlot(job, action);
+    });
+
+    internal unsafe bool SharedRegularBar(int bar)
+    {
+        var module = FFXIVClientStructs.FFXIV.Client.UI.Misc.RaptureHotbarModule.Instance();
+        return module != null && module->ModuleReady && bar is >= 1 and <= 10 && module->IsHotbarShared((uint)(bar - 1));
+    }
+
+    internal ControlIntent[] LayoutIntents(uint job, LayoutPreferences preferences)
+    {
+        var settings = CloneSettings(); settings.Layouts = preferences;
+        return Layouts.Contents(Pack.Find(job)!, settings).Where(p => p.Value.Count > 0).Select(p => p.Key).ToArray();
+    }
+
+    private unsafe bool ActionAvailable(JobPreset job, ActionChoice action, bool includeFuture = false)
+    {
+        if (action.Type != 1) return true; // Inventory count never affects placement.
+        var row = Svc.Data.GetExcelSheet<Lumina.Excel.Sheets.Action>().GetRowOrDefault(action.Id);
+        if (row is null || !row.Value.IsPlayerAction || row.Value.IsPvP) return false;
+        var property = typeof(Lumina.Excel.Sheets.ClassJobCategory).GetProperty(job.Job);
+        if (property is null || !(bool)property.GetValue(row.Value.ClassJobCategory.Value)!) return false;
+        if (includeFuture || !Player.Available) return true;
+        int level;
+        if (Pack.Find((uint)Player.Job)?.JobId == job.JobId) level = Player.Level;
+        else
+        {
+            var player = FFXIVClientStructs.FFXIV.Client.Game.UI.PlayerState.Instance();
+            var index = Svc.Data.GetExcelSheet<Lumina.Excel.Sheets.ClassJob>().GetRow(job.JobId).ExpArrayIndex;
+            if (player == null || index < 0) return false;
+            level = player->ClassJobLevels[index];
+        }
+        return row.Value.ClassJobLevel <= level;
+    }
+
+    private unsafe LayoutResult LayoutPlan(JobPreset job, AccordSettings settings, bool manual)
+    {
+        var values = settings.Layouts.Resolve(job.JobId);
+        if (values.Mapping.Areas.Count != 0)
+            return Layouts.Plan(job, settings, SharedRegularBar, a => ActionAvailable(job, a, includeFuture: manual), manual);
+        var choices = ConfiguredLayout.Clone(settings);
+        if (manual || values.KeepManual) choices.Variants.Clear();
+        var preset = Pack.Resolve(job, choices);
+        var issues = settings.Layouts.ManagedBars.Where(b => b is < 1 or > 10 || SharedRegularBar(b))
+            .Select(b => new LayoutIssue(job.JobId, b, "Managed bar is shared or invalid.")).ToList();
+        if (issues.Count > 0) return new([], issues, []);
+        layoutCatalog ??= new ActionCatalog(Svc.Data.GetExcelSheet<Lumina.Excel.Sheets.Action>(Dalamud.Game.ClientLanguage.English),
+            Svc.Data.GetExcelSheet<Lumina.Excel.Sheets.CraftAction>(Dalamud.Game.ClientLanguage.English));
+        var module = FFXIVClientStructs.FFXIV.Client.UI.Misc.RaptureHotbarModule.Instance();
+        bool Shared(Position p) => module != null && module->ModuleReady && module->IsHotbarShared((uint)p.Bar);
+        bool sharedSprint = module != null && module->ModuleReady && ModeActions.HasSharedSprint(Shared, p => NativeHotbars.Read(job.JobId, p));
+        var entries = PveLayoutPlan.Create(job.JobId, preset, Defaults.Maps(), Shared, sprint: !sharedSprint);
+        var selectors = Layouts.Contents(job, settings).Values.SelectMany(c => c).Where(c => c.Action.Selector).Select(c => c.Action.Value).ToHashSet();
+        var controls = entries.Where(e => e.Slot is not null && e.Slot.Action != "Empty").Select(e =>
+        {
+            var value = e.Slot!.Action == "Sprint" ? new SlotValue(1, 3) : layoutCatalog.ResolveSlot(job.Job, e.Slot.Action);
+            return new PlacedControl(e.Regular, new ActionChoice { Name = e.Slot.Action, Id = value.Id, Type = value.Type, Selector = selectors.Contains(value) }, "Accord default");
+        }).ToList();
+        var additions = new List<ActionChoice>();
+        if (values.SplitMechanics && ConfiguredLayout.SplitActions.TryGetValue(job.JobId, out var split))
+        {
+            var mechanics = Layouts.Contents(job, choices)[ControlIntent.Mechanics].Select(c => c.Action).ToArray();
+            controls.RemoveAll(c => split.Contains(c.Action.Name));
+            if (manual || values.KeepManual || !settings.Enabled(VariantId.ClassMechanics)) additions.AddRange(mechanics);
+        }
+        additions.AddRange(values.Exclusions.Where(e => e.ExcludedFrom.Count > 0).Select(e => e.Action));
+        foreach (var action in additions.Where(a => ActionAvailable(job, a)).DistinctBy(a => a.Value))
+        {
+            var directAction = ConfiguredLayout.DirectControl(action);
+            if (controls.Any(c => !c.Action.Selector && (c.Action.Value == action.Value || c.Action.Value == directAction.Value))) continue;
+            var free = settings.Layouts.ManagedBars.SelectMany(b => Enumerable.Range(0, 12).Select(s => new Position(b - 1, s)))
+                .Where(p => !controls.Any(c => c.Position == p)).Select(p => (Position?)p).FirstOrDefault();
+            if (free is null) { issues.Add(new(job.JobId, 0, "Default placement has no space for additional controls. Add a mapping override or another managed bar.")); break; }
+            controls.Add(new(free.Value, directAction, "Additional controls"));
+        }
+        return new(controls, issues, []);
+    }
+
+    internal void PreviewLayout(uint jobId, LayoutPreferences preferences)
+    {
+        var desired = CloneSettings(); desired.Layouts = preferences;
+        var job = Pack.Find(jobId)!;
+        var plan = LayoutPlan(job, desired, true);
+        LayoutStatus = job.Job + " — all automation off\n" + string.Join("\n", plan.Issues.Select(i => $"Bar {i.Bar}: {i.Message}")) + "\n" +
+            string.Join("\n", plan.Controls.Select(c => $"{c.Position}: {c.Action.Name}")) + "\n" + string.Join("\n", plan.Decisions);
+    }
+
+    internal void SaveLayouts(LayoutPreferences preferences)
+    {
+        var desired = CloneSettings(); desired.Layouts = preferences;
+        ApplyChoices(desired);
+    }
+
+    private AccordSettings? pendingChoices;
+    private long pendingRetry;
+    private void ApplyChoices(AccordSettings desired)
+    {
+        RequireNormalLayouts();
+        if (!desired.LiveMode || IsPvP || !Player.Available)
+        {
+            ApplySettings(Pack.SelectedJobs(desired), desired);
+            PvP.Invalidate(); updates.Request();
+            return;
+        }
+        if (Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas] ||
+            Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas51])
+        {
+            pendingChoices = desired;
+            Status = "Settings and layout change pending until loading finishes.";
+            updates.Request();
+            return;
+        }
+        var previous = CloneSettings();
+        var snapshot = engine.Read();
+        CombinedUpdate.Apply(() => ApplySettings(Pack.SelectedJobs(desired), desired), () =>
+        {
+            var valid = Pack.SelectedJobs(Settings).Where(j => j.JobId < 19 || LayoutPlan(j, Settings, true).Valid).ToArray();
+            if (valid.Length > 0) ApplyHotbars(valid, null, prepareSettings: false);
+            pendingChoices = null;
+            updates.Request(); PvP.Invalidate();
+        }, () => engine.RestoreSettings(snapshot, previous));
+    }
     private readonly EngineClient engine;
     private readonly ManualFallback fallback = new();
     private readonly ManualFallbackLifecycle logout;
@@ -79,6 +208,16 @@ internal sealed class SetupController : IDisposable
 
     internal void Tick()
     {
+        if (pendingChoices is not null && Player.Available &&
+            !Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas] &&
+            !Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas51])
+        {
+            if (Environment.TickCount64 < pendingRetry) return;
+            pendingRetry = Environment.TickCount64 + 2000;
+            try { ApplyChoices(pendingChoices); }
+            catch (AggregateException) { pendingChoices = null; throw; }
+            catch (Exception ex) { Status = "Settings and layout update pending: " + ex.Message; return; }
+        }
         if (fallback.Pending)
         {
             // Manual layouts are a separate mode, including while the compatible engine is absent.
@@ -168,7 +307,16 @@ internal sealed class SetupController : IDisposable
         {
             if (Settings.LiveMode)
             {
-                if (hotbars.NeedsRefresh(job, Pack.Resolve(Pack.Find(job)!, Settings), Settings.ClearOtherActions))
+                var preset = Pack.Find(job)!;
+                if (preset.JobId < 19)
+                {
+                    if (hotbars.NeedsRefresh(job, Pack.Resolve(preset, Settings), Settings.ClearOtherActions)) ApplyCurrentHotbars(prepareSettings: false);
+                    return;
+                }
+                var validation = LayoutPlan(preset, Settings, true);
+                if (!validation.Valid) { LayoutStatus = string.Join("\n", validation.Issues.Select(i => $"{preset.Job}, bar {i.Bar}: {i.Message}")); Status = LayoutStatus; return; }
+                var regular = LayoutPlan(preset, Settings, false).Controls.ToDictionary(c => c.Position, c => c.Action.Value);
+                if (hotbars.NeedsConfiguredRefresh(job, Pack.Resolve(preset, Settings), Settings.ClearOtherActions, regular, Settings.Layouts.ManagedBars.ToHashSet()))
                     ApplyCurrentHotbars(prepareSettings: false);
                 else Status = "Live layout up to date; watching for hotbar changes." + hotbars.Notice;
             }
@@ -204,7 +352,24 @@ internal sealed class SetupController : IDisposable
     {
         RequireNormalLayouts();
         if (Plugin.Instance.MigrationPending) throw new InvalidOperationException("Open /accord to complete separate setup first.");
-        var managedJobs = jobs.Where(j => Pack.IsActive(j.JobId, desired)).ToArray();
+        var selectedJobs = jobs.Where(j => Pack.IsActive(j.JobId, desired)).ToArray();
+        var invalid = new List<LayoutIssue>();
+        var rejected = new HashSet<uint>();
+        foreach (var j in Pack.SelectedJobs(desired))
+        {
+            if (IsPvP || j.JobId < 19) continue;
+            var validation = LayoutPlan(j, desired, true);
+            invalid.AddRange(validation.Issues);
+            if (!validation.Valid) rejected.Add(j.JobId);
+        }
+        var managedJobs = selectedJobs.Where(j => !rejected.Contains(j.JobId)).ToArray();
+        LayoutStatus = string.Join("\n", invalid.GroupBy(i => (Role: LayoutPreferences.Role(i.Job), i.Bar, i.Message)).Select(group =>
+        {
+            var affected = group.Select(i => i.Job).ToHashSet();
+            var roleJobs = Pack.Data.Jobs.Where(j => j.JobId >= 19 && LayoutPreferences.Role(j.JobId) == group.Key.Role).Select(j => j.JobId).ToHashSet();
+            string who = roleJobs.SetEquals(affected) ? group.Key.Role + " (all classes)" : string.Join(", ", affected.Select(id => Pack.Find(id)!.Job));
+            return $"{who}, bar {group.Key.Bar}: {group.Key.Message}";
+        }));
         desired.ActiveJobs = Pack.SelectedJobs(desired).Select(j => j.JobId).ToHashSet();
         if (managedJobs.Length == 0)
         {
@@ -245,6 +410,11 @@ internal sealed class SetupController : IDisposable
             ((JObject)changes["AutoActions"]!).Merge(Pack.AutoModes(job, desired, (JObject)snapshot["PresetIds"]!));
             if (changes["ForkFeatures"] is not JObject) changes["ForkFeatures"] = new JObject();
             changes["ForkFeatures"]![job.JobId.ToString()] = JObject.FromObject(SetupPack.EngineFeatures(job.JobId, desired));
+            if (job.JobId >= 19)
+            {
+                if (changes["ActionRoutes"] is not JObject) changes["ActionRoutes"] = new JObject();
+                changes["ActionRoutes"]![job.JobId.ToString()] = Layouts.Routes(job, desired);
+            }
         }
         if (!desired.SharedSettingsPrepared)
         {
@@ -309,9 +479,9 @@ internal sealed class SetupController : IDisposable
 
     internal void SetVariant(VariantId id, bool enabled)
     {
-        var desired = CloneSettings();
+        var desired = pendingChoices is null ? CloneSettings() : ConfiguredLayout.Clone(pendingChoices);
         desired.Variants[id] = enabled;
-        ApplySettings(Pack.SelectedJobs(desired), desired);
+        ApplyChoices(desired);
         PvP.Invalidate();
         if (Settings.LiveMode) RequestCurrentHotbars();
         else Status = "Variant saved. Static hotbars unchanged; use setup to restore any needed manual buttons.";
@@ -340,6 +510,9 @@ internal sealed class SetupController : IDisposable
     {
         updates.Request();
         if (Settings.LiveMode) Status = "Live layout pending for the current active class; it will retry when hotbars are ready.";
+        // A UI/DTR change already runs on the framework thread. Try now, retaining
+        // the pending transition if loading or native readiness prevents writing.
+        if (Settings.LiveMode) Run(Tick);
     }
 
     internal void SetActiveJobs(IEnumerable<uint> jobs)
@@ -347,7 +520,7 @@ internal sealed class SetupController : IDisposable
         var desired = CloneSettings();
         desired.ActiveJobs = jobs.Select(id => Pack.Find(id)?.JobId).Where(id => id.HasValue)
             .Select(id => id!.Value).ToHashSet();
-        ApplySettings(Pack.SelectedJobs(desired), desired);
+        ApplyChoices(desired);
         PvP.Invalidate();
         updates.Invalidate();
         if (Settings.LiveMode) RequestCurrentHotbars();
@@ -367,13 +540,40 @@ internal sealed class SetupController : IDisposable
         if (!Player.Available || Svc.PlayerState.ContentId == 0) throw new InvalidOperationException("Log in before applying hotbars.");
         uint job = (uint)Player.Job;
         NativeHotbars.Ready(job);
+        selected = selected.Where(p => p.JobId < 19 || LayoutPlan(p, Settings, true).Valid).ToArray();
+        if (selected.Length == 0) throw new InvalidOperationException("Layout update blocked. Resolve the layout warnings first.");
+        var previousChoices = prepareSettings ? CloneSettings() : null;
+        var previousEngine = prepareSettings ? engine.Read() : null;
+        try
+        {
         if (prepareSettings) Prepare(selected);
         var layouts = selected.SelectMany(p => (currentClass is null ? new[] { p.JobId }.Concat(p.BaseClasses) : [currentClass.Value])
-            .Select(id => (id, Pack.Resolve(p, Settings))));
-        var backup = hotbars.Apply(layouts, Settings.ClearOtherActions);
-        try { Mutate(() => Settings.LastHotbarBackup = backup); }
-        catch { hotbars.Restore(backup); throw; }
-        Status = $"Hotbars for {selected.Length} selected class(es) applied and backed up." + hotbars.Notice;
+            .Select(id => (id, Pack.Resolve(p, Settings)))).ToArray();
+        var regular = new Dictionary<uint, Dictionary<Position, SlotValue>>();
+        foreach (var preset in selected.Where(p => p.JobId >= 19))
+        {
+            var plan = LayoutPlan(preset, Settings, false);
+            if (!plan.Valid) throw new InvalidOperationException("Resolved live layout is invalid.");
+            foreach (uint id in currentClass is null ? new[] { preset.JobId }.Concat(preset.BaseClasses) : [currentClass.Value])
+                regular[id] = plan.Controls.ToDictionary(c => c.Position, c => c.Action.Value);
+        }
+        var backup = hotbars.ApplyConfigured(layouts, Settings.ClearOtherActions, regular, Settings.Layouts.ManagedBars.ToHashSet());
+        if (backup.Length > 0)
+        {
+            try { Mutate(() => Settings.LastHotbarBackup = backup); }
+            catch { hotbars.Restore(backup); throw; }
+        }
+        Status = $"Hotbars for {selected.Length} selected class(es) " + (backup.Length > 0 ? "applied and backed up." : "already match.") + hotbars.Notice + "\n" + LayoutStatus;
+        }
+        catch (Exception failure)
+        {
+            if (previousEngine is not null)
+            {
+                try { engine.RestoreSettings(previousEngine, previousChoices!); }
+                catch (Exception rollback) { throw new AggregateException("Hotbar update failed and settings recovery requires attention.", failure, rollback); }
+            }
+            throw;
+        }
     }
 
     internal void Restore()
