@@ -49,8 +49,18 @@ The exclusion guard guarantees a prohibited action is rejected. Native testing m
 
 ## Using the settings
 
-Open Layout settings, choose Global, a role or a class, and enable Apply beside only the settings that should override their parent. Mapping is one complete override. Leaving its area list empty selects the existing default placement. Adding areas enables the custom mapping; an exact slot is an area with the same first and last slot.
+Open Hotbar mapping from the sidebar, choose Global, a role or a class, and enable Apply beside only the settings that should override their parent. Mapping is one complete override. Existing defaults are populated as editable class templates; they are no longer an invisible fallback for an empty list. Show class selects the template being edited. Layout options can switch to one shared intent layout for all classes. An exact slot is an area with the same first and last slot.
 
 Create reusable personal groups once, optionally give them role/class contents, then select those groups in mappings. The first entry in a right-edge area occupies its highest numbered slot. Higher numeric priority wins duplicate direct actions; automated selector buttons remain separate.
 
 Keep manual buttons globally forces effective retention for all entries. With it off, choose retention inside the mapping per entry. These entry choices are preserved while the global setting is on. Save settings validates the full all-off layout before applying it; preview and warnings identify unresolved classes/areas.
+
+## UI follow-up review (2026-10-28)
+
+- [x] Sidebar pages and search, following Steward/Wrath navigation: General, Automation, Active classes, Hotbar mapping, Role actions, Action exclusions, Personal groups, Recovery & tools.
+- [x] Existing default mappings are editable configuration. Migration preserves custom maps and is idempotent. Tests compare all 21 combat jobs and 16 automation combinations against previous default positions.
+- [x] Hotbar preview, area selection, compact control rows, movement between areas, clear manual-retention checkboxes and optional duplicate priorities.
+- [x] Group contents are edited for one selected scope instead of displaying every possible role/class checkbox at once.
+- [x] Persistent save/discard controls, dirty-state indication, shared-bar warning refresh, and empty overrides removed before saving. Clearing a template does not restore it silently.
+- [x] Full paired build and regression checks pass; focused suite totals 246,829 assertions, with three packaging checks passing. No engine contract change is required.
+- [ ] Native visual acceptance at the user's display scale and interaction testing of the new pages. Compilation does not verify the rendered UI.

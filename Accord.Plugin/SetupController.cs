@@ -74,46 +74,19 @@ internal sealed class SetupController : IDisposable
 
     private unsafe LayoutResult LayoutPlan(JobPreset job, AccordSettings settings, bool manual)
     {
-        var values = settings.Layouts.Resolve(job.JobId);
-        if (values.Mapping.Areas.Count != 0)
-            return Layouts.Plan(job, settings, SharedRegularBar, a => ActionAvailable(job, a, includeFuture: manual), manual);
-        var choices = ConfiguredLayout.Clone(settings);
-        if (manual || values.KeepManual) choices.Variants.Clear();
-        var preset = Pack.Resolve(job, choices);
-        var issues = settings.Layouts.ManagedBars.Where(b => b is < 1 or > 10 || SharedRegularBar(b))
-            .Select(b => new LayoutIssue(job.JobId, b, "Managed bar is shared or invalid.")).ToList();
-        if (issues.Count > 0) return new([], issues, []);
-        layoutCatalog ??= new ActionCatalog(Svc.Data.GetExcelSheet<Lumina.Excel.Sheets.Action>(Dalamud.Game.ClientLanguage.English),
-            Svc.Data.GetExcelSheet<Lumina.Excel.Sheets.CraftAction>(Dalamud.Game.ClientLanguage.English));
         var module = FFXIVClientStructs.FFXIV.Client.UI.Misc.RaptureHotbarModule.Instance();
-        bool Shared(Position p) => module != null && module->ModuleReady && module->IsHotbarShared((uint)p.Bar);
-        bool sharedSprint = module != null && module->ModuleReady && ModeActions.HasSharedSprint(Shared, p => NativeHotbars.Read(job.JobId, p));
-        var entries = PveLayoutPlan.Create(job.JobId, preset, Defaults.Maps(), Shared, sprint: !sharedSprint);
-        var selectors = Layouts.Contents(job, settings).Values.SelectMany(c => c).Where(c => c.Action.Selector).Select(c => c.Action.Value).ToHashSet();
-        var controls = entries.Where(e => e.Slot is not null && e.Slot.Action != "Empty").Select(e =>
-        {
-            var value = e.Slot!.Action == "Sprint" ? new SlotValue(1, 3) : layoutCatalog.ResolveSlot(job.Job, e.Slot.Action);
-            return new PlacedControl(e.Regular, new ActionChoice { Name = e.Slot.Action, Id = value.Id, Type = value.Type, Selector = selectors.Contains(value) }, "Accord default");
-        }).ToList();
-        var additions = new List<ActionChoice>();
-        if (values.SplitMechanics && ConfiguredLayout.SplitActions.TryGetValue(job.JobId, out var split))
-        {
-            var mechanics = Layouts.Contents(job, choices)[ControlIntent.Mechanics].Select(c => c.Action).ToArray();
-            controls.RemoveAll(c => split.Contains(c.Action.Name));
-            if (manual || values.KeepManual || !settings.Enabled(VariantId.ClassMechanics)) additions.AddRange(mechanics);
-        }
-        additions.AddRange(values.Exclusions.Where(e => e.ExcludedFrom.Count > 0).Select(e => e.Action));
-        foreach (var action in additions.Where(a => ActionAvailable(job, a)).DistinctBy(a => a.Value))
-        {
-            var directAction = ConfiguredLayout.DirectControl(action);
-            if (controls.Any(c => !c.Action.Selector && (c.Action.Value == action.Value || c.Action.Value == directAction.Value))) continue;
-            var free = settings.Layouts.ManagedBars.SelectMany(b => Enumerable.Range(0, 12).Select(s => new Position(b - 1, s)))
-                .Where(p => !controls.Any(c => c.Position == p)).Select(p => (Position?)p).FirstOrDefault();
-            if (free is null) { issues.Add(new(job.JobId, 0, "Default placement has no space for additional controls. Add a mapping override or another managed bar.")); break; }
-            controls.Add(new(free.Value, directAction, "Additional controls"));
-        }
-        return new(controls, issues, []);
+        bool sharedSprint = module != null && module->ModuleReady && ModeActions.HasSharedSprint(
+            p => module->IsHotbarShared((uint)p.Bar), p => NativeHotbars.Read(job.JobId, p));
+        return Layouts.Plan(job, settings, SharedRegularBar, a => ActionAvailable(job, a, includeFuture: manual), manual, !sharedSprint);
     }
+
+    internal LayoutResult InspectLayout(uint job, LayoutPreferences preferences)
+    {
+        var desired = CloneSettings(); desired.Layouts = preferences;
+        return LayoutPlan(Pack.Find(job)!, desired, true);
+    }
+    internal string DefaultControlName(uint job, int slot) => Layouts.DefaultControlName(job, slot);
+    internal IntentMapping DefaultMapping() => Layouts.CreateDefaults();
 
     internal void PreviewLayout(uint jobId, LayoutPreferences preferences)
     {
@@ -169,6 +142,7 @@ internal sealed class SetupController : IDisposable
     internal SetupController()
     {
         Instance = this;
+        if (Layouts.InitializeDefaults(Settings.Layouts)) Svc.PluginInterface.SavePluginConfig(Settings);
         engine = new EngineClient(() => {updates.Wake(); PvP?.Invalidate();});
         logout = new ManualFallbackLifecycle(() =>
         {

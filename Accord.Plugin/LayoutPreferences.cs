@@ -60,6 +60,7 @@ public sealed class PersonalGroup
 
 public sealed class MappingEntry
 {
+    public int? DefaultSlot { get; set; }
     public ControlIntent? Intent { get; set; }
     public string GroupId { get; set; } = "";
     public ActionChoice? Action { get; set; }
@@ -74,14 +75,17 @@ public sealed class MappingArea
     public int First { get; set; } = 1;
     public int Last { get; set; } = 12;
     public bool FromRight { get; set; }
+    public bool AvoidFixedSlots { get; set; }
     // A one-slot area expresses an exact assignment with the same validation.
     public List<MappingEntry> Entries { get; set; } = new();
 }
 
 public sealed class IntentMapping
 {
-    // Empty Areas retains the reviewed legacy placement instead of approximating it.
+    // Defaults are editable configuration. Shared areas replace the job templates.
+    public Dictionary<uint, List<MappingArea>> JobDefaults { get; set; } = new();
     public List<MappingArea> Areas { get; set; } = new();
+    internal List<MappingArea> ForJob(uint job) => Areas.Count > 0 ? Areas : JobDefaults.GetValueOrDefault(job) ?? Areas;
 }
 
 public sealed class LayoutValues
@@ -118,6 +122,7 @@ public sealed class LayoutOverride
 
 public sealed class LayoutPreferences
 {
+    public bool DefaultsInitialized { get; set; }
     public LayoutValues Global { get; set; } = new();
     public Dictionary<JobRole, LayoutOverride> Roles { get; set; } = new();
     public Dictionary<uint, LayoutOverride> Classes { get; set; } = new();
@@ -141,6 +146,12 @@ public sealed class LayoutPreferences
         7 or 25 or 26 or 27 or 35 or 42 => JobRole.MagicalRanged,
         _ => JobRole.Noncombat,
     };
+    internal void PruneUnusedOverrides()
+    {
+        static bool Empty(LayoutOverride o) => o.Mapping is null && o.KeepManual is null && o.SplitMechanics is null && o.RoleActions is null && o.Exclusions is null;
+        foreach (var role in Roles.Where(p => Empty(p.Value)).Select(p => p.Key).ToArray()) Roles.Remove(role);
+        foreach (var job in Classes.Where(p => Empty(p.Value)).Select(p => p.Key).ToArray()) Classes.Remove(job);
+    }
 }
 
 internal sealed record LayoutControl(ActionChoice Action, bool Available = true, bool AlwaysManual = false);
@@ -161,7 +172,8 @@ internal static class IntentLayoutResolver
     internal static LayoutResult Resolve(uint job, LayoutPreferences preferences,
         Func<ControlIntent, IEnumerable<LayoutControl>> intentControls,
         Func<ActionChoice, bool> available, Func<VariantId, bool> automated,
-        Func<int, bool> shared, bool allManual = false, Func<ActionChoice, VariantId?>? automationOwner = null)
+        Func<int, bool> shared, bool allManual = false, Func<ActionChoice, VariantId?>? automationOwner = null,
+        Func<int, bool, IEnumerable<LayoutControl>>? defaultControls = null)
     {
         var values = preferences.Resolve(job);
         var issues = new List<LayoutIssue>();
@@ -175,7 +187,8 @@ internal static class IntentLayoutResolver
         if (preferences.Groups.Select(g => g.Id).Distinct().Count() != preferences.Groups.Count)
             issues.Add(new(job, 0, "Group identifiers must be unique."));
         int order = 0;
-        foreach (var area in values.Mapping.Areas)
+        var areas = values.Mapping.ForJob(job);
+        foreach (var area in areas)
         {
             if (!bars.Contains(area.Bar) || area.First < 1 || area.Last > 12 || area.First > area.Last)
             {
@@ -184,13 +197,14 @@ internal static class IntentLayoutResolver
             }
             foreach (var entry in area.Entries)
             {
-                if ((entry.Intent.HasValue ? 1 : 0) + (entry.GroupId.Length > 0 ? 1 : 0) + (entry.Action is not null ? 1 : 0) != 1)
+                if ((entry.Intent.HasValue ? 1 : 0) + (entry.GroupId.Length > 0 ? 1 : 0) + (entry.Action is not null ? 1 : 0) + (entry.DefaultSlot.HasValue ? 1 : 0) != 1)
                 {
                     issues.Add(new(job, area.Bar, $"{area.Name}: choose exactly one intent, group or action."));
                     continue;
                 }
                 IEnumerable<LayoutControl> controls;
-                if (entry.Action is { } action) controls = [new(action)];
+                if (entry.DefaultSlot is { } slot) controls = defaultControls?.Invoke(slot, allManual || values.KeepManual || entry.KeepManual) ?? [];
+                else if (entry.Action is { } action) controls = [new(action)];
                 else if (entry.Intent is { } intent)
                     controls = intent switch
                     {
@@ -237,18 +251,21 @@ internal static class IntentLayoutResolver
         // Preserve manual access for excluded controls even if another entry won placement.
         var excluded = values.Exclusions.Where(e => e.ExcludedFrom.Count > 0).Select(e => e.Action.Value).ToHashSet();
         var occupied = new HashSet<Position>();
-        foreach (var area in values.Mapping.Areas)
+        foreach (var area in areas)
         {
             if (!bars.Contains(area.Bar) || area.First < 1 || area.Last > 12 || area.First > area.Last) continue;
             var controls = candidates.Where(c => ReferenceEquals(c.Area, area) && winners.Contains(c))
                 .Where(c => allManual || values.KeepManual || c.Entry.KeepManual || c.Control.AlwaysManual ||
                     excluded.Contains(c.Control.Action.Value) || c.Control.Action.Automation is not { } owner || !automated(owner)).ToArray();
-            int capacity = area.Last - area.First + 1;
+            var destinations = Enumerable.Range(area.First, area.Last - area.First + 1)
+                .Where(slot => !area.AvoidFixedSlots || !areas.Any(other => other != area && other.Bar == area.Bar && other.First == other.Last && other.First == slot));
+            var slots = (area.FromRight ? destinations.Reverse() : destinations).ToArray();
+            int capacity = slots.Length;
             if (controls.Length > capacity)
                 issues.Add(new(job, area.Bar, $"{area.Name}: {controls.Length} controls need {capacity} slots."));
             for (int i = 0; i < Math.Min(capacity, controls.Length); i++)
             {
-                var position = new Position(area.Bar - 1, (area.FromRight ? area.Last - i : area.First + i) - 1);
+                var position = new Position(area.Bar - 1, slots[i] - 1);
                 if (!occupied.Add(position)) issues.Add(new(job, area.Bar, $"{area.Name}: collision at slot {position.Slot + 1}."));
                 placed.Add(new(position, controls[i].Control.Action, area.Name));
             }

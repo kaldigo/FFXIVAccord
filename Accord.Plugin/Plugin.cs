@@ -75,10 +75,10 @@ public sealed class Plugin : IDalamudPlugin
         if (!IsOpen) return;
         var display = ImGui.GetIO().DisplaySize;
         var maximum = Vector2.Max(new Vector2(320, 260), display - new Vector2(40, 60));
-        ImGui.SetNextWindowSizeConstraints(Vector2.Min(new Vector2(560, 360), maximum), maximum);
+        ImGui.SetNextWindowSizeConstraints(Vector2.Min(new Vector2(800, 520) * ImGuiHelpers.GlobalScale, maximum), maximum);
         if (firstOpen)
         {
-            ImGui.SetNextWindowSize(Vector2.Min(new Vector2(900, 600) * ImGuiHelpers.GlobalScale, maximum), ImGuiCond.Always);
+            ImGui.SetNextWindowSize(Vector2.Min(new Vector2(1100, 760) * ImGuiHelpers.GlobalScale, maximum), ImGuiCond.Always);
             firstOpen = false;
         }
         if (ImGui.Begin("Accord###Accord", ref IsOpen))

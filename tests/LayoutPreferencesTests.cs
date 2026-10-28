@@ -74,6 +74,41 @@ internal static class LayoutPreferencesTests
         var pack = new SetupPack();
         var catalog = new ActionCatalog(null!, null!);
         var configured = new ConfiguredLayout(pack, (job, name) => catalog.ResolveSlot(job, name));
+        var defaults = new AccordSettings();
+        Check(configured.InitializeDefaults(defaults.Layouts), "default migration did not run");
+        Check(!configured.InitializeDefaults(defaults.Layouts), "default migration repeated");
+        Check(defaults.Layouts.Global.Mapping.JobDefaults.Count == 21, "editable defaults missing jobs");
+        var noSprint = configured.Plan(pack.Find(23)!, defaults, _ => false, _ => true, true, includeDefaultSprint: false);
+        Check(noSprint.Controls.All(c => c.Action.Name != "Sprint"), "default duplicated shared Sprint");
+        foreach (var job in pack.Data.Jobs.Where(j => j.JobId >= 19))
+        {
+            for (int mask = 0; mask < 16; mask++)
+            {
+                foreach (var variant in Enum.GetValues<VariantId>()) defaults.Variants[variant] = (mask & (1 << (int)variant)) != 0;
+                var actual = configured.Plan(job, defaults, _ => false, _ => true, false);
+                var expected = PveLayoutPlan.Create(job.JobId, pack.Resolve(job, defaults), Defaults.Maps(), _ => false, sprint: true)
+                    .Where(e => e.Slot is not null && e.Slot.Action != "Empty").ToDictionary(e => e.Regular, e => e.Slot!.Action);
+                Check(actual.Valid, job.Job + " editable defaults invalid " + mask + ": " + string.Join(";", actual.Issues.Select(i => i.Message)));
+                Check(actual.Controls.Count == expected.Count && actual.Controls.All(c => expected.GetValueOrDefault(c.Position) == c.Action.Name),
+                    job.Job + " editable defaults changed placement " + mask + ": " + string.Join(",", actual.Controls.Where(c => expected.GetValueOrDefault(c.Position) != c.Action.Name).Select(c => c.Action.Name + " at " + c.Position)));
+            }
+        }
+        defaults.Variants.Clear();
+        var editable = defaults.Layouts.Global.Mapping.JobDefaults[23];
+        var firstArea = editable.Single(a => a.Entries.Any(e => e.DefaultSlot == 1));
+        firstArea.Bar = 3; firstArea.First = firstArea.Last = 12;
+        var moved = configured.Plan(pack.Find(23)!, defaults, _ => false, _ => true, true);
+        Check(moved.Controls.Any(c => c.Position == new Position(2, 11) && c.Action.Name == pack.Resolve(pack.Find(23)!, new()).Slots.Single(s => s.LogicalSlot == 1).Action), "default could not be edited directly");
+        var roundTrip = JsonConvert.DeserializeObject<LayoutPreferences>(JsonConvert.SerializeObject(defaults.Layouts))!;
+        Check(roundTrip.Global.Mapping.JobDefaults[23].Any(a => a.Bar == 3 && a.First == 12), "edited default did not persist");
+        roundTrip.Global.Mapping.JobDefaults[23].Clear();
+        Check(!configured.InitializeDefaults(roundTrip) && roundTrip.Global.Mapping.ForJob(23).Count == 0, "cleared defaults silently returned");
+        roundTrip.Roles[JobRole.Tank] = new(); roundTrip.Classes[23] = new() { KeepManual = true };
+        roundTrip.PruneUnusedOverrides();
+        Check(!roundTrip.Roles.ContainsKey(JobRole.Tank) && roundTrip.Classes[23].KeepManual == true, "browsing overrides created saved edits or removed an applied setting");
+        var customBefore = new LayoutPreferences(); customBefore.Global.Mapping.Areas.Add(new() { Name = "Personal layout" });
+        configured.InitializeDefaults(customBefore);
+        Check(customBefore.Global.Mapping.Areas.Single().Name == "Personal layout" && customBefore.Global.Mapping.JobDefaults.Count == 0, "migration replaced a custom mapping");
         var bard = pack.Find(23)!;
         var settings = new AccordSettings();
         var rain = new ActionChoice { Name = "Rain of Death", Id = catalog.ResolveSlot("BRD", "Rain of Death").Id };
