@@ -185,7 +185,7 @@ internal sealed class ConfiguredLayout
             content[intent].Add(new(new ActionChoice
             {
                 Name = slot.Action, Type = value.Type, Id = value.Id, Automation = owner,
-                Selector = slot.Action is "Bulwark" or "Thrill of Battle" or "Dark Mind" or "Camouflage" or "Holos" or "Vercure" || intent is ControlIntent.SingleTarget or ControlIntent.AreaDamage or ControlIntent.Burst or ControlIntent.Protection or ControlIntent.Mechanics or ControlIntent.SingleHealing or ControlIntent.AreaHealing or ControlIntent.Raise or ControlIntent.Movement or ControlIntent.HealingProtection or ControlIntent.AdditionalBurst or ControlIntent.PrimaryMechanics,
+                Selector = slot.Action != "Arm's Length" && (slot.Action is "Bulwark" or "Thrill of Battle" or "Dark Mind" or "Camouflage" or "Holos" or "Vercure" || intent is ControlIntent.SingleTarget or ControlIntent.AreaDamage or ControlIntent.Burst or ControlIntent.Protection or ControlIntent.Mechanics or ControlIntent.SingleHealing or ControlIntent.AreaHealing or ControlIntent.Raise or ControlIntent.Movement or ControlIntent.HealingProtection or ControlIntent.AdditionalBurst or ControlIntent.PrimaryMechanics),
             }));
         }
         // Some reviewed variants expose a different deliberate utility alongside

@@ -45,4 +45,6 @@ Known capacity case: AST's optional split-card layout with every automation cate
 
 Native visual acceptance and the delayed-update reproduction remain open. No claim of a bug-free or fully accepted in-game experience follows from compilation or simulated tests.
 
-Local verification: paired client/engine build passed; final focused run passed 247,335 assertions; all three packaging checks passed. Package vulnerability-feed lookups emitted network warnings. Native acceptance boxes remain unchecked.
+Local verification: paired client/engine build passed; final focused run passed 247,336 assertions; all three packaging checks passed. Package vulnerability-feed lookups emitted network warnings. Native acceptance boxes remain unchecked.
+
+Final review also found and fixed a tank knockback/important-role duplicate. The direct Arm’s Length control remains deduplicated even when it occupies the primary protection group. A dedicated regression assertion covers that case.

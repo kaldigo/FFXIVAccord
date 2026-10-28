@@ -139,6 +139,10 @@ internal static class LayoutPreferencesTests
                 }
             }
         }
+        var withRoles = ConfiguredLayout.Clone(defaults);
+        withRoles.Layouts.Global.Mapping.Areas.Add(new() { Bar = 3, Entries = [new() { Intent = ControlIntent.ImportantRole, Priority = 20 }] });
+        var warriorWithRoles = configured.Plan(pack.Find(21)!, withRoles, _ => false, a => Available(pack.Find(21)!, a), true);
+        Check(warriorWithRoles.Controls.Count(c => c.Action.Name == "Arm's Length") == 1, "primary knockback control duplicated important role action");
         defaults.Variants.Clear(); defaults.Layouts.Global.SplitMechanics = false;
         var editable = defaults.Layouts.Global.Mapping.Areas;
         var movementEntry = editable.SelectMany(a => a.Entries).Single(e => e.Intent == ControlIntent.Movement);
