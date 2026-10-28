@@ -1,10 +1,10 @@
 # Intent layout customization acceptance ledger
 
-Agreed and reviewed 2026-10-28. Checked scope items mean implemented and locally reviewed, not verified in a running game. Native acceptance below remains unchecked. This is a local development change, not a published release.
+Agreed and reviewed 2026-10-28. Checked scope items mean implemented and locally reviewed, not verified in a running game. Native acceptance below remains unchecked. The original implementation was published, but its class-template model did not satisfy the intended Global mapping. The correction and its verification are recorded in [global-mapping-audit.md](global-mapping-audit.md).
 
 ## Scope
 
-- [x] Preserve existing defaults; global → role → class inheritance, explicit Apply per setting; store applied overrides only.
+- [x] Use one editable default intent mapping (superseding the old position exceptions); global → role → class inheritance, explicit Apply per setting; store applied overrides only.
 - [x] Whole-mapping override; exact slots and edge-inward areas; first listed item nearest edge.
 - [x] Global keep-manual switch forces effective group checks; off uses mapping-entry choices, preserving underlying values.
 - [x] Important/other/omitted role actions configurable per role; role editors filter to appropriate actions.
@@ -25,7 +25,7 @@ Agreed and reviewed 2026-10-28. Checked scope items mean implemented and locally
 
 ## Acceptance examples
 
-Existing default layouts remain the baseline. Bard example: bar 1 left ST/AoE/exclusions/Burst; bar 2 left split songs and right roulette; bar 3 left important role actions/cleanse, right movement/protection/support/potions. Auto support/protection on, only desired groups keep manual controls. Rain of Death excluded from selected intent routes. Peloton retained. Global settings should populate other jobs without individual layouts.
+Existing controls remain available through one common intent mapping. Historical placement exceptions are normalized. Bard example: bar 1 left ST/AoE/exclusions/Burst; bar 2 left split songs and right roulette; bar 3 left important role actions/cleanse, right movement/protection/support/potions. Auto support/protection on, only desired groups keep manual controls. Rain of Death excluded from selected intent routes. Peloton retained. Global settings should populate other jobs without individual layouts.
 
 ## Local evidence
 
@@ -49,18 +49,14 @@ The exclusion guard guarantees a prohibited action is rejected. Native testing m
 
 ## Using the settings
 
-Open Hotbar mapping from the sidebar, choose Global, a role or a class, and enable Apply beside only the settings that should override their parent. Mapping is one complete override. Existing defaults are populated as editable class templates; they are no longer an invisible fallback for an empty list. Show class selects the template being edited. Layout options can switch to one shared intent layout for all classes. An exact slot is an area with the same first and last slot.
+Open Global mapping to edit the common layout for every combat class. All intents are available, including resurrection, healing and class mechanics; unsupported intents contribute no controls. An exact slot is an area with the same first and last slot. Global role actions and Global exclusions edit the corresponding shared settings.
+
+Mapping overrides is a separate page. Add only the roles/classes that need differences, then edit one record at a time. Apply selects which settings replace their inherited values; Mapping is one complete setting. Preview has the class selector and can display either Global alone or the result including explicit overrides. Preview never creates or edits overrides.
 
 Create reusable personal groups once, optionally give them role/class contents, then select those groups in mappings. The first entry in a right-edge area occupies its highest numbered slot. Higher numeric priority wins duplicate direct actions; automated selector buttons remain separate.
 
 Keep manual buttons globally forces effective retention for all entries. With it off, choose retention inside the mapping per entry. These entry choices are preserved while the global setting is on. Save settings validates the full all-off layout before applying it; preview and warnings identify unresolved classes/areas.
 
-## UI follow-up review (2026-10-28)
+## Superseded UI follow-up (0.2.15.5)
 
-- [x] Sidebar pages and search, following Steward/Wrath navigation: General, Automation, Active classes, Hotbar mapping, Role actions, Action exclusions, Personal groups, Recovery & tools.
-- [x] Existing default mappings are editable configuration. Migration preserves custom maps and is idempotent. Tests compare all 21 combat jobs and 16 automation combinations against previous default positions.
-- [x] Hotbar preview, area selection, compact control rows, movement between areas, clear manual-retention checkboxes and optional duplicate priorities.
-- [x] Group contents are edited for one selected scope instead of displaying every possible role/class checkbox at once.
-- [x] Persistent save/discard controls, dirty-state indication, shared-bar warning refresh, and empty overrides removed before saving. Clearing a template does not restore it silently.
-- [x] Full paired build and regression checks pass; focused suite totals 246,829 assertions, with three packaging checks passing. No engine contract change is required.
-- [ ] Native visual acceptance at the user's display scale and interaction testing of the new pages. Compilation does not verify the rendered UI.
+The prior UI introduced editable class templates inside Global and a shared scope selector. Although its regression tests passed, that model was wrong for the agreed design. Those claims are superseded by the common-mapping correction in [global-mapping-audit.md](global-mapping-audit.md). Native visual acceptance remains required.

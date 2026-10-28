@@ -54,7 +54,13 @@ namespace HotbarTools
     {
         internal ActionCatalog(object actions, object crafting) { }
         internal SlotValue ResolveSlot(string job, string action, uint? expectedId = null) => action == "Empty" ? default :
-            action == "Sprint" ? new(1,3) : new(1,100 + (uint)action.Aggregate(0,(n,c)=>(n*31+c)&0xffff));
+            new(1, action switch
+            {
+                "Sprint" => 3, "Second Wind" => 7541, "Head Graze" => 7551, "Bloodbath" => 7542,
+                "Rampart" => 7531, "Reprisal" => 7535, "Arm's Length" => 7548, "Swiftcast" => 7561,
+                "Lucid Dreaming" => 7562, "Surecast" => 7559, "Interject" => 7538, "Esuna" => 7568,
+                _ => 100 + (uint)action.Aggregate(0,(n,c)=>(n*31+c)&0xffff),
+            });
     }
     internal struct FakeHotbarModule
     {

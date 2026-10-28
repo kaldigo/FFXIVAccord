@@ -46,12 +46,6 @@ internal sealed class SetupController : IDisposable
         return module != null && module->ModuleReady && bar is >= 1 and <= 10 && module->IsHotbarShared((uint)(bar - 1));
     }
 
-    internal ControlIntent[] LayoutIntents(uint job, LayoutPreferences preferences)
-    {
-        var settings = CloneSettings(); settings.Layouts = preferences;
-        return Layouts.Contents(Pack.Find(job)!, settings).Where(p => p.Value.Count > 0).Select(p => p.Key).ToArray();
-    }
-
     private unsafe bool ActionAvailable(JobPreset job, ActionChoice action, bool includeFuture = false)
     {
         if (action.Type != 1) return true; // Inventory count never affects placement.
@@ -85,7 +79,6 @@ internal sealed class SetupController : IDisposable
         var desired = CloneSettings(); desired.Layouts = preferences;
         return LayoutPlan(Pack.Find(job)!, desired, true);
     }
-    internal string DefaultControlName(uint job, int slot) => Layouts.DefaultControlName(job, slot);
     internal IntentMapping DefaultMapping() => Layouts.CreateDefaults();
 
     internal void PreviewLayout(uint jobId, LayoutPreferences preferences)
@@ -142,7 +135,16 @@ internal sealed class SetupController : IDisposable
     internal SetupController()
     {
         Instance = this;
-        if (Layouts.InitializeDefaults(Settings.Layouts)) Svc.PluginInterface.SavePluginConfig(Settings);
+        var previousLayouts = Settings.Layouts;
+        var migrated = ConfiguredLayout.Clone(Settings);
+        if (Layouts.InitializeDefaults(migrated.Layouts))
+        {
+            if (previousLayouts.DefaultsInitialized || previousLayouts.Global.Mapping.Areas.Count > 0)
+                File.WriteAllText(Path.Combine(Svc.PluginInterface.GetPluginConfigDirectory(),
+                    $"layout-before-global-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid():N}.json"), JsonConvert.SerializeObject(Settings, Formatting.Indented));
+            try { Settings.Layouts = migrated.Layouts; Svc.PluginInterface.SavePluginConfig(Settings); }
+            catch { Settings.Layouts = previousLayouts; throw; }
+        }
         engine = new EngineClient(() => {updates.Wake(); PvP?.Invalidate();});
         logout = new ManualFallbackLifecycle(() =>
         {

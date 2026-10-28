@@ -11,11 +11,11 @@ namespace Accord;
 
 internal static class AccordUi
 {
-    internal enum Page { General, Automation, Classes, Hotbars, RoleActions, Exclusions, Groups, Recovery }
+    internal enum Page { General, Automation, Classes, Hotbars, RoleActions, Exclusions, Groups, Overrides, Preview, Recovery }
     private static Page page;
     private static string search = "";
-    private static readonly string[] titles = ["General", "Automation", "Active classes", "Hotbar mapping", "Role actions", "Action exclusions", "Personal groups", "Recovery & tools"];
-    private static readonly string[] keywords = ["live mode bars shared", "burst protection support mechanics", "jobs enable", "layout slots position manual defaults override", "important role", "exclude manual wrath", "potions roulette items extras", "backup restore logout diagnostics"];
+    private static readonly string[] titles = ["General", "Automation", "Active classes", "Global mapping", "Global role actions", "Global exclusions", "Personal groups", "Mapping overrides", "Preview", "Recovery & tools"];
+    private static readonly string[] keywords = ["live mode bars shared", "burst protection support mechanics", "jobs enable", "layout slots position manual defaults override", "important role", "exclude manual wrath", "potions roulette items extras", "role class overrides add edit inheritance", "preview class result inherited", "backup restore logout diagnostics"];
 
     internal static void Draw()
     {
@@ -35,7 +35,7 @@ internal static class AccordUi
             {
                 int index = (int)item;
                 if (!(titles[index] + " " + keywords[index]).Contains(search, StringComparison.OrdinalIgnoreCase)) continue;
-                if (index is 0 or 3 or 7) { ImGui.Spacing(); ImGui.TextDisabled(index == 0 ? "SETUP" : index == 3 ? "LAYOUT" : "TOOLS"); }
+                if (index is 0 or 3 or 9) { ImGui.Spacing(); ImGui.TextDisabled(index == 0 ? "SETUP" : index == 3 ? "LAYOUT" : "TOOLS"); }
                 if (ImGui.Selectable(titles[index], page == item)) page = item;
             }
         }

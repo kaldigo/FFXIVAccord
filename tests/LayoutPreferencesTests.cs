@@ -74,41 +74,85 @@ internal static class LayoutPreferencesTests
         var pack = new SetupPack();
         var catalog = new ActionCatalog(null!, null!);
         var configured = new ConfiguredLayout(pack, (job, name) => catalog.ResolveSlot(job, name));
+        bool Available(JobPreset job, ActionChoice a) => a.Name switch
+        {
+            "Second Wind" => LayoutPreferences.Role(job.JobId) is JobRole.Melee or JobRole.PhysicalRanged,
+            "Bloodbath" => LayoutPreferences.Role(job.JobId) == JobRole.Melee,
+            "Head Graze" => LayoutPreferences.Role(job.JobId) == JobRole.PhysicalRanged,
+            "Rampart" or "Reprisal" or "Interject" => LayoutPreferences.Role(job.JobId) == JobRole.Tank,
+            "Arm's Length" => LayoutPreferences.Role(job.JobId) is JobRole.Melee or JobRole.PhysicalRanged or JobRole.Tank,
+            "Swiftcast" or "Lucid Dreaming" or "Surecast" => LayoutPreferences.Role(job.JobId) is JobRole.Healer or JobRole.MagicalRanged,
+            "Esuna" => LayoutPreferences.Role(job.JobId) == JobRole.Healer,
+            _ => true,
+        };
         var defaults = new AccordSettings();
         Check(configured.InitializeDefaults(defaults.Layouts), "default migration did not run");
         Check(!configured.InitializeDefaults(defaults.Layouts), "default migration repeated");
-        Check(defaults.Layouts.Global.Mapping.JobDefaults.Count == 21, "editable defaults missing jobs");
+        Check(defaults.Layouts.Global.Mapping.JobDefaults.Count == 0 && defaults.Layouts.Roles.Count == 0 && defaults.Layouts.Classes.Count == 0,
+            "global default manufactured class templates or overrides");
+        Check(defaults.Layouts.Global.Mapping.Areas.SelectMany(a => a.Entries).Select(e => e.Intent).ToHashSet().SetEquals(Enum.GetValues<ControlIntent>().Select(i => (ControlIntent?)i)),
+            "global default omits an intent");
+        Check(!JsonConvert.SerializeObject(defaults.Layouts).Contains("JobDefaults"), "per-class templates leaked into saved global settings");
         var noSprint = configured.Plan(pack.Find(23)!, defaults, _ => false, _ => true, true, includeDefaultSprint: false);
         Check(noSprint.Controls.All(c => c.Action.Name != "Sprint"), "default duplicated shared Sprint");
         foreach (var job in pack.Data.Jobs.Where(j => j.JobId >= 19))
         {
-            for (int mask = 0; mask < 16; mask++)
+            var known = configured.Contents(job, defaults);
+            Check(known[ControlIntent.Other].Count == 0, job.Job + " audited controls still filed as Other: " + string.Join(",", known[ControlIntent.Other].Select(c => c.Action.Name)));
+            foreach (bool split in new[] { false, true })
             {
-                foreach (var variant in Enum.GetValues<VariantId>()) defaults.Variants[variant] = (mask & (1 << (int)variant)) != 0;
-                var actual = configured.Plan(job, defaults, _ => false, _ => true, false);
-                var expected = PveLayoutPlan.Create(job.JobId, pack.Resolve(job, defaults), Defaults.Maps(), _ => false, sprint: true)
-                    .Where(e => e.Slot is not null && e.Slot.Action != "Empty").ToDictionary(e => e.Regular, e => e.Slot!.Action);
-                Check(actual.Valid, job.Job + " editable defaults invalid " + mask + ": " + string.Join(";", actual.Issues.Select(i => i.Message)));
-                Check(actual.Controls.Count == expected.Count && actual.Controls.All(c => expected.GetValueOrDefault(c.Position) == c.Action.Name),
-                    job.Job + " editable defaults changed placement " + mask + ": " + string.Join(",", actual.Controls.Where(c => expected.GetValueOrDefault(c.Position) != c.Action.Name).Select(c => c.Action.Name + " at " + c.Position)));
+                defaults.Layouts.Global.SplitMechanics = split;
+                var envelope = configured.Plan(job, defaults, _ => false, a => Available(job, a), true);
+                Check(envelope.Valid, job.Job + " global all-off layout: " + string.Join(";", envelope.Issues.Select(i => i.Message)));
+                foreach (var slot in pack.Resolve(job, new()).Slots.Where(s => s.Action != "Empty"))
+                    Check(envelope.Controls.Any(c => c.Action.Name == slot.Action), job.Job + " lost " + slot.Action + " from Global");
+                var movement = configured.Contents(job, defaults)[ControlIntent.Movement].FirstOrDefault();
+                if (movement is not null) Check(envelope.Controls.Any(c => c.Position == new Position(1, 0) && c.Action.Name == movement.Action.Name), job.Job + " movement exception survived");
+                if (new uint[] { 24, 28, 33, 40, 27, 35 }.Contains(job.JobId))
+                    Check(envelope.Controls.Any(c => c.Position == new Position(1, 11) && c.Action.Name == "Swiftcast"), job.Job + " resurrection absent from common end-slot rule");
+                for (int mask = 0; mask < 16; mask++)
+                {
+                    foreach (var variant in Enum.GetValues<VariantId>()) defaults.Variants[variant] = (mask & (1 << (int)variant)) != 0;
+                    var actual = configured.Plan(job, defaults, _ => false, a => Available(job, a), false);
+                    Check(actual.Valid && actual.Controls.Count <= envelope.Controls.Count, job.Job + " global layout toggles " + mask + ": " + string.Join(";", actual.Issues.Select(i => i.Message)));
+                }
             }
         }
-        defaults.Variants.Clear();
-        var editable = defaults.Layouts.Global.Mapping.JobDefaults[23];
-        var firstArea = editable.Single(a => a.Entries.Any(e => e.DefaultSlot == 1));
-        firstArea.Bar = 3; firstArea.First = firstArea.Last = 12;
-        var moved = configured.Plan(pack.Find(23)!, defaults, _ => false, _ => true, true);
-        Check(moved.Controls.Any(c => c.Position == new Position(2, 11) && c.Action.Name == pack.Resolve(pack.Find(23)!, new()).Slots.Single(s => s.LogicalSlot == 1).Action), "default could not be edited directly");
+        defaults.Variants.Clear(); defaults.Layouts.Global.SplitMechanics = false;
+        var editable = defaults.Layouts.Global.Mapping.Areas;
+        var movementEntry = editable.SelectMany(a => a.Entries).Single(e => e.Intent == ControlIntent.Movement);
+        editable.Single(a => a.Entries.Contains(movementEntry)).Entries.Remove(movementEntry);
+        editable.Single(a => a.Bar == 3).Last = 10;
+        editable.Add(new() { Name = "Moved movement", Bar = 3, First = 11, Last = 12, Entries = [movementEntry] });
+        foreach (var job in pack.Data.Jobs.Where(j => j.JobId >= 19))
+        {
+            var moved = configured.Plan(job, defaults, _ => false, a => Available(job, a), true);
+            var movement = configured.Contents(job, defaults)[ControlIntent.Movement].FirstOrDefault();
+            if (movement is not null) Check(moved.Controls.Any(c => c.Position == new Position(2, 10) && c.Action.Name == movement.Action.Name), "global edit failed to reach " + job.Job);
+        }
         var roundTrip = JsonConvert.DeserializeObject<LayoutPreferences>(JsonConvert.SerializeObject(defaults.Layouts))!;
-        Check(roundTrip.Global.Mapping.JobDefaults[23].Any(a => a.Bar == 3 && a.First == 12), "edited default did not persist");
-        roundTrip.Global.Mapping.JobDefaults[23].Clear();
-        Check(!configured.InitializeDefaults(roundTrip) && roundTrip.Global.Mapping.ForJob(23).Count == 0, "cleared defaults silently returned");
-        roundTrip.Roles[JobRole.Tank] = new(); roundTrip.Classes[23] = new() { KeepManual = true };
-        roundTrip.PruneUnusedOverrides();
-        Check(!roundTrip.Roles.ContainsKey(JobRole.Tank) && roundTrip.Classes[23].KeepManual == true, "browsing overrides created saved edits or removed an applied setting");
+        Check(roundTrip.Global.Mapping.Areas.Any(a => a.Name == "Moved movement"), "global edit did not persist");
+        roundTrip.Global.Mapping.Areas.Clear();
+        Check(!configured.InitializeDefaults(roundTrip) && roundTrip.Global.Mapping.Areas.Count == 0, "cleared mapping silently returned");
+        var legacy = new LayoutPreferences { DefaultsInitialized = true };
+        foreach (var job in pack.Data.Jobs.Where(j => j.JobId >= 19)) legacy.Global.Mapping.JobDefaults[job.JobId] = [new()];
+        legacy.Roles[JobRole.Healer] = new() { KeepManual = true };
+        configured.InitializeDefaults(legacy);
+        Check(legacy.Global.Mapping.JobDefaults.Count == 0 && legacy.Classes.Count == 0 && legacy.Roles.Count == 1 && legacy.Roles[JobRole.Healer].KeepManual == true,
+            "template migration created overrides or removed an explicit setting");
         var customBefore = new LayoutPreferences(); customBefore.Global.Mapping.Areas.Add(new() { Name = "Personal layout" });
         configured.InitializeDefaults(customBefore);
-        Check(customBefore.Global.Mapping.Areas.Single().Name == "Personal layout" && customBefore.Global.Mapping.JobDefaults.Count == 0, "migration replaced a custom mapping");
+        Check(customBefore.Global.Mapping.Areas.Single().Name == "Personal layout", "migration replaced a custom global mapping");
+        var legacyClass = new LayoutPreferences { DefaultsInitialized = true };
+        legacyClass.Classes[23] = new() { Mapping = new() { JobDefaults = new() { [23] = [new() { Entries = [new() { DefaultSlot = 1 }, new() { DefaultSlot = 99 }] }] } } };
+        configured.InitializeDefaults(legacyClass);
+        Check(legacyClass.Classes.Count == 1 && legacyClass.Classes[23].Mapping!.JobDefaults.Count == 0 &&
+            legacyClass.Classes[23].Mapping!.Areas[0].Entries[0].Action!.Name == "Heavy Shot" &&
+            legacyClass.Classes[23].Mapping!.Areas[0].Entries[1].Intent == ControlIntent.Sprint,
+            "explicit legacy class mapping was not converted");
+        var explicitEmpty = JsonConvert.DeserializeObject<LayoutPreferences>(JsonConvert.SerializeObject(new LayoutPreferences
+            { MappingVersion = 2, Classes = new() { [23] = new() } }))!;
+        Check(!configured.InitializeDefaults(explicitEmpty) && explicitEmpty.Classes.ContainsKey(23), "explicitly added empty override disappeared");
         var bard = pack.Find(23)!;
         var settings = new AccordSettings();
         var rain = new ActionChoice { Name = "Rain of Death", Id = catalog.ResolveSlot("BRD", "Rain of Death").Id };
@@ -149,32 +193,6 @@ internal static class LayoutPreferencesTests
         Check(configured.Plan(bard, personal, _ => false, _ => true, false).Controls.Count == 0, "personal group lost action automation owner");
         personal.Layouts.Global.Mapping.Areas[0].Entries[0].KeepManual = true;
         Check(configured.Plan(bard, personal, _ => false, _ => true, false).Controls.Count == 1, "personal group manual retention ignored");
-        // A shared mapping must fit every job, including the all-off envelope.
-        var shared = new AccordSettings(); shared.Layouts.Global.SplitMechanics = true;
-        var primary = new[] { ControlIntent.SingleTarget, ControlIntent.AreaDamage, ControlIntent.Burst,
-            ControlIntent.SingleHealing, ControlIntent.AreaHealing, ControlIntent.Raise };
-        shared.Layouts.Global.Mapping.Areas =
-        [
-            new() { Bar = 1, Entries = primary.Select(i => new MappingEntry { Intent = i }).ToList() },
-            new() { Bar = 2, Entries = Enum.GetValues<ControlIntent>().Where(i => !primary.Contains(i) &&
-                i is not (ControlIntent.ImportantRole or ControlIntent.OtherRole or ControlIntent.Exclusions))
-                .Select(i => new MappingEntry { Intent = i }).ToList() },
-            new() { Bar = 3, Entries = [new() { Intent = ControlIntent.ImportantRole }, new() { Intent = ControlIntent.OtherRole }] },
-        ];
-        foreach (var job in pack.Data.Jobs.Where(j => j.JobId >= 19))
-        {
-            var envelope = configured.Plan(job, shared, _ => false, _ => true, true);
-            Check(envelope.Valid, job.Job + " shared all-off layout: " + string.Join("; ", envelope.Issues.Select(i => i.Message)));
-            for (int mask = 0; mask < 16; mask++)
-            {
-                shared.Variants[VariantId.Protection] = (mask & 1) != 0;
-                shared.Variants[VariantId.Support] = (mask & 2) != 0;
-                shared.Variants[VariantId.ClassMechanics] = (mask & 4) != 0;
-                shared.Variants[VariantId.Burst] = (mask & 8) != 0;
-                var live = configured.Plan(job, shared, _ => false, _ => true, false);
-                Check(live.Valid && live.Controls.Count <= envelope.Controls.Count, job.Job + " shared layout toggles " + mask);
-            }
-        }
         using (var route = new WrathFork.Contract.ActionRouteContext(new() { Excluded = [117] }))
         {
             Check(!WrathFork.Contract.ActionRouteContext.Allowed(117) && WrathFork.Contract.ActionRouteContext.Allowed(110), "route scope did not isolate action");

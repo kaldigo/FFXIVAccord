@@ -44,6 +44,13 @@ foreach (var (job, names) in new (string, string[])[]
     ("BRD", ["The Wanderer's Minuet", "Mage's Ballad", "Army's Paeon", "Rain of Death", "Second Wind", "Head Graze", "Arm's Length"]),
     ("DNC", ["Standard Step", "Technical Step"]),
     ("AST", ["Astral Draw", "Play I", "Play II", "Play III", "Minor Arcana"]),
+    ("WHM", ["Esuna"]), ("SCH", ["Esuna"]), ("SGE", ["Esuna"]), ("AST", ["Esuna"]),
+    ("PLD", ["Interject"]), ("WAR", ["Interject"]), ("DRK", ["Interject"]), ("GNB", ["Interject"]),
+    ("MCH", ["Head Graze", "Second Wind"]), ("DNC", ["Head Graze", "Second Wind"]),
+    ("MNK", ["Second Wind", "Bloodbath", "Arm's Length"]), ("DRG", ["Second Wind", "Bloodbath", "Arm's Length"]),
+    ("NIN", ["Second Wind", "Bloodbath", "Arm's Length"]), ("SAM", ["Second Wind", "Bloodbath", "Arm's Length"]),
+    ("RPR", ["Second Wind", "Bloodbath", "Arm's Length"]), ("VPR", ["Second Wind", "Bloodbath", "Arm's Length"]),
+    ("BLM", ["Surecast"]), ("SMN", ["Surecast"]), ("RDM", ["Surecast"]), ("PCT", ["Surecast"]),
 })
     foreach (string name in names)
         Console.WriteLine($"Configurable control: {job} / {name} = {catalog.ResolveSlot(job, name)}");

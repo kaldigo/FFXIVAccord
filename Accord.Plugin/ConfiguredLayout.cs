@@ -15,62 +15,61 @@ internal sealed class ConfiguredLayout
     private readonly SetupPack pack;
     private readonly Func<string, string, SlotValue> resolve;
     private readonly Dictionary<uint, Dictionary<ControlIntent, List<LayoutControl>>> baseContents = new();
-    private readonly Dictionary<uint, Dictionary<int, string>> defaultNames = new();
     internal ConfiguredLayout(SetupPack pack, Func<string, string, SlotValue> resolve) { this.pack = pack; this.resolve = resolve; }
 
     internal bool InitializeDefaults(LayoutPreferences preferences)
     {
-        if (preferences.DefaultsInitialized) return false;
-        foreach (var mapping in new[] { preferences.Global.Mapping }.Concat(preferences.Roles.Values.Select(o => o.Mapping))
-                     .Concat(preferences.Classes.Values.Select(o => o.Mapping)).OfType<IntentMapping>())
-            if (mapping.Areas.Count == 0 && mapping.JobDefaults.Count == 0)
-                mapping.JobDefaults = CreateDefaults().JobDefaults;
+        if (preferences.MappingVersion >= 2) return false;
+        if (preferences.Global.Mapping.JobDefaults.Count > 0 ||
+            (!preferences.DefaultsInitialized && preferences.Global.Mapping.Areas.Count == 0))
+            preferences.Global.Mapping = CreateDefaults();
+        // Never manufacture overrides from the old templates. Explicitly added
+        // overrides survive; their legacy layout data has a separate file backup.
+        foreach (var (job, over) in preferences.Classes)
+            if (over.Mapping is { } mapping && mapping.JobDefaults.Count > 0)
+            {
+                mapping.Areas = mapping.JobDefaults.GetValueOrDefault(job) ?? CreateDefaults().Areas;
+                foreach (var entry in mapping.Areas.SelectMany(a => a.Entries).Where(e => e.DefaultSlot.HasValue).ToArray())
+                {
+                    int slot = entry.DefaultSlot!.Value;
+                    var source = pack.Resolve(pack.Find(job)!, new()).Slots.FirstOrDefault(s => s.LogicalSlot == slot);
+                    entry.DefaultSlot = null;
+                    if (slot == 99) entry.Intent = ControlIntent.Sprint;
+                    else if (source is not null && source.Action != "Empty")
+                    {
+                        var value = resolve(pack.Find(job)!.Job, source.Action);
+                        var control = Contents(pack.Find(job)!, new()).Values.SelectMany(c => c).First(c => c.Action.Value == value);
+                        entry.Action = control.Action;
+                    }
+                }
+                foreach (var area in mapping.Areas) area.Entries.RemoveAll(e => e.Intent is null && e.Action is null && e.GroupId.Length == 0);
+                mapping.JobDefaults.Clear();
+            }
+        foreach (var over in preferences.Roles.Values)
+            if (over.Mapping is { } mapping && mapping.JobDefaults.Count > 0) over.Mapping = CreateDefaults();
+        preferences.PruneUnusedOverrides();
         preferences.DefaultsInitialized = true;
+        preferences.MappingVersion = 2;
         return true;
     }
 
-    internal IntentMapping CreateDefaults()
+    internal IntentMapping CreateDefaults() => new()
     {
-        var mapping = new IntentMapping();
-        foreach (var job in pack.Data.Jobs.Where(j => j.JobId >= 19))
-        {
-            var preset = pack.Resolve(job, new());
-            var controls = PveLayoutPlan.Create(job.JobId, preset, Defaults.Maps(), _ => false, sprint: true);
-            bool Locked(PveLayoutPlan.Entry e) => e.Slot is { } s && (s.LogicalSlot is 1 or 2 ||
-                ((Defaults.IsHealer(job.JobId) || LayoutPreferences.Role(job.JobId) == JobRole.Tank) && s.LogicalSlot is 9 or 10) ||
-                (!Defaults.IsHealer(job.JobId) && s.LogicalSlot == 4 && s.Action != "Empty"));
-            var areas = new List<MappingArea>();
-            foreach (int bar in new[] { 0, 1, 2 })
-            {
-                var onBar = controls.Where(e => e.Regular.Bar == bar).ToArray();
-                foreach (var e in onBar.Where(Locked))
-                    areas.Add(new() { Name = e.Slot!.Function, Bar = bar + 1, First = e.Regular.Slot + 1, Last = e.Regular.Slot + 1,
-                        Entries = [new() { DefaultSlot = e.Slot.LogicalSlot }] });
-                var entries = onBar.Where(e => !Locked(e) && e.Slot is not null && Names(job).ContainsKey(e.Slot.LogicalSlot)).OrderBy(e => e.Regular.Slot)
-                    .Select(e => new MappingEntry { DefaultSlot = e.Slot!.LogicalSlot }).ToList();
-                if (entries.Count > 0) areas.Add(new() { Name = bar == 0 ? "Main actions" : "Class actions", Bar = bar + 1,
-                    First = 1, Last = bar == 0 ? 8 : 12, AvoidFixedSlots = true, Entries = entries });
-            }
-            areas.Add(new() { Name = "Manual exclusions", Bar = 3, Entries = [new() { Intent = ControlIntent.Exclusions }] });
-            mapping.JobDefaults[job.JobId] = areas;
-        }
-        return mapping;
-    }
-
-    private Dictionary<int, string> Names(JobPreset job)
-    {
-        if (defaultNames.TryGetValue(job.JobId, out var names)) return names;
-        var probes = Enum.GetValues<VariantId>().Select(v =>
-        {
-            var settings = new AccordSettings(); settings.Variants[v] = true;
-            return pack.Resolve(job, settings);
-        }).Prepend(pack.Resolve(job, new()));
-        names = probes.SelectMany(p => p.Slots).Where(s => s.Action != "Empty").GroupBy(s => s.LogicalSlot)
-            .ToDictionary(g => g.Key, g => g.First().Action);
-        names[99] = "Sprint";
-        return defaultNames[job.JobId] = names;
-    }
-    internal string DefaultControlName(uint job, int slot) => Names(pack.Find(job)!).GetValueOrDefault(slot, "Unused class control");
+        Areas = [
+            new() { Name = "Main actions", Bar = 1, Entries = Entries(ControlIntent.SingleTarget, ControlIntent.AreaDamage,
+                ControlIntent.SingleHealing, ControlIntent.AreaHealing, ControlIntent.Protection, ControlIntent.Burst) },
+            new() { Name = "Movement and class utility", Bar = 2, Last = 10, Entries = Entries(ControlIntent.Movement,
+                ControlIntent.Enmity, ControlIntent.Travel, ControlIntent.TargetedProtection, ControlIntent.PartyProtection,
+                ControlIntent.PersonalProtection, ControlIntent.Support, ControlIntent.Mechanics, ControlIntent.Knockback,
+                ControlIntent.Invulnerability, ControlIntent.Rescue, ControlIntent.Preparation, ControlIntent.Other) },
+            new() { Name = "Tank swap", Bar = 2, First = 11, Last = 11, Entries = Entries(ControlIntent.Shirk) },
+            new() { Name = "Resurrection or tank stance", Bar = 2, First = 12, Last = 12, Entries = Entries(ControlIntent.Raise, ControlIntent.Stance) },
+            new() { Name = "Role actions and manual utilities", Bar = 3, Entries = Entries(ControlIntent.ImportantRole,
+                ControlIntent.OtherRole, ControlIntent.Interrupt, ControlIntent.Exclusions, ControlIntent.Recovery, ControlIntent.Cleanse, ControlIntent.Sprint) },
+        ],
+    };
+    private static List<MappingEntry> Entries(params ControlIntent[] intents) => intents
+        .Select(i => new MappingEntry { Intent = i, Priority = i == ControlIntent.ImportantRole ? 20 : 10 }).ToList();
 
     internal static ControlIntent Intent(JobPreset job, PresetSlot slot) => slot.Action switch
     {
@@ -82,6 +81,17 @@ internal sealed class ConfiguredLayout
         "Shirk" => ControlIntent.Shirk,
         "Iron Will" or "Defiance" or "Grit" or "Royal Guard" => ControlIntent.Stance,
         "Swiftcast" => ControlIntent.Raise,
+        "Rescue" => ControlIntent.Rescue,
+        "Divine Veil" or "Passage of Arms" => ControlIntent.PartyProtection,
+        "Bulwark" or "Thrill of Battle" or "Dark Mind" or "Camouflage" or "Holos" => ControlIntent.Protection,
+        "Riddle of Earth" or "Third Eye" or "Arcane Crest" or "Manaward" or "Radiant Aegis" or "Tempera Coat" => ControlIntent.PersonalProtection,
+        "Sheltron" or "Raw Intuition" or "The Blackest Night" or "Heart of Stone" or "Cover" or "Oblation" or "Deployment Tactics" => ControlIntent.TargetedProtection,
+        "Second Wind" or "Equilibrium" => ControlIntent.Recovery,
+        "Meditate" or "Soulsow" or "Meisui" or "Dissipation" => ControlIntent.Preparation,
+        "Interject" or "Head Graze" => ControlIntent.Interrupt,
+        "Vercure" or "Clemency" => ControlIntent.SingleHealing,
+        "Benediction" or "Liturgy of the Bell" or "Synastry" or "Macrocosmos" or "Kardia" or "Pneuma" or "Curing Waltz" or "Improvisation" or "Aurora" => ControlIntent.Support,
+        "Astral Flow" => ControlIntent.Mechanics,
         "Elusive Jump" => ControlIntent.Movement,
         "The Wanderer's Minuet" or "Standard Step" or "Technical Step" or "Astral Draw" => ControlIntent.Mechanics,
         "Perfect Balance" or "Geirskogul" or "Kassatsu" or "Ten Chi Jin" or "Meikyo Shisui" or "Enshroud" or "Reawaken" or "Flamethrower" or "Transpose" or "Hammer Stamp" => ControlIntent.Mechanics,
@@ -115,6 +125,7 @@ internal sealed class ConfiguredLayout
                 content[ControlIntent.Mechanics].Add(new(new ActionChoice { Name = name, Type = value.Type, Id = value.Id, Automation = VariantId.ClassMechanics }));
             }
         }
+        content[ControlIntent.Sprint].Add(new(new() { Name = "Sprint", Id = 3, Selector = true }));
         return content;
     }
 
@@ -155,7 +166,20 @@ internal sealed class ConfiguredLayout
             var value = resolve(job.Job, slot.Action);
             content[Intent(job, slot)].Add(new(new ActionChoice { Name = slot.Action, Id = value.Id, Type = value.Type }));
         }
+        if (LayoutPreferences.Role(job.JobId) == JobRole.Healer) AddCapability(ControlIntent.Cleanse, "Esuna");
+        if (LayoutPreferences.Role(job.JobId) == JobRole.Tank) AddCapability(ControlIntent.Interrupt, "Interject");
+        if (LayoutPreferences.Role(job.JobId) == JobRole.PhysicalRanged) AddCapability(ControlIntent.Interrupt, "Head Graze");
+        if (LayoutPreferences.Role(job.JobId) is JobRole.Melee or JobRole.PhysicalRanged) AddCapability(ControlIntent.Recovery, "Second Wind");
+        if (LayoutPreferences.Role(job.JobId) == JobRole.Melee) AddCapability(ControlIntent.Recovery, "Bloodbath");
+        AddCapability(ControlIntent.Knockback, LayoutPreferences.Role(job.JobId) is JobRole.Healer or JobRole.MagicalRanged ? "Surecast" : "Arm's Length");
         return content;
+
+        void AddCapability(ControlIntent intent, string name)
+        {
+            var value = resolve(job.Job, name);
+            if (!content[intent].Any(c => c.Action.Value == value))
+                content[intent].Add(new(new() { Name = name, Type = value.Type, Id = value.Id }));
+        }
     }
 
     internal static readonly Dictionary<uint, string[]> SplitActions = new()
@@ -172,25 +196,9 @@ internal sealed class ConfiguredLayout
         var content = Contents(job, settings);
         var owners = content.Values.SelectMany(c => c).Where(c => c.Action.Automation is not null)
             .GroupBy(c => c.Action.Value).ToDictionary(g => g.Key, g => g.First().Action.Automation);
-        var manual = Clone(settings); manual.Variants.Clear();
-        var manualPreset = pack.Resolve(job, manual);
-        var livePreset = pack.Resolve(job, settings);
-        IEnumerable<LayoutControl> DefaultControls(int slot, bool retained)
-        {
-            if (slot == 99) return includeDefaultSprint ? [new(new() { Name = "Sprint", Id = 3, Selector = true })] : [];
-            var source = (retained ? manualPreset : livePreset).Slots.FirstOrDefault(s => s.LogicalSlot == slot);
-            if (source is null || source.Action == "Empty") return [];
-            if (settings.Layouts.Resolve(job.JobId).SplitMechanics && SplitActions.TryGetValue(job.JobId, out var split) && split.Contains(source.Action))
-            {
-                var first = manualPreset.Slots.Where(s => split.Contains(s.Action)).OrderBy(s => s.LogicalSlot).First();
-                return slot == first.LogicalSlot ? content[ControlIntent.Mechanics] : [];
-            }
-            var value = resolve(job.Job, source.Action);
-            var known = content.Values.SelectMany(c => c).FirstOrDefault(c => c.Action.Value == value);
-            return [known ?? new(new() { Name = source.Action, Type = value.Type, Id = value.Id })];
-        }
+        if (!includeDefaultSprint) content[ControlIntent.Sprint].Clear();
         var result = IntentLayoutResolver.Resolve(job.JobId, settings.Layouts, i => content[i], available, settings.Enabled, shared, allManual,
-            a => owners.GetValueOrDefault(a.Value), DefaultControls);
+            a => owners.GetValueOrDefault(a.Value));
         return result with { Controls = result.Controls.Select(c => c with { Action = DirectControl(c.Action) }).ToArray() };
     }
 
@@ -234,7 +242,7 @@ internal sealed class ConfiguredLayout
             .Concat(values.RoleActions.Important).Concat(values.RoleActions.Other)
             .Concat(values.Exclusions.Where(e => e.ExcludedFrom.Count > 0).Select(e => e.Action))
             .Concat(settings.Layouts.Groups.SelectMany(g => g.Resolve(job.JobId)))
-            .Concat(values.Mapping.ForJob(job.JobId).SelectMany(a => a.Entries).Where(e => e.Action is not null).Select(e => e.Action!));
+            .Concat(values.Mapping.Areas.SelectMany(a => a.Entries).Where(e => e.Action is not null).Select(e => e.Action!));
         foreach (var action in direct.Where(a => !a.Selector && a.Type == 1 && a.Id is > 0 and < 1000000))
             routes[DirectAction.Id(action.Id)] = new() { Direct = true, Target = action.Id };
         return JObject.FromObject(routes);

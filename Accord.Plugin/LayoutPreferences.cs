@@ -8,7 +8,7 @@ namespace Accord;
 // Intent/group definitions have no keyboard or controller coordinates. Only the
 // mapping owns destinations, so a future controller editor can reuse the content.
 public enum JobRole { Tank, Healer, Melee, PhysicalRanged, MagicalRanged, Noncombat }
-public enum ControlIntent { SingleTarget, AreaDamage, Burst, Protection, Support, Mechanics, Movement, Cleanse, ImportantRole, OtherRole, Exclusions, Travel, SingleHealing, AreaHealing, Raise, Knockback, Invulnerability, Enmity, Stance, Shirk, Other }
+public enum ControlIntent { SingleTarget, AreaDamage, Burst, Protection, Support, Mechanics, Movement, Cleanse, ImportantRole, OtherRole, Exclusions, Travel, SingleHealing, AreaHealing, Raise, Knockback, Invulnerability, Enmity, Stance, Shirk, Other, Sprint, PartyProtection, PersonalProtection, TargetedProtection, Recovery, Rescue, Preparation, Interrupt }
 
 public sealed class ActionChoice
 {
@@ -60,7 +60,9 @@ public sealed class PersonalGroup
 
 public sealed class MappingEntry
 {
+    // Read only for migration from the rejected per-class templates.
     public int? DefaultSlot { get; set; }
+    public bool ShouldSerializeDefaultSlot() => DefaultSlot.HasValue;
     public ControlIntent? Intent { get; set; }
     public string GroupId { get; set; } = "";
     public ActionChoice? Action { get; set; }
@@ -82,10 +84,10 @@ public sealed class MappingArea
 
 public sealed class IntentMapping
 {
-    // Defaults are editable configuration. Shared areas replace the job templates.
+    // Legacy templates are read only for migration; live layouts use Areas exclusively.
     public Dictionary<uint, List<MappingArea>> JobDefaults { get; set; } = new();
     public List<MappingArea> Areas { get; set; } = new();
-    internal List<MappingArea> ForJob(uint job) => Areas.Count > 0 ? Areas : JobDefaults.GetValueOrDefault(job) ?? Areas;
+    public bool ShouldSerializeJobDefaults() => JobDefaults.Count > 0;
 }
 
 public sealed class LayoutValues
@@ -123,6 +125,7 @@ public sealed class LayoutOverride
 public sealed class LayoutPreferences
 {
     public bool DefaultsInitialized { get; set; }
+    public int MappingVersion { get; set; }
     public LayoutValues Global { get; set; } = new();
     public Dictionary<JobRole, LayoutOverride> Roles { get; set; } = new();
     public Dictionary<uint, LayoutOverride> Classes { get; set; } = new();
@@ -172,8 +175,7 @@ internal static class IntentLayoutResolver
     internal static LayoutResult Resolve(uint job, LayoutPreferences preferences,
         Func<ControlIntent, IEnumerable<LayoutControl>> intentControls,
         Func<ActionChoice, bool> available, Func<VariantId, bool> automated,
-        Func<int, bool> shared, bool allManual = false, Func<ActionChoice, VariantId?>? automationOwner = null,
-        Func<int, bool, IEnumerable<LayoutControl>>? defaultControls = null)
+        Func<int, bool> shared, bool allManual = false, Func<ActionChoice, VariantId?>? automationOwner = null)
     {
         var values = preferences.Resolve(job);
         var issues = new List<LayoutIssue>();
@@ -187,7 +189,7 @@ internal static class IntentLayoutResolver
         if (preferences.Groups.Select(g => g.Id).Distinct().Count() != preferences.Groups.Count)
             issues.Add(new(job, 0, "Group identifiers must be unique."));
         int order = 0;
-        var areas = values.Mapping.ForJob(job);
+        var areas = values.Mapping.Areas;
         foreach (var area in areas)
         {
             if (!bars.Contains(area.Bar) || area.First < 1 || area.Last > 12 || area.First > area.Last)
@@ -197,14 +199,13 @@ internal static class IntentLayoutResolver
             }
             foreach (var entry in area.Entries)
             {
-                if ((entry.Intent.HasValue ? 1 : 0) + (entry.GroupId.Length > 0 ? 1 : 0) + (entry.Action is not null ? 1 : 0) + (entry.DefaultSlot.HasValue ? 1 : 0) != 1)
+                if ((entry.Intent.HasValue ? 1 : 0) + (entry.GroupId.Length > 0 ? 1 : 0) + (entry.Action is not null ? 1 : 0) != 1)
                 {
                     issues.Add(new(job, area.Bar, $"{area.Name}: choose exactly one intent, group or action."));
                     continue;
                 }
                 IEnumerable<LayoutControl> controls;
-                if (entry.DefaultSlot is { } slot) controls = defaultControls?.Invoke(slot, allManual || values.KeepManual || entry.KeepManual) ?? [];
-                else if (entry.Action is { } action) controls = [new(action)];
+                if (entry.Action is { } action) controls = [new(action)];
                 else if (entry.Intent is { } intent)
                     controls = intent switch
                     {

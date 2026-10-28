@@ -16,6 +16,8 @@ internal static class LayoutEditor
 {
     private static LayoutPreferences draft = null!;
     private static string scope = "Global";
+    private static string? selectedOverride;
+    private static bool includeOverrides = true;
     private static uint previewJob = 23;
     private static string search = "";
     private static int kind;
@@ -37,7 +39,6 @@ internal static class LayoutEditor
     }
     internal static void Footer(SetupController setup)
     {
-        draft.PruneUnusedOverrides();
         bool dirty = JsonConvert.SerializeObject(draft) != JsonConvert.SerializeObject(setup.Settings.Layouts);
         if (!dirty) saved = JsonConvert.SerializeObject(draft);
         ImGui.BeginDisabled(!dirty);
@@ -52,36 +53,21 @@ internal static class LayoutEditor
         ControlIntent.SingleTarget => "Single target (ST)", ControlIntent.AreaDamage => "Area damage (AoE)",
         ControlIntent.Mechanics => "Class mechanics", ControlIntent.Protection => "Protection",
         ControlIntent.Exclusions => "Excluded actions", ControlIntent.Cleanse => "Cleanse / prevention",
+        ControlIntent.Raise => "Resurrection", ControlIntent.Recovery => "Personal recovery",
         _ => Regex.Replace(intent.ToString(), "([a-z])([A-Z])", "$1 $2"),
     } : Regex.Replace(value.ToString()!, "([a-z])([A-Z])", "$1 $2");
     internal static void Draw(SetupController setup, AccordUi.Page page)
     {
         if (page == AccordUi.Page.General) { Bars(setup); return; }
         if (page == AccordUi.Page.Groups) { Groups(setup, draft!); return; }
-        ImGui.TextWrapped("Global settings are inherited by roles and classes. Check Apply to change a setting only for the selected role or class.");
-        if (ImGui.BeginCombo("Settings for", Label(scope)))
-        {
-            if (ImGui.Selectable("Global", scope == "Global")) scope = "Global";
-            foreach (var role in Enum.GetValues<JobRole>().Where(r => r != JobRole.Noncombat))
-                if (ImGui.Selectable("Role: " + Label(role), scope == "Role: " + role)) scope = "Role: " + role;
-            foreach (var job in setup.Pack.Data.Jobs.Where(j => j.JobId >= 19))
-                if (ImGui.Selectable(job.Job, scope == job.Job)) { scope = job.Job; previewJob = job.JobId; }
-            ImGui.EndCombo();
-        }
-        LayoutOverride? over = null;
-        LayoutValues parent = draft.Global;
-        if (scope.StartsWith("Role: "))
-        {
-            var role = Enum.Parse<JobRole>(scope[6..]);
-            if (!draft.Roles.TryGetValue(role, out over)) draft.Roles[role] = over = new();
-            if (LayoutPreferences.Role(previewJob) != role) previewJob = setup.Pack.Data.Jobs.First(j => j.JobId >= 19 && LayoutPreferences.Role(j.JobId) == role).JobId;
-        }
-        else if (scope != "Global")
-        {
-            var job = setup.Pack.Data.Jobs.First(j => j.Job == scope);
-            if (draft.Roles.TryGetValue(LayoutPreferences.Role(job.JobId), out var role)) parent = role.Over(parent);
-            if (!draft.Classes.TryGetValue(job.JobId, out over)) draft.Classes[job.JobId] = over = new();
-        }
+        if (page == AccordUi.Page.Preview) { DrawPreview(setup); return; }
+        if (page == AccordUi.Page.Overrides) { Overrides(setup); return; }
+        scope = "Global";
+        DrawSettings(setup, page, null, draft.Global);
+    }
+
+    private static void DrawSettings(SetupController setup, AccordUi.Page page, LayoutOverride? over, LayoutValues parent)
+    {
         var effective = over?.Over(parent) ?? parent;
         if (page == AccordUi.Page.Hotbars)
         {
@@ -96,7 +82,6 @@ internal static class LayoutEditor
         {
             bool applied = over is null || over.Mapping is not null;
             if (over is not null && ImGui.Checkbox("Apply this mapping##mapping", ref applied)) over.Mapping = applied ? Copy(parent.Mapping) : null;
-            PreviewClass(setup);
             ImGui.BeginDisabled(!applied);
             Mapping(setup, over?.Mapping ?? effective.Mapping, effective.KeepManual, draft!);
             ImGui.EndDisabled();
@@ -107,7 +92,7 @@ internal static class LayoutEditor
             if (over is not null && ImGui.Checkbox("Apply##roles", ref applied)) over.RoleActions = applied ? Copy(parent.RoleActions) : null;
             ImGui.BeginDisabled(!applied);
             var actions = over?.RoleActions ?? effective.RoleActions;
-            ImGui.TextWrapped("Choose actions for these groups, then add Important role actions or Other role actions on the Hotbar mapping page. Higher-priority groups take precedence over duplicate individual controls.");
+            ImGui.TextWrapped("Choose actions for these groups, then add Important role actions or Other role actions to the mapping. Higher-priority groups take precedence over duplicate individual controls.");
             Actions("Important role actions", actions.Important, true);
             Actions("Other role actions", actions.Other, true);
             ImGui.EndDisabled();
@@ -118,8 +103,7 @@ internal static class LayoutEditor
             if (over is not null && ImGui.Checkbox("Apply##exclusions", ref applied)) over.Exclusions = applied ? Copy(parent.Exclusions) : null;
             ImGui.BeginDisabled(!applied);
             var exclusions = over?.Exclusions ?? effective.Exclusions;
-            PreviewClass(setup);
-            var routes = setup.LayoutIntents(previewJob, draft!);
+            var routes = Enum.GetValues<ControlIntent>().Where(i => i is not (ControlIntent.ImportantRole or ControlIntent.OtherRole or ControlIntent.Exclusions)).ToArray();
             ImGui.TextWrapped("Checked routes may use the action. Untick a route to exclude it. The Exclusions mapping group provides deliberate access.");
             if (ImGui.BeginTable("Exclusion routes", routes.Length + 2,
                 ImGuiTableFlags.ScrollX | ImGuiTableFlags.ScrollY | ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg,
@@ -169,17 +153,98 @@ internal static class LayoutEditor
             }
     }
 
-    private static void PreviewClass(SetupController setup)
+    private static void Overrides(SetupController setup)
     {
-        ImGui.BeginDisabled(scope != "Global" && !scope.StartsWith("Role: "));
-        if (ImGui.BeginCombo("Show class", setup.Pack.Find(previewJob)!.Job))
+        if (selectedOverride is null)
         {
-            foreach (var job in setup.Pack.Data.Jobs.Where(j => j.JobId >= 19 &&
-                         (!scope.StartsWith("Role: ") || LayoutPreferences.Role(j.JobId) == Enum.Parse<JobRole>(scope[6..]))))
-                if (ImGui.Selectable(job.Job, job.JobId == previewJob)) { previewJob = job.JobId; selectedArea = 0; }
+            ImGui.TextWrapped("Global applies to every class. Add an override only where you want a role or class to behave differently.");
+            if (ImGui.Button("Add override")) ImGui.OpenPopup("Add override");
+            if (ImGui.BeginPopup("Add override"))
+            {
+                foreach (var role in Enum.GetValues<JobRole>().Where(r => r != JobRole.Noncombat && !draft.Roles.ContainsKey(r)))
+                    if (ImGui.Selectable("Role: " + Label(role))) { draft.Roles[role] = new(); selectedOverride = "Role: " + role; selectedArea = 0; }
+                foreach (var job in setup.Pack.Data.Jobs.Where(j => j.JobId >= 19 && !draft.Classes.ContainsKey(j.JobId)))
+                    if (ImGui.Selectable(job.Job)) { draft.Classes[job.JobId] = new(); selectedOverride = job.Job; selectedArea = 0; }
+                ImGui.EndPopup();
+            }
+            if (draft.Roles.Count + draft.Classes.Count == 0) ImGui.TextDisabled("No overrides. All classes use Global.");
+            foreach (var role in draft.Roles.Keys.ToArray()) Row("Role: " + role, "Role: " + Label(role), () => draft.Roles.Remove(role));
+            foreach (var job in draft.Classes.Keys.ToArray()) Row(setup.Pack.Find(job)!.Job, setup.Pack.Find(job)!.Job, () => draft.Classes.Remove(job));
+            return;
+        }
+        if (ImGui.Button("Back to overrides")) { selectedOverride = null; return; }
+        scope = selectedOverride;
+        ImGui.TextUnformatted("Editing " + Label(scope));
+        LayoutValues parent = draft.Global;
+        LayoutOverride? over;
+        if (scope.StartsWith("Role: ")) draft.Roles.TryGetValue(Enum.Parse<JobRole>(scope[6..]), out over);
+        else
+        {
+            var job = setup.Pack.Data.Jobs.First(j => j.Job == scope);
+            if (draft.Roles.TryGetValue(LayoutPreferences.Role(job.JobId), out var role)) parent = role.Over(parent);
+            draft.Classes.TryGetValue(job.JobId, out over);
+        }
+        if (over is null) { selectedOverride = null; return; }
+        ImGui.TextWrapped("Only checked Apply settings replace inherited values. Mapping is one complete setting.");
+        if (ImGui.BeginTabBar("Override sections"))
+        {
+            string[] tabs = ["Mapping", "Role actions", "Exclusions"];
+            for (int i = 0; i < tabs.Length; i++) if (ImGui.BeginTabItem(tabs[i]))
+            {
+                DrawSettings(setup, i == 0 ? AccordUi.Page.Hotbars : i == 1 ? AccordUi.Page.RoleActions : AccordUi.Page.Exclusions, over, parent);
+                ImGui.EndTabItem();
+            }
+            ImGui.EndTabBar();
+        }
+        void Row(string key, string label, Action remove)
+        {
+            ImGui.PushID(key); ImGui.TextUnformatted(label); ImGui.SameLine();
+            if (ImGui.SmallButton("Edit")) { selectedOverride = key; selectedArea = 0; }
+            ImGui.SameLine(); if (ImGui.SmallButton("Remove")) remove(); ImGui.PopID();
+        }
+    }
+
+    private static void DrawPreview(SetupController setup)
+    {
+        ImGui.TextWrapped("Preview only. Choosing a class here does not change Global or create an override.");
+        if (ImGui.BeginCombo("Class", setup.Pack.Find(previewJob)!.Job))
+        {
+            foreach (var job in setup.Pack.Data.Jobs.Where(j => j.JobId >= 19))
+                if (ImGui.Selectable(job.Job, previewJob == job.JobId)) previewJob = job.JobId;
             ImGui.EndCombo();
         }
-        ImGui.EndDisabled();
+        ImGui.Checkbox("Include explicitly added overrides", ref includeOverrides);
+        var preferences = Copy(draft);
+        if (!includeOverrides) { preferences.Roles.Clear(); preferences.Classes.Clear(); }
+        string source = "Global";
+        if (preferences.Roles.TryGetValue(LayoutPreferences.Role(previewJob), out var role) && role.Mapping is not null) source = "Role: " + Label(LayoutPreferences.Role(previewJob));
+        if (preferences.Classes.TryGetValue(previewJob, out var cls) && cls.Mapping is not null) source = setup.Pack.Find(previewJob)!.Job;
+        ImGui.TextUnformatted("Mapping source: " + source);
+        string key = previewJob + JsonConvert.SerializeObject(preferences) + string.Join(",", preferences.ManagedBars.Where(setup.SharedRegularBar));
+        if (key != previewKey) { preview = setup.InspectLayout(previewJob, preferences); previewKey = key; }
+        ImGui.TextDisabled("All four automation options off: the largest required layout.");
+        if (preview is null) return;
+        foreach (int bar in preferences.ManagedBars)
+        {
+            ImGui.PushID(bar); ImGui.TextUnformatted($"Bar {bar}");
+            if (ImGui.BeginTable("Slots", ImGui.GetContentRegionAvail().X < 600 * ImGuiHelpers.GlobalScale ? 6 : 12, ImGuiTableFlags.SizingStretchSame))
+            {
+                for (int slot = 1; slot <= 12; slot++)
+                {
+                    ImGui.TableNextColumn();
+                    var control = preview.Controls.FirstOrDefault(c => c.Position == new Position(bar - 1, slot - 1));
+                    string name = control?.Action.Name ?? "Empty";
+                    string shortened = name.Length > 7 ? name[..6] + "..." : name;
+                    ImGui.Button($"{slot}\n{shortened}##slot{slot}", new Vector2(-1, 42 * ImGuiHelpers.GlobalScale));
+                    if (ImGui.IsItemHovered()) ImGui.SetTooltip($"Bar {bar}, slot {slot}: {name}");
+                }
+                ImGui.EndTable();
+            }
+            ImGui.PopID();
+        }
+        foreach (var issue in preview.Issues) ImGui.TextWrapped(issue.Message);
+        if (ImGui.CollapsingHeader("Resolved controls"))
+            foreach (var control in preview.Controls) ImGui.TextUnformatted($"{control.Position}: {control.Action.Name}");
     }
 
     private static void Bool(string label, bool effective, bool? local, bool overridden, Action<bool?> set)
@@ -198,69 +263,15 @@ internal static class LayoutEditor
     }
 
     private static string EntryName(SetupController setup, MappingEntry entry, LayoutPreferences preferences) =>
-        entry.DefaultSlot is { } slot ? setup.DefaultControlName(previewJob, slot) : entry.Intent is { } intent ? Label(intent) :
+        entry.Intent is { } intent ? Label(intent) :
         entry.Action?.Name ?? preferences.Groups.FirstOrDefault(g => g.Id == entry.GroupId)?.Name ?? "Missing group";
 
     private static void Mapping(SetupController setup, IntentMapping mapping, bool keepAll, LayoutPreferences preferences)
     {
-        bool defaults = mapping.Areas.Count == 0 && mapping.JobDefaults.Count > 0;
-        ImGui.TextWrapped(defaults ? $"Editing {setup.Pack.Find(previewJob)!.Job}'s default layout. Other classes keep their own layouts."
-            : "This shared layout adapts its intent groups to each class.");
-        if (ImGui.Button("Layout options")) ImGui.OpenPopup("Layout options");
-        if (ImGui.BeginPopup("Layout options"))
-        {
-            if (ImGui.Selectable("Use one shared intent layout for all classes"))
-            {
-                mapping.JobDefaults.Clear();
-                var primary = new[] { ControlIntent.SingleTarget, ControlIntent.AreaDamage, ControlIntent.Burst,
-                    ControlIntent.SingleHealing, ControlIntent.AreaHealing, ControlIntent.Raise };
-                mapping.Areas = [
-                    new() { Name = "Main actions", Bar = 1, Entries = primary.Select(i => new MappingEntry { Intent = i }).ToList() },
-                    new() { Name = "Class actions", Bar = 2, Entries = Enum.GetValues<ControlIntent>().Where(i => !primary.Contains(i) &&
-                        i is not (ControlIntent.ImportantRole or ControlIntent.OtherRole or ControlIntent.Exclusions)).Select(i => new MappingEntry { Intent = i }).ToList() },
-                    new() { Name = "Role actions", Bar = 3, Entries = [new() { Intent = ControlIntent.ImportantRole, Priority = 20 },
-                        new() { Intent = ControlIntent.OtherRole }, new() { Intent = ControlIntent.Exclusions }] },
-                ]; selectedArea = 0;
-            }
-            if (ImGui.Selectable("Restore Accord default layouts"))
-            { mapping.Areas.Clear(); mapping.JobDefaults = setup.DefaultMapping().JobDefaults; selectedArea = 0; }
-            ImGui.EndPopup();
-        }
+        ImGui.TextWrapped("Arrange intents here. Classes using this mapping follow the same order; unsupported intents contribute no buttons and leave no gaps within an area.");
+        if (ImGui.Button("Restore default intent mapping")) { mapping.Areas = setup.DefaultMapping().Areas; selectedArea = 0; }
         if (!string.IsNullOrWhiteSpace(setup.LayoutStatus) && ImGui.CollapsingHeader("Layout warnings", ImGuiTreeNodeFlags.DefaultOpen)) ImGui.TextWrapped(setup.LayoutStatus);
-        var areas = mapping.ForJob(previewJob);
-        string key = previewJob + JsonConvert.SerializeObject(preferences) + string.Join(",", preferences.ManagedBars.Where(setup.SharedRegularBar));
-        if (key != previewKey)
-        { preview = setup.InspectLayout(previewJob, preferences); previewKey = key; }
-        ImGui.TextDisabled("Preview with all automation off · select a slot or area to edit");
-        if (preview is not null)
-        {
-            foreach (int bar in preferences.ManagedBars)
-            {
-                ImGui.PushID(bar); ImGui.TextUnformatted($"Bar {bar}");
-                if (ImGui.BeginTable("Slots", ImGui.GetContentRegionAvail().X < 600 * ImGuiHelpers.GlobalScale ? 6 : 12, ImGuiTableFlags.SizingStretchSame))
-                {
-                    for (int slot = 1; slot <= 12; slot++)
-                    {
-                        ImGui.TableNextColumn();
-                        var control = preview.Controls.FirstOrDefault(c => c.Position == new Position(bar - 1, slot - 1));
-                        string name = control?.Action.Name ?? "Empty";
-                        string shortName = name.Length > 7 ? name[..6] + "…" : name;
-                        if (ImGui.Button($"{slot}\n{shortName}##slot{slot}", new Vector2(-1, 42 * ImGuiHelpers.GlobalScale)))
-                        {
-                            int found = areas.FindIndex(a => a.Bar == bar && a.First == slot && a.Last == slot);
-                            if (found < 0) found = areas.FindIndex(a => a.Bar == bar && slot >= a.First && slot <= a.Last);
-                            if (found >= 0) selectedArea = found;
-                            else { areas.Add(new() { Name = "New area", Bar = bar, First = slot, Last = slot }); selectedArea = areas.Count - 1; }
-                        }
-                        if (ImGui.IsItemHovered()) ImGui.SetTooltip($"Bar {bar}, slot {slot}: {name}");
-                    }
-                    ImGui.EndTable();
-                }
-                ImGui.PopID();
-            }
-            foreach (var issue in preview.Issues) ImGui.TextColored(new Vector4(1, .65f, .3f, 1), issue.Message);
-        }
-        ImGui.Spacing(); ImGui.Separator();
+        var areas = mapping.Areas;
         if (ImGui.BeginTable("Areas", 2, ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp))
         {
             ImGui.TableSetupColumn("Area", ImGuiTableColumnFlags.WidthStretch, 1);
@@ -276,7 +287,7 @@ internal static class LayoutEditor
             ImGui.EndTable();
         }
         if (ImGui.Button("Add area")) { areas.Add(new() { Name = "New area", Bar = 3 }); selectedArea = areas.Count - 1; }
-        if (areas.Count == 0) { ImGui.TextWrapped("No assignments. Add an area or restore a default layout from Layout options."); return; }
+        if (areas.Count == 0) { ImGui.TextWrapped("No assignments. Add an area or restore the default intent mapping."); return; }
         selectedArea = Math.Clamp(selectedArea, 0, areas.Count - 1);
         var area = areas[selectedArea];
         ImGui.Spacing(); ImGui.Separator(); ImGui.TextUnformatted("Edit selected area");
@@ -479,7 +490,10 @@ internal static class LayoutEditor
         if (scope == "Global") return true;
         var row = Svc.Data.GetExcelSheet<Sheets.Action>().GetRowOrDefault(action.Id);
         if (row is null) return false;
-        string job = Svc.Data.GetExcelSheet<Sheets.ClassJob>().GetRow(previewJob).Abbreviation.ToString();
+        uint editingJob = scope.StartsWith("Role: ")
+            ? SetupController.Instance!.Pack.Data.Jobs.First(j => j.JobId >= 19 && LayoutPreferences.Role(j.JobId) == Enum.Parse<JobRole>(scope[6..])).JobId
+            : SetupController.Instance!.Pack.Data.Jobs.First(j => j.Job == scope).JobId;
+        string job = Svc.Data.GetExcelSheet<Sheets.ClassJob>().GetRow(editingJob).Abbreviation.ToString();
         return typeof(Sheets.ClassJobCategory).GetProperty(job)?.GetValue(row.Value.ClassJobCategory.Value) is true;
     }
     private static T Copy<T>(T source) => JsonConvert.DeserializeObject<T>(JsonConvert.SerializeObject(source))!;
