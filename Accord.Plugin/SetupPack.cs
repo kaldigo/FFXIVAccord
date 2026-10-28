@@ -210,7 +210,7 @@ internal sealed class SetupPack
         bool protection = settings.Enabled(VariantId.Protection);
         var layoutValues = settings.Layouts.Resolve(job.JobId);
         bool keepProtection = layoutValues.KeepManual || layoutValues.Mapping.Areas.SelectMany(a => a.Entries)
-            .Any(e => e.Intent == ControlIntent.Protection && e.KeepManual);
+            .Any(e => (e.Intent is ControlIntent.Protection or ControlIntent.HealingProtection) && e.KeepManual);
         foreach (int id in ManualProtectionPresets(job.JobId))
         {
             if (protection && !keepProtection) enabled.Remove(id);

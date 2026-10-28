@@ -90,8 +90,10 @@ internal static class LayoutPreferencesTests
         Check(!configured.InitializeDefaults(defaults.Layouts), "default migration repeated");
         Check(defaults.Layouts.Global.Mapping.JobDefaults.Count == 0 && defaults.Layouts.Roles.Count == 0 && defaults.Layouts.Classes.Count == 0,
             "global default manufactured class templates or overrides");
-        Check(defaults.Layouts.Global.Mapping.Areas.SelectMany(a => a.Entries).Select(e => e.Intent).ToHashSet().SetEquals(Enum.GetValues<ControlIntent>().Select(i => (ControlIntent?)i)),
-            "global default omits an intent");
+        Check(defaults.Layouts.Global.Mapping.Areas.All(a => a.Bar <= 2), "default must leave bar 3 empty");
+        Check(!defaults.Layouts.Global.Mapping.Areas.SelectMany(a => a.Entries).Any(e =>
+            e.Intent is ControlIntent.ImportantRole or ControlIntent.OtherRole or ControlIntent.Exclusions),
+            "optional groups were added to the default");
         Check(!JsonConvert.SerializeObject(defaults.Layouts).Contains("JobDefaults"), "per-class templates leaked into saved global settings");
         var noSprint = configured.Plan(pack.Find(23)!, defaults, _ => false, _ => true, true, includeDefaultSprint: false);
         Check(noSprint.Controls.All(c => c.Action.Name != "Sprint"), "default duplicated shared Sprint");
@@ -103,7 +105,26 @@ internal static class LayoutPreferencesTests
             {
                 defaults.Layouts.Global.SplitMechanics = split;
                 var envelope = configured.Plan(job, defaults, _ => false, a => Available(job, a), true);
-                Check(envelope.Valid, job.Job + " global all-off layout: " + string.Join(";", envelope.Issues.Select(i => i.Message)));
+                Check(envelope.Controls.All(c => c.Position.Bar < 2), job.Job + " default populated bar 3");
+                if (!split)
+                {
+                    var original = PveLayoutPlan.Create(job.JobId, pack.Resolve(job, new()), Defaults.Maps(), _ => false, true);
+                    foreach (var control in envelope.Controls)
+                    {
+                        var previous = original.FirstOrDefault(c => c.Slot?.Action == control.Action.Name);
+                        Check(previous is null || previous.Regular.Bar == control.Position.Bar, $"{job.Job}: {control.Action.Name} moved off its original bar");
+                    }
+                    var originalNames = Enumerable.Range(0, 16).SelectMany(mask =>
+                    {
+                        var originalSettings = new AccordSettings();
+                        foreach (var variant in Enum.GetValues<VariantId>()) originalSettings.Variants[variant] = (mask & (1 << (int)variant)) != 0;
+                        return pack.Resolve(job, originalSettings).Slots.Select(s => s.Action);
+                    }).Append("Sprint").ToHashSet();
+                    Check(envelope.Controls.All(c => originalNames.Contains(c.Action.Name)), job.Job + " default added unrequested controls");
+                }
+                bool expectedOverflow = split && job.JobId == 33;
+                Check(envelope.Valid != expectedOverflow, job.Job + " global all-off layout: " + string.Join(";", envelope.Issues.Select(i => i.Message)));
+                if (expectedOverflow) Check(envelope.Issues.All(i => i.Job == 33 && i.Bar == 2), "split card capacity warning must identify AST/bar 2");
                 foreach (var slot in pack.Resolve(job, new()).Slots.Where(s => s.Action != "Empty"))
                     Check(envelope.Controls.Any(c => c.Action.Name == slot.Action), job.Job + " lost " + slot.Action + " from Global");
                 var movement = configured.Contents(job, defaults)[ControlIntent.Movement].FirstOrDefault();
@@ -114,7 +135,7 @@ internal static class LayoutPreferencesTests
                 {
                     foreach (var variant in Enum.GetValues<VariantId>()) defaults.Variants[variant] = (mask & (1 << (int)variant)) != 0;
                     var actual = configured.Plan(job, defaults, _ => false, a => Available(job, a), false);
-                    Check(actual.Valid && actual.Controls.Count <= envelope.Controls.Count, job.Job + " global layout toggles " + mask + ": " + string.Join(";", actual.Issues.Select(i => i.Message)));
+                    Check((expectedOverflow || actual.Valid) && actual.Controls.Count <= envelope.Controls.Count, job.Job + " global layout toggles " + mask + ": " + string.Join(";", actual.Issues.Select(i => i.Message)));
                 }
             }
         }
@@ -122,7 +143,6 @@ internal static class LayoutPreferencesTests
         var editable = defaults.Layouts.Global.Mapping.Areas;
         var movementEntry = editable.SelectMany(a => a.Entries).Single(e => e.Intent == ControlIntent.Movement);
         editable.Single(a => a.Entries.Contains(movementEntry)).Entries.Remove(movementEntry);
-        editable.Single(a => a.Bar == 3).Last = 10;
         editable.Add(new() { Name = "Moved movement", Bar = 3, First = 11, Last = 12, Entries = [movementEntry] });
         foreach (var job in pack.Data.Jobs.Where(j => j.JobId >= 19))
         {
@@ -151,8 +171,30 @@ internal static class LayoutPreferencesTests
             legacyClass.Classes[23].Mapping!.Areas[0].Entries[1].Intent == ControlIntent.Sprint,
             "explicit legacy class mapping was not converted");
         var explicitEmpty = JsonConvert.DeserializeObject<LayoutPreferences>(JsonConvert.SerializeObject(new LayoutPreferences
-            { MappingVersion = 2, Classes = new() { [23] = new() } }))!;
+            { MappingVersion = 3, Classes = new() { [23] = new() } }))!;
         Check(!configured.InitializeDefaults(explicitEmpty) && explicitEmpty.Classes.ContainsKey(23), "explicitly added empty override disappeared");
+        // Fixture mirrors the shipped v2 mapping, not the new default factory.
+        List<MappingEntry> OldEntries(params ControlIntent[] intents) => intents.Select(i => new MappingEntry
+            { Intent = i, Priority = i == ControlIntent.ImportantRole ? 20 : 10 }).ToList();
+        var shipped = new LayoutPreferences { MappingVersion = 2, DefaultsInitialized = true };
+        shipped.Global.Mapping.Areas = [
+            new() { Name = "Main actions", Bar = 1, Entries = OldEntries(ControlIntent.SingleTarget, ControlIntent.AreaDamage, ControlIntent.SingleHealing, ControlIntent.AreaHealing, ControlIntent.Protection, ControlIntent.Burst) },
+            new() { Name = "Movement and class utility", Bar = 2, Last = 10, Entries = OldEntries(ControlIntent.Movement, ControlIntent.Enmity, ControlIntent.Travel, ControlIntent.TargetedProtection, ControlIntent.PartyProtection, ControlIntent.PersonalProtection, ControlIntent.Support, ControlIntent.Mechanics, ControlIntent.Knockback, ControlIntent.Invulnerability, ControlIntent.Rescue, ControlIntent.Preparation, ControlIntent.Other) },
+            new() { Name = "Tank swap", Bar = 2, First = 11, Last = 11, Entries = OldEntries(ControlIntent.Shirk) },
+            new() { Name = "Resurrection or tank stance", Bar = 2, First = 12, Last = 12, Entries = OldEntries(ControlIntent.Raise, ControlIntent.Stance) },
+            new() { Name = "Role actions and manual utilities", Bar = 3, Entries = OldEntries(ControlIntent.ImportantRole, ControlIntent.OtherRole, ControlIntent.Interrupt, ControlIntent.Exclusions, ControlIntent.Recovery, ControlIntent.Cleanse, ControlIntent.Sprint) },
+        ];
+        var customized = JsonConvert.DeserializeObject<LayoutPreferences>(JsonConvert.SerializeObject(shipped))!;
+        customized.Global.Mapping.Areas[0].Entries[0].KeepManual = true;
+        string customMapping = JsonConvert.SerializeObject(customized.Global.Mapping);
+        Check(configured.InitializeDefaults(shipped) && shipped.MappingVersion == 3 && shipped.Global.Mapping.Areas.All(a => a.Bar < 3 && a.First == 1 && a.Last == 12), "unedited shipped default was not repaired into edges");
+        Check(configured.InitializeDefaults(customized) && JsonConvert.SerializeObject(customized.Global.Mapping) == customMapping, "repair overwrote a user-customized mapping");
+        Check(!configured.InitializeDefaults(shipped), "migration repeated");
+        var customSettings = new AccordSettings { Layouts = customized };
+        Check(configured.Contents(pack.Find(24)!, customSettings)[ControlIntent.Protection].Any(c => c.Action.Name == "Asylum"), "custom mapping lost its old protection membership");
+        Check(configured.Contents(pack.Find(38)!, customSettings)[ControlIntent.Mechanics].Any(c => c.Action.Name == "Technical Step"), "custom mapping lost its old dance membership");
+        Check(configured.Contents(pack.Find(24)!, new AccordSettings { Layouts = shipped })[ControlIntent.HealingProtection].Any(c => c.Action.Name == "Asylum"), "repaired default did not use the new grouping");
+
         var bard = pack.Find(23)!;
         var settings = new AccordSettings();
         var rain = new ActionChoice { Name = "Rain of Death", Id = catalog.ResolveSlot("BRD", "Rain of Death").Id };

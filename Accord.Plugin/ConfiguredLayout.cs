@@ -14,12 +14,20 @@ internal sealed class ConfiguredLayout
 {
     private readonly SetupPack pack;
     private readonly Func<string, string, SlotValue> resolve;
-    private readonly Dictionary<uint, Dictionary<ControlIntent, List<LayoutControl>>> baseContents = new();
+    private readonly Dictionary<(uint Job, bool Legacy), Dictionary<ControlIntent, List<LayoutControl>>> baseContents = new();
     internal ConfiguredLayout(SetupPack pack, Func<string, string, SlotValue> resolve) { this.pack = pack; this.resolve = resolve; }
 
     internal bool InitializeDefaults(LayoutPreferences preferences)
     {
-        if (preferences.MappingVersion >= 2) return false;
+        if (preferences.MappingVersion >= 3) return false;
+        if (preferences.MappingVersion == 2)
+        {
+            // Repair only our unedited shipped default; never overwrite a user's mapping.
+            if (JsonConvert.SerializeObject(preferences.Global.Mapping) == JsonConvert.SerializeObject(CreateVersionTwoDefaults()))
+                preferences.Global.Mapping = CreateDefaults();
+            preferences.MappingVersion = 3;
+            return true;
+        }
         if (preferences.Global.Mapping.JobDefaults.Count > 0 ||
             (!preferences.DefaultsInitialized && preferences.Global.Mapping.Areas.Count == 0))
             preferences.Global.Mapping = CreateDefaults();
@@ -49,11 +57,28 @@ internal sealed class ConfiguredLayout
             if (over.Mapping is { } mapping && mapping.JobDefaults.Count > 0) over.Mapping = CreateDefaults();
         preferences.PruneUnusedOverrides();
         preferences.DefaultsInitialized = true;
-        preferences.MappingVersion = 2;
+        preferences.MappingVersion = 3;
         return true;
     }
 
-    internal IntentMapping CreateDefaults() => new()
+    internal IntentMapping CreateDefaults()
+    {
+        var mapping = CreateVersionTwoDefaults();
+        mapping.IntentVersion = 3;
+        mapping.Areas.RemoveAll(a => a.Bar == 3);
+        mapping.Areas.Single(a => a.Bar == 1).Entries.Insert(5, new() { Intent = ControlIntent.PrimaryMechanics });
+        var utility = mapping.Areas.Single(a => a.Bar == 2 && a.First == 1);
+        utility.Last = 12; utility.AvoidFixedSlots = true;
+        mapping.Areas.RemoveAll(a => a.First == a.Last);
+        mapping.Areas.Add(new() { Name = "Right edge", Bar = 2, FromRight = true,
+            Entries = Entries(ControlIntent.Raise, ControlIntent.Stance, ControlIntent.Shirk) });
+        utility.Entries.AddRange(
+            Entries(ControlIntent.HealingProtection, ControlIntent.AdditionalBurst, ControlIntent.Recovery, ControlIntent.Cleanse, ControlIntent.Interrupt, ControlIntent.Sprint));
+        return mapping;
+    }
+
+    // Exact released shape, retained to recognize an untouched 0.2.15.6 default.
+    private static IntentMapping CreateVersionTwoDefaults() => new()
     {
         Areas = [
             new() { Name = "Main actions", Bar = 1, Entries = Entries(ControlIntent.SingleTarget, ControlIntent.AreaDamage,
@@ -75,6 +100,7 @@ internal sealed class ConfiguredLayout
     {
         "The Warden's Paean" or "Esuna" => ControlIntent.Cleanse,
         "Peloton" => ControlIntent.Travel,
+        "Arm's Length" when slot.LogicalSlot == 5 => ControlIntent.Protection,
         "Arm's Length" or "Surecast" => ControlIntent.Knockback,
         "Hallowed Ground" or "Holmgang" or "Living Dead" or "Superbolide" => ControlIntent.Invulnerability,
         "Provoke" => ControlIntent.Enmity,
@@ -83,25 +109,28 @@ internal sealed class ConfiguredLayout
         "Swiftcast" => ControlIntent.Raise,
         "Rescue" => ControlIntent.Rescue,
         "Divine Veil" or "Passage of Arms" => ControlIntent.PartyProtection,
-        "Bulwark" or "Thrill of Battle" or "Dark Mind" or "Camouflage" or "Holos" => ControlIntent.Protection,
+        "Bulwark" or "Thrill of Battle" or "Dark Mind" or "Camouflage" => ControlIntent.PersonalProtection,
+        "Holos" => ControlIntent.HealingProtection,
         "Riddle of Earth" or "Third Eye" or "Arcane Crest" or "Manaward" or "Radiant Aegis" or "Tempera Coat" => ControlIntent.PersonalProtection,
         "Sheltron" or "Raw Intuition" or "The Blackest Night" or "Heart of Stone" or "Cover" or "Oblation" or "Deployment Tactics" => ControlIntent.TargetedProtection,
         "Second Wind" or "Equilibrium" => ControlIntent.Recovery,
         "Meditate" or "Soulsow" or "Meisui" or "Dissipation" => ControlIntent.Preparation,
         "Interject" or "Head Graze" => ControlIntent.Interrupt,
-        "Vercure" or "Clemency" => ControlIntent.SingleHealing,
+        "Clemency" => ControlIntent.SingleHealing,
+        "Vercure" => ControlIntent.Support,
         "Benediction" or "Liturgy of the Bell" or "Synastry" or "Macrocosmos" or "Kardia" or "Pneuma" or "Curing Waltz" or "Improvisation" or "Aurora" => ControlIntent.Support,
         "Astral Flow" => ControlIntent.Mechanics,
         "Elusive Jump" => ControlIntent.Movement,
-        "The Wanderer's Minuet" or "Standard Step" or "Technical Step" or "Astral Draw" => ControlIntent.Mechanics,
+        "Technical Step" => ControlIntent.PrimaryMechanics,
+        "The Wanderer's Minuet" or "Standard Step" or "Astral Draw" => ControlIntent.Mechanics,
         "Perfect Balance" or "Geirskogul" or "Kassatsu" or "Ten Chi Jin" or "Meikyo Shisui" or "Enshroud" or "Reawaken" or "Flamethrower" or "Transpose" or "Hammer Stamp" => ControlIntent.Mechanics,
         "Nature's Minne" or "Mantra" or "Lux Solaris" or "Closed Position" => ControlIntent.Support,
-        "Presence of Mind" or "Chain Stratagem" or "Divination" or "Devilment" => ControlIntent.Burst,
+        "Presence of Mind" or "Chain Stratagem" or "Divination" or "Devilment" => ControlIntent.AdditionalBurst,
         _ when LayoutPreferences.Role(job.JobId) == JobRole.Healer => slot.LogicalSlot switch
         {
             1 => ControlIntent.SingleTarget, 2 => ControlIntent.AreaDamage,
             3 => ControlIntent.SingleHealing, 4 => ControlIntent.AreaHealing,
-            5 => ControlIntent.Protection, 10 => ControlIntent.Movement, _ => ControlIntent.Other,
+            5 => ControlIntent.HealingProtection, 10 => ControlIntent.Movement, _ => ControlIntent.Other,
         },
         _ => slot.LogicalSlot switch
         {
@@ -112,24 +141,26 @@ internal sealed class ConfiguredLayout
 
     internal Dictionary<ControlIntent, List<LayoutControl>> Contents(JobPreset job, AccordSettings settings)
     {
-        if (!baseContents.TryGetValue(job.JobId, out var baselineContents))
-            baseContents[job.JobId] = baselineContents = BuildContents(job);
+        bool legacy = settings.Layouts.Resolve(job.JobId).Mapping.IntentVersion < 3;
+        if (!baseContents.TryGetValue((job.JobId, legacy), out var baselineContents))
+            baseContents[(job.JobId, legacy)] = baselineContents = BuildContents(job, legacy);
         var content = baselineContents.ToDictionary(p => p.Key, p => p.Value.ToList());
         var values = settings.Layouts.Resolve(job.JobId);
         if (values.SplitMechanics && SplitActions.TryGetValue(job.JobId, out var split))
         {
             content[ControlIntent.Mechanics].Clear();
+            content[ControlIntent.PrimaryMechanics].Clear();
             foreach (string name in split)
             {
                 var value = resolve(job.Job, name);
-                content[ControlIntent.Mechanics].Add(new(new ActionChoice { Name = name, Type = value.Type, Id = value.Id, Automation = VariantId.ClassMechanics }));
+                content[!legacy && name == "Technical Step" ? ControlIntent.PrimaryMechanics : ControlIntent.Mechanics].Add(new(new ActionChoice { Name = name, Type = value.Type, Id = value.Id, Automation = VariantId.ClassMechanics }));
             }
         }
         content[ControlIntent.Sprint].Add(new(new() { Name = "Sprint", Id = 3, Selector = true }));
         return content;
     }
 
-    private Dictionary<ControlIntent, List<LayoutControl>> BuildContents(JobPreset job)
+    private Dictionary<ControlIntent, List<LayoutControl>> BuildContents(JobPreset job, bool legacy = false)
     {
         var manual = new AccordSettings();
         var baseline = pack.Resolve(job, manual);
@@ -141,7 +172,7 @@ internal sealed class ConfiguredLayout
         var content = Enum.GetValues<ControlIntent>().ToDictionary(i => i, _ => new List<LayoutControl>());
         foreach (var slot in baseline.Slots.Where(s => s.Action != "Empty"))
         {
-            var intent = Intent(job, slot);
+            var intent = Classify(slot);
             VariantId? owner = null;
             // Determine ownership from reviewed per-job variant effects, not a
             // generic guess based on the role or the action's name.
@@ -154,7 +185,7 @@ internal sealed class ConfiguredLayout
             content[intent].Add(new(new ActionChoice
             {
                 Name = slot.Action, Type = value.Type, Id = value.Id, Automation = owner,
-                Selector = intent is ControlIntent.SingleTarget or ControlIntent.AreaDamage or ControlIntent.Burst or ControlIntent.Protection or ControlIntent.Mechanics or ControlIntent.SingleHealing or ControlIntent.AreaHealing or ControlIntent.Raise or ControlIntent.Movement,
+                Selector = slot.Action is "Bulwark" or "Thrill of Battle" or "Dark Mind" or "Camouflage" or "Holos" or "Vercure" || intent is ControlIntent.SingleTarget or ControlIntent.AreaDamage or ControlIntent.Burst or ControlIntent.Protection or ControlIntent.Mechanics or ControlIntent.SingleHealing or ControlIntent.AreaHealing or ControlIntent.Raise or ControlIntent.Movement or ControlIntent.HealingProtection or ControlIntent.AdditionalBurst or ControlIntent.PrimaryMechanics,
             }));
         }
         // Some reviewed variants expose a different deliberate utility alongside
@@ -164,21 +195,38 @@ internal sealed class ConfiguredLayout
                      .DistinctBy(s => s.Action).Where(s => baseline.Slots.All(b => b.Action != s.Action)))
         {
             var value = resolve(job.Job, slot.Action);
-            content[Intent(job, slot)].Add(new(new ActionChoice { Name = slot.Action, Id = value.Id, Type = value.Type }));
+            content[Classify(slot)].Add(new(new ActionChoice { Name = slot.Action, Id = value.Id, Type = value.Type }));
         }
-        if (LayoutPreferences.Role(job.JobId) == JobRole.Healer) AddCapability(ControlIntent.Cleanse, "Esuna");
-        if (LayoutPreferences.Role(job.JobId) == JobRole.Tank) AddCapability(ControlIntent.Interrupt, "Interject");
-        if (LayoutPreferences.Role(job.JobId) == JobRole.PhysicalRanged) AddCapability(ControlIntent.Interrupt, "Head Graze");
-        if (LayoutPreferences.Role(job.JobId) is JobRole.Melee or JobRole.PhysicalRanged) AddCapability(ControlIntent.Recovery, "Second Wind");
-        if (LayoutPreferences.Role(job.JobId) == JobRole.Melee) AddCapability(ControlIntent.Recovery, "Bloodbath");
-        AddCapability(ControlIntent.Knockback, LayoutPreferences.Role(job.JobId) is JobRole.Healer or JobRole.MagicalRanged ? "Surecast" : "Arm's Length");
+        if (legacy)
+        {
+            // Existing customized mappings retain their released intent membership.
+            // New grouping is opt-in via the restored/default mapping, not a silent re-layout.
+            if (LayoutPreferences.Role(job.JobId) == JobRole.Healer) Add(ControlIntent.Cleanse, "Esuna");
+            if (LayoutPreferences.Role(job.JobId) == JobRole.Tank) Add(ControlIntent.Interrupt, "Interject");
+            if (LayoutPreferences.Role(job.JobId) == JobRole.PhysicalRanged) Add(ControlIntent.Interrupt, "Head Graze");
+            if (LayoutPreferences.Role(job.JobId) is JobRole.Melee or JobRole.PhysicalRanged) Add(ControlIntent.Recovery, "Second Wind");
+            if (LayoutPreferences.Role(job.JobId) == JobRole.Melee) Add(ControlIntent.Recovery, "Bloodbath");
+            Add(ControlIntent.Knockback, LayoutPreferences.Role(job.JobId) is JobRole.Healer or JobRole.MagicalRanged ? "Surecast" : "Arm's Length");
+            var modern = BuildContents(job);
+            foreach (var intent in new[] { ControlIntent.HealingProtection, ControlIntent.AdditionalBurst, ControlIntent.PrimaryMechanics })
+                content[intent] = modern[intent];
+        }
         return content;
 
-        void AddCapability(ControlIntent intent, string name)
+        ControlIntent Classify(PresetSlot slot) => !legacy ? Intent(job, slot) : slot.Action switch
+        {
+            "Arm's Length" => ControlIntent.Knockback,
+            "Bulwark" or "Thrill of Battle" or "Dark Mind" or "Camouflage" or "Holos" => ControlIntent.Protection,
+            "Vercure" => ControlIntent.SingleHealing,
+            "Technical Step" => ControlIntent.Mechanics,
+            "Presence of Mind" or "Chain Stratagem" or "Divination" or "Devilment" => ControlIntent.Burst,
+            _ when Intent(job, slot) == ControlIntent.HealingProtection => ControlIntent.Protection,
+            _ => Intent(job, slot),
+        };
+        void Add(ControlIntent intent, string name)
         {
             var value = resolve(job.Job, name);
-            if (!content[intent].Any(c => c.Action.Value == value))
-                content[intent].Add(new(new() { Name = name, Type = value.Type, Id = value.Id }));
+            if (!content[intent].Any(c => c.Action.Value == value)) content[intent].Add(new(new() { Name = name, Type = value.Type, Id = value.Id }));
         }
     }
 

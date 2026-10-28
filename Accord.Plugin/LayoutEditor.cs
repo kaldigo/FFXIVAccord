@@ -26,7 +26,6 @@ internal static class LayoutEditor
     private static bool highQuality;
 
     private static string saved = "";
-    private static int selectedArea;
     private static int selectedGroup;
     private static string groupScope = "Global";
     private static LayoutResult? preview;
@@ -54,6 +53,9 @@ internal static class LayoutEditor
         ControlIntent.Mechanics => "Class mechanics", ControlIntent.Protection => "Protection",
         ControlIntent.Exclusions => "Excluded actions", ControlIntent.Cleanse => "Cleanse / prevention",
         ControlIntent.Raise => "Resurrection", ControlIntent.Recovery => "Personal recovery",
+        ControlIntent.PrimaryMechanics => "Primary class mechanics",
+        ControlIntent.HealingProtection => "Healing protection",
+        ControlIntent.AdditionalBurst => "Additional burst controls",
         _ => Regex.Replace(intent.ToString(), "([a-z])([A-Z])", "$1 $2"),
     } : Regex.Replace(value.ToString()!, "([a-z])([A-Z])", "$1 $2");
     internal static void Draw(SetupController setup, AccordUi.Page page)
@@ -162,9 +164,9 @@ internal static class LayoutEditor
             if (ImGui.BeginPopup("Add override"))
             {
                 foreach (var role in Enum.GetValues<JobRole>().Where(r => r != JobRole.Noncombat && !draft.Roles.ContainsKey(r)))
-                    if (ImGui.Selectable("Role: " + Label(role))) { draft.Roles[role] = new(); selectedOverride = "Role: " + role; selectedArea = 0; }
+                    if (ImGui.Selectable("Role: " + Label(role))) { draft.Roles[role] = new(); selectedOverride = "Role: " + role; }
                 foreach (var job in setup.Pack.Data.Jobs.Where(j => j.JobId >= 19 && !draft.Classes.ContainsKey(j.JobId)))
-                    if (ImGui.Selectable(job.Job)) { draft.Classes[job.JobId] = new(); selectedOverride = job.Job; selectedArea = 0; }
+                    if (ImGui.Selectable(job.Job)) { draft.Classes[job.JobId] = new(); selectedOverride = job.Job; }
                 ImGui.EndPopup();
             }
             if (draft.Roles.Count + draft.Classes.Count == 0) ImGui.TextDisabled("No overrides. All classes use Global.");
@@ -199,7 +201,7 @@ internal static class LayoutEditor
         void Row(string key, string label, Action remove)
         {
             ImGui.PushID(key); ImGui.TextUnformatted(label); ImGui.SameLine();
-            if (ImGui.SmallButton("Edit")) { selectedOverride = key; selectedArea = 0; }
+            if (ImGui.SmallButton("Edit")) { selectedOverride = key; }
             ImGui.SameLine(); if (ImGui.SmallButton("Remove")) remove(); ImGui.PopID();
         }
     }
@@ -266,113 +268,117 @@ internal static class LayoutEditor
         entry.Intent is { } intent ? Label(intent) :
         entry.Action?.Name ?? preferences.Groups.FirstOrDefault(g => g.Id == entry.GroupId)?.Name ?? "Missing group";
 
+    private static string Destination(MappingArea area) => area.First == area.Last
+        ? $"Exact position {area.First}" : area.First == 1 && area.Last == 12
+        ? area.FromRight ? "Right edge" : "Left edge" : $"Custom area {area.First}–{area.Last}";
+
+    private static MappingArea Edge(IntentMapping mapping, int bar, bool right)
+    {
+        var area = mapping.Areas.FirstOrDefault(a => a.Bar == bar && a.First == 1 && a.Last == 12 && a.FromRight == right);
+        if (area is not null) return area;
+        area = new() { Bar = bar, Name = right ? "Right edge" : "Left edge", FromRight = right, AvoidFixedSlots = true };
+        mapping.Areas.Add(area);
+        return area;
+    }
+
     private static void Mapping(SetupController setup, IntentMapping mapping, bool keepAll, LayoutPreferences preferences)
     {
-        ImGui.TextWrapped("Arrange intents here. Classes using this mapping follow the same order; unsupported intents contribute no buttons and leave no gaps within an area.");
-        if (ImGui.Button("Restore default intent mapping")) { mapping.Areas = setup.DefaultMapping().Areas; selectedArea = 0; }
+        ImGui.TextWrapped("Choose groups for each edge. The first group sits nearest that edge; the rest fill inward. Classes skip groups they cannot use.");
+        ImGui.TextWrapped("Keep when automated leaves the group’s manual buttons available. Create extras on Personal groups; check the result on Preview.");
+        if (ImGui.CollapsingHeader("Default layout"))
+            if (ImGui.Button("Restore default intent mapping")) { var defaults = setup.DefaultMapping(); mapping.Areas = defaults.Areas; mapping.IntentVersion = defaults.IntentVersion; }
         if (!string.IsNullOrWhiteSpace(setup.LayoutStatus) && ImGui.CollapsingHeader("Layout warnings", ImGuiTreeNodeFlags.DefaultOpen)) ImGui.TextWrapped(setup.LayoutStatus);
-        var areas = mapping.Areas;
-        if (ImGui.BeginTable("Areas", 2, ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp))
+        if (!ImGui.BeginTabBar("Mapping bars")) return;
+        foreach (int bar in preferences.ManagedBars.Concat(mapping.Areas.Select(a => a.Bar)).Distinct().Order())
         {
-            ImGui.TableSetupColumn("Area", ImGuiTableColumnFlags.WidthStretch, 1);
-            ImGui.TableSetupColumn("Contents", ImGuiTableColumnFlags.WidthStretch, 2);
-            ImGui.TableHeadersRow();
-            for (int i = 0; i < areas.Count; i++)
+            if (!ImGui.BeginTabItem($"Bar {bar}")) continue;
+            foreach (bool right in new[] { false, true })
             {
-                var a = areas[i]; ImGui.TableNextRow(); ImGui.TableNextColumn();
-                if (ImGui.Selectable($"Bar {a.Bar} · {a.First}–{a.Last} · {a.Name}##area{i}", selectedArea == i)) selectedArea = i;
-                ImGui.TableNextColumn();
-                ImGui.TextWrapped(string.Join(", ", a.Entries.Select(e => EntryName(setup, e, preferences))));
+                ImGui.PushID(right ? "right" : "left");
+                ImGui.Spacing(); ImGui.TextUnformatted(right ? "Right edge  ←" : "Left edge  →");
+                var edgeAreas = mapping.Areas.Where(a => a.Bar == bar && a.First == 1 && a.Last == 12 && a.FromRight == right).ToArray();
+                if (edgeAreas.All(a => a.Entries.Count == 0)) ImGui.TextDisabled("No groups assigned.");
+                foreach (var area in edgeAreas) { ImGui.PushID(mapping.Areas.IndexOf(area)); DrawEntries(area); ImGui.PopID(); }
+                if (ImGui.BeginCombo("Add group", "Choose an intent or personal group..."))
+                { ChooseSource(preferences, entry => Edge(mapping, bar, right).Entries.Add(entry)); ImGui.EndCombo(); }
+                ImGui.PopID();
             }
-            ImGui.EndTable();
-        }
-        if (ImGui.Button("Add area")) { areas.Add(new() { Name = "New area", Bar = 3 }); selectedArea = areas.Count - 1; }
-        if (areas.Count == 0) { ImGui.TextWrapped("No assignments. Add an area or restore the default intent mapping."); return; }
-        selectedArea = Math.Clamp(selectedArea, 0, areas.Count - 1);
-        var area = areas[selectedArea];
-        ImGui.Spacing(); ImGui.Separator(); ImGui.TextUnformatted("Edit selected area");
-        string areaName = area.Name;
-        if (ImGui.InputText("Name", ref areaName, 100)) area.Name = areaName;
-        if (ImGui.BeginTable("Destination", 3, ImGuiTableFlags.SizingStretchSame))
-        {
-            ImGui.TableNextColumn(); int bar = area.Bar;
-            NumberChoice("Bar", ref bar, preferences.ManagedBars); area.Bar = bar;
-            ImGui.TableNextColumn(); int first = area.First;
-            NumberChoice("First slot", ref first, Enumerable.Range(1, 12)); area.First = first;
-            ImGui.TableNextColumn(); int last = area.Last;
-            NumberChoice("Last slot", ref last, Enumerable.Range(area.First, 13 - area.First)); area.Last = Math.Max(area.First, last);
-            ImGui.EndTable();
-        }
-        bool right = area.FromRight;
-        if (ImGui.Checkbox("Start at the right edge", ref right)) area.FromRight = right;
-        bool avoid = area.AvoidFixedSlots;
-        if (ImGui.Checkbox("Leave fixed positions free", ref avoid)) area.AvoidFixedSlots = avoid;
-        ImGui.TextDisabled("Same first and last slot = a fixed position. Otherwise entries fill the area in order.");
-        if (ImGui.BeginTable("Controls", 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp))
-        {
-            ImGui.TableSetupColumn("Control", ImGuiTableColumnFlags.WidthStretch);
-            ImGui.TableSetupColumn("Manual", ImGuiTableColumnFlags.WidthFixed, 60 * ImGuiHelpers.GlobalScale);
-            ImGui.TableSetupColumn("Order / more", ImGuiTableColumnFlags.WidthFixed, 110 * ImGuiHelpers.GlobalScale);
-            ImGui.TableHeadersRow();
-            for (int e = 0; e < area.Entries.Count; e++)
+            ImGui.Spacing();
+            var custom = mapping.Areas.Where(a => a.Bar == bar && (a.First != 1 || a.Last != 12)).ToArray();
+            if (custom.Length > 0 && ImGui.CollapsingHeader("Older custom assignments"))
             {
-                var entry = area.Entries[e]; ImGui.PushID(e);
-                ImGui.TableNextRow(); ImGui.TableNextColumn(); ImGui.SetNextItemWidth(-1);
-                if (ImGui.BeginCombo("##entry", EntryName(setup, entry, preferences)))
+                ImGui.TextWrapped("These saved assignments are preserved. Move their groups to a bar edge to use the simpler layout.");
+                foreach (var area in custom)
                 {
-                    ChooseSource(preferences, replacement => { replacement.KeepManual = entry.KeepManual; replacement.Priority = entry.Priority; area.Entries[e] = replacement; });
-                    ImGui.EndCombo();
+                    ImGui.PushID(mapping.Areas.IndexOf(area));
+                    ImGui.TextUnformatted(Destination(area));
+                    DrawEntries(area);
+                    if (ImGui.BeginCombo("Add group", "Choose...")) { ChooseSource(preferences, area.Entries.Add); ImGui.EndCombo(); }
+                    if (ImGui.SmallButton("Remove assignment")) mapping.Areas.Remove(area);
+                    ImGui.PopID();
                 }
+            }
+            ImGui.EndTabItem();
+        }
+        ImGui.EndTabBar();
+
+        void DrawEntries(MappingArea area)
+        {
+            if (!ImGui.BeginTable("Groups", 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp)) return;
+            ImGui.TableSetupColumn("Intent / group", ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableSetupColumn("Keep when automated", ImGuiTableColumnFlags.WidthFixed, 145 * ImGuiHelpers.GlobalScale);
+            ImGui.TableSetupColumn("Order / destination", ImGuiTableColumnFlags.WidthFixed, 220 * ImGuiHelpers.GlobalScale);
+            ImGui.TableHeadersRow();
+            for (int i = 0; i < area.Entries.Count; i++)
+            {
+                var entry = area.Entries[i]; ImGui.PushID(i);
+                ImGui.TableNextRow(); ImGui.TableNextColumn();
+                ImGui.TextWrapped($"{i + 1}. {EntryName(setup, entry, preferences)}");
                 ImGui.TableNextColumn();
                 bool keep = keepAll || entry.KeepManual;
                 ImGui.BeginDisabled(keepAll);
-                if (ImGui.Checkbox("##keep", ref keep)) entry.KeepManual = keep;
-                if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled)) ImGui.SetTooltip(keepAll
-                    ? "The global keep-manual option keeps every entry visible."
-                    : "Keep this group's manual buttons while their automation is on.");
+                if (ImGui.Checkbox("##Keep manual buttons when automated", ref keep)) entry.KeepManual = keep;
                 ImGui.EndDisabled();
+                if (keepAll && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled)) ImGui.SetTooltip("Enabled by Keep manual controls when automated.");
                 ImGui.TableNextColumn();
-                ImGui.BeginDisabled(e == 0);
-                if (ImGui.SmallButton("Up")) (area.Entries[e - 1], area.Entries[e]) = (entry, area.Entries[e - 1]);
-                ImGui.EndDisabled(); ImGui.SameLine();
-                ImGui.BeginDisabled(e == area.Entries.Count - 1);
-                if (ImGui.SmallButton("Dn")) (area.Entries[e + 1], area.Entries[e]) = (entry, area.Entries[e + 1]);
+                ImGui.BeginDisabled(i == 0);
+                if (ImGui.SmallButton("Up")) (area.Entries[i - 1], area.Entries[i]) = (entry, area.Entries[i - 1]);
+                ImGui.EndDisabled(); ImGui.SameLine(); ImGui.BeginDisabled(i == area.Entries.Count - 1);
+                if (ImGui.SmallButton("Down")) (area.Entries[i + 1], area.Entries[i]) = (entry, area.Entries[i + 1]);
                 ImGui.EndDisabled(); ImGui.SameLine();
                 bool remove = false;
-                if (ImGui.SmallButton("...")) ImGui.OpenPopup("Entry options");
-                if (ImGui.BeginPopup("Entry options"))
+                if (ImGui.SmallButton("Move")) ImGui.OpenPopup("Move group");
+                if (ImGui.BeginPopup("Move group"))
                 {
-                    ImGui.TextUnformatted("Move to area");
-                    for (int target = 0; target < areas.Count; target++)
-                    {
-                        var destination = areas[target];
-                        if (destination == area) continue;
-                        if (ImGui.Selectable($"Bar {destination.Bar} · {destination.Name}##destination{target}"))
-                        { destination.Entries.Add(entry); remove = true; }
-                    }
-                    ImGui.Separator();
-                    int priority = entry.Priority;
-                    if (ImGui.InputInt("Duplicate priority", ref priority)) entry.Priority = priority;
-                    ImGui.TextWrapped("Higher priority wins when a direct action appears more than once.");
-                    if (ImGui.Selectable("Remove control")) remove = true;
+                    foreach (int targetBar in preferences.ManagedBars)
+                        foreach (bool targetRight in new[] { false, true })
+                            if (ImGui.Selectable($"Bar {targetBar} · {(targetRight ? "Right edge" : "Left edge")}"))
+                            {
+                                var target = Edge(mapping, targetBar, targetRight);
+                                if (target != area) { target.Entries.Add(entry); remove = true; }
+                            }
                     ImGui.EndPopup();
                 }
-                if (remove) area.Entries.RemoveAt(e--);
+                ImGui.SameLine();
+                if (ImGui.SmallButton("Options")) ImGui.OpenPopup("Group options");
+                if (ImGui.BeginPopup("Group options"))
+                {
+                    if (ImGui.Selectable("Remove group")) remove = true;
+                    int priority = entry.Priority;
+                    if (ImGui.InputInt("Duplicate priority", ref priority)) entry.Priority = priority;
+                    ImGui.TextWrapped("Higher priority keeps this group's copy of a repeated action. Automation selectors remain separate.");
+                    if (entry.Action is not null && ImGui.Button("Save as personal group"))
+                    {
+                        var group = new PersonalGroup { Name = entry.Action.Name, Contents = [entry.Action] };
+                        preferences.Groups.Add(group); entry.Action = null; entry.GroupId = group.Id;
+                    }
+                    ImGui.EndPopup();
+                }
+                if (remove) area.Entries.RemoveAt(i--);
                 ImGui.PopID();
             }
             ImGui.EndTable();
         }
-        if (ImGui.BeginCombo("Add intent or group", "Choose..."))
-        { ChooseSource(preferences, area.Entries.Add); ImGui.EndCombo(); }
-        Picker("Add individual action/item", a => area.Entries.Add(new() { Action = a, Priority = 30 }));
-        if (ImGui.Button("Remove selected area")) { areas.RemoveAt(selectedArea); selectedArea = 0; }
-    }
-    private static void NumberChoice(string label, ref int value, IEnumerable<int> choices)
-    {
-        ImGui.TextUnformatted(label); ImGui.SetNextItemWidth(-1);
-        if (!ImGui.BeginCombo("##" + label, value.ToString())) return;
-        foreach (int choice in choices) if (ImGui.Selectable(choice.ToString(), value == choice)) value = choice;
-        ImGui.EndCombo();
     }
     private static void ChooseSource(LayoutPreferences preferences, Action<MappingEntry> selected)
     {

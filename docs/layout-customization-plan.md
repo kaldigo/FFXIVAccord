@@ -1,3 +1,5 @@
+> Current controlling checklist: [agreed-layout-requirements.md](agreed-layout-requirements.md). Earlier checkmarks below do not establish usability or default preservation; the 0.2.15.6 review missed both.
+
 # Intent layout customization acceptance ledger
 
 Agreed and reviewed 2026-10-28. Checked scope items mean implemented and locally reviewed, not verified in a running game. Native acceptance below remains unchecked. The original implementation was published, but its class-template model did not satisfy the intended Global mapping. The correction and its verification are recorded in [global-mapping-audit.md](global-mapping-audit.md).
@@ -49,7 +51,7 @@ The exclusion guard guarantees a prohibited action is rejected. Native testing m
 
 ## Using the settings
 
-Open Global mapping to edit the common layout for every combat class. All intents are available, including resurrection, healing and class mechanics; unsupported intents contribute no controls. An exact slot is an area with the same first and last slot. Global role actions and Global exclusions edit the corresponding shared settings.
+Open Global mapping to edit the common layout for every combat class. All intents are available, including resurrection, healing and class mechanics; unsupported intents contribute no controls. Choose a bar and add ordered groups to its left or right edge. Exact-slot editing is no longer part of ordinary configuration; existing custom assignments remain available for moving into edge groups. Global role actions and Global exclusions edit the corresponding shared settings.
 
 Mapping overrides is a separate page. Add only the roles/classes that need differences, then edit one record at a time. Apply selects which settings replace their inherited values; Mapping is one complete setting. Preview has the class selector and can display either Global alone or the result including explicit overrides. Preview never creates or edits overrides.
 

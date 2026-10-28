@@ -1,3 +1,5 @@
+> Superseded review: this document describes 0.2.15.6, whose defaults and UI did not meet the agreement. It incorrectly treated availability of all intents as a reason to place them all and did not check original bar preservation. Use [agreed-layout-requirements.md](agreed-layout-requirements.md) for the current acceptance ledger. The previous implementation/test claims below are historical, not current acceptance.
+
 # Common Global mapping correction
 
 Reviewed 2026-10-28. This supersedes the class-template design shipped in 0.2.15.5.

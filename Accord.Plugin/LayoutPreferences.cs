@@ -8,7 +8,7 @@ namespace Accord;
 // Intent/group definitions have no keyboard or controller coordinates. Only the
 // mapping owns destinations, so a future controller editor can reuse the content.
 public enum JobRole { Tank, Healer, Melee, PhysicalRanged, MagicalRanged, Noncombat }
-public enum ControlIntent { SingleTarget, AreaDamage, Burst, Protection, Support, Mechanics, Movement, Cleanse, ImportantRole, OtherRole, Exclusions, Travel, SingleHealing, AreaHealing, Raise, Knockback, Invulnerability, Enmity, Stance, Shirk, Other, Sprint, PartyProtection, PersonalProtection, TargetedProtection, Recovery, Rescue, Preparation, Interrupt }
+public enum ControlIntent { SingleTarget, AreaDamage, Burst, Protection, Support, Mechanics, Movement, Cleanse, ImportantRole, OtherRole, Exclusions, Travel, SingleHealing, AreaHealing, Raise, Knockback, Invulnerability, Enmity, Stance, Shirk, Other, Sprint, PartyProtection, PersonalProtection, TargetedProtection, Recovery, Rescue, Preparation, Interrupt, HealingProtection, AdditionalBurst, PrimaryMechanics }
 
 public sealed class ActionChoice
 {
@@ -84,6 +84,8 @@ public sealed class MappingArea
 
 public sealed class IntentMapping
 {
+    public int IntentVersion { get; set; }
+    public bool ShouldSerializeIntentVersion() => IntentVersion != 0;
     // Legacy templates are read only for migration; live layouts use Areas exclusively.
     public Dictionary<uint, List<MappingArea>> JobDefaults { get; set; } = new();
     public List<MappingArea> Areas { get; set; } = new();
