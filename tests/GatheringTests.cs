@@ -58,7 +58,7 @@ internal static class GatheringTests
             try {hotbars.Apply([(16,pack.Find(16)!)],true);}catch(InvalidOperationException){rejected=true;}
             Check(rejected && NativeHotbars.Writes==writes,"insufficient non-shared bars were not rejected atomically");
 
-            // Combat and PvP also clear every former reservation on non-shared bars.
+            // PvP owns selected regular bars; legacy combat cleanup remains unchanged.
             Player.Job=19;NativeHotbars.Shared.Clear();NativeHotbars.Shared.UnionWith([4,9,17]);
             foreach(bool pvp in new[]{false,true})
             {
@@ -77,7 +77,7 @@ internal static class GatheringTests
                 }
                 else hotbars.Apply([(19,pack.Resolve(pack.Find(19)!,new()))],true);
                 foreach(var p in positions)
-                    Check(NativeHotbars.Shared.Contains(p.Bar) ? NativeHotbars.Read(19,p,pvp:pvp)==sentinel : NativeHotbars.Read(19,p,pvp:pvp)!=sentinel,
+                    Check(NativeHotbars.Shared.Contains(p.Bar) || pvp && p.Bar is >=3 and <10 ? NativeHotbars.Read(19,p,pvp:pvp)==sentinel : NativeHotbars.Read(19,p,pvp:pvp)!=sentinel,
                         "former slot reservation or shared bar handled incorrectly: "+p);
                 Check(!ModeActions.IsSprint(NativeHotbars.Read(19,new(0,11),pvp:pvp)),"reserved Sprint escaped cleanup");
             }

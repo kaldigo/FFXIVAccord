@@ -11,6 +11,8 @@ namespace Accord;
 
 public sealed class PvPSettings
 {
+    [JsonIgnore] public PvPOverrides Overrides { get; set; } = new();
+    [JsonIgnore] public LayoutPreferences Layouts { get; set; } = new();
     [JsonIgnore]
     public HashSet<uint> ActiveJobs { get; set; } = new();
     [JsonIgnore]
@@ -23,7 +25,8 @@ public sealed class PvPSettings
     public string LastHotbarBackup { get; set; } = "";
     [JsonIgnore] public Dictionary<uint, Dictionary<VariantId, bool>> ClassAutomation { get; set; } = new();
     public bool Enabled(VariantId id) => Variants.GetValueOrDefault(id);
-    public bool Enabled(VariantId id, uint job) => ClassAutomation.TryGetValue(job, out var values) && values.TryGetValue(id, out var value) ? value : Enabled(id);
+    public bool Enabled(VariantId id, uint job) => Overrides.Enabled(id, job,
+        ClassAutomation.TryGetValue(job, out var values) && values.TryGetValue(id, out var value) ? value : Enabled(id));
 }
 
 internal sealed class PvPControl
@@ -32,6 +35,8 @@ internal sealed class PvPControl
     public SlotValue Binding { get; set; }
     public string Intent { get; set; } = "";
     public VariantId? Variant { get; set; }
+    public VariantId? ManualOwner { get; set; }
+    public ControlIntent Group { get; set; } = ControlIntent.Other;
     public string? RequiredPreset { get; set; }
     public string? Custom { get; set; }
     public string[] AnyPositive { get; set; } = [];
@@ -78,6 +83,7 @@ internal sealed class PvPPack
         var features = new JObject();
         var bools = new JObject();
         var ints = new JObject();
+        var routes = new JObject();
         int Id(string name) => snapshot["PresetIds"]!.Value<int?>(name) ?? throw new InvalidDataException("Unavailable PvP setting: " + name);
         foreach (var job in jobs)
         {
@@ -87,15 +93,23 @@ internal sealed class PvPPack
                 foreach (var name in names) (settings.Enabled(variant, job.JobId) ? enable : disable).Add(Id(name));
             var flags = new JObject();
             flags["PvPIntentRoutes"] = true;
+            flags["PvPCommonHealing"] = settings.Enabled(VariantId.Support, job.JobId);
+            flags["PvPCommonGuard"] = settings.Enabled(VariantId.Protection, job.JobId);
+            flags["PvPCommonPurify"] = settings.Enabled(VariantId.Protection, job.JobId);
+            if (job.JobId == 30) flags["PvPNinAutomaticArea"] = settings.Overrides.RotationButtons == PvPRotationButtons.One;
             foreach (var (feature, variant) in job.Features) flags[feature] = settings.Enabled(variant, job.JobId);
             foreach (var feature in job.RecipientFeatures) flags[feature] = true;
             features[job.JobId.ToString()] = flags;
-            // These are required follow-through/branch switches, not personal timing or HP policy.
-            foreach (var key in job.RequiredBools) bools[key] = true;
-            foreach (var (key, value) in job.RequiredInts) ints[key] = value;
+            routes[job.JobId.ToString()] = PvPConfiguredLayout.Routes(job, settings);
+            // Defaults may fill missing values, but explicit saved policy (including
+            // false) belongs to the player and must survive automation switches.
+            foreach (var key in job.RequiredBools)
+                if (snapshot["Settings"]?["CustomBoolValuesV6"]?[key] is null) bools[key] = true;
+            foreach (var (key, value) in job.RequiredInts)
+                if (snapshot["Settings"]?["CustomIntValuesV6"]?[key] is null) ints[key] = value;
         }
         return new JObject { ["Settings"] = new JObject { ["ForkFeatures"] = features,
-            ["CustomBoolValuesV6"] = bools, ["CustomIntValuesV6"] = ints },
+            ["CustomBoolValuesV6"] = bools, ["CustomIntValuesV6"] = ints, ["PvPActionRoutes"] = routes },
             ["Enable"] = new JArray(enable.Order()), ["Disable"] = new JArray(disable.Order()) };
     }
 

@@ -77,7 +77,9 @@ internal static class HotbarIndependenceTests
             foreach(var cleanup in new[]{false,true})
             {
                 var pvpChoices=new PvPSettings{ClearOtherActions=cleanup};
+                NativeHotbars.Put(19,new(5,2),new(1,7654),true);
                 var backup=pvpHotbars.Apply([profile],pvpChoices,snapshot)!;
+                Check(NativeHotbars.Read(19,new(5,2),pvp:true)==new SlotValue(1,7654),"PvP cleanup cleared an unselected regular bar");
                 Check(NativeHotbars.Read(19,new(9,7),pvp:true)==new SlotValue(1,29057),"PvP cleanup removed utility Sprint");
                 Check(NativeHotbars.Read(19,new(4,8),pvp:true)==new SlotValue(1,999),"PvP cleanup cleared protected utility bar");
                 Check(pvpHotbars.Apply([profile],pvpChoices,snapshot,inspect:true)==null,"PvP layout did not settle without Bridge");

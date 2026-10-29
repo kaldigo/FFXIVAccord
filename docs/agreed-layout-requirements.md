@@ -64,3 +64,7 @@ Class automation verification: paired build passed with 247,372 assertions and t
 Reaper's burst trigger disappeared during a level-synced dungeon because the live eligibility predicate checked the current character level. Preview already bypassed that check. Live and preview placement now share class/catalog eligibility and do not consult current/synced or stored class levels. The game decides whether a placed action is executable. There is no hard-coded level cap. Automation and explicit mapping choices still control visibility as configured.
 
 Native verification remains open: enter a level-synced dungeon on Reaper with manual burst enabled and verify the burst trigger stays on the bar before, during and after the sync.
+
+## PvP expansion — requested 2026-10-29, planned
+
+The controlling implementation plan is [pvp-automation-plan.md](pvp-automation-plan.md). All-on must expose the full compatible Wrath-supported rotation; manual controls are independent, optional access. Add an explicit PvP override layer above normal settings and a global PvP One/Two rotation-button choice. This supersedes earlier statements that the new mapping work excludes PvP or that separate ST/AoE is mandatory in PvP. It does not authorize a controller redesign. The plan's implementation/native-acceptance checkboxes remain open; the initial 21-job inventory is not a completed behavioral audit.

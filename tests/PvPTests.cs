@@ -31,6 +31,9 @@ internal static class PvPTests
         var personal=(JObject)settings.DeepClone();
         personal["CustomIntValuesV6"]!["DNCWaltzThreshold"]=57;
         personal["CustomIntValuesV6"]!["MCHPvP_FMFOption"]=2;
+        personal["CustomBoolValuesV6"]!["RDMPvP_Forte_SubOption"]=false;
+        personal["CustomBoolValuesV6"]!["BLMPvP_Burst_SubOption"]=false;
+        personal["CustomIntValuesV6"]!["ASTPvP_Burst_PlayCardOption"]=3;
         personal["AutoActions"]=new JObject{[names.Value<int>("DNCPvP_BurstMode").ToString()]=true};
         var snapshot=new JObject{["Settings"]=personal,["PresetIds"]=names};
         foreach(var job in pack.Jobs)
@@ -45,8 +48,17 @@ internal static class PvPTests
             Check(JToken.DeepEquals(personal["CustomActionSettings"],updated["CustomActionSettings"]),"global custom buttons changed");
             Check(updated["CustomIntValuesV6"]!.Value<int>("DNCWaltzThreshold")==57,"personal HP threshold changed");
             Check(updated["CustomIntValuesV6"]!.Value<int>("MCHPvP_FMFOption")==2,"personal timing changed");
+            Check(!updated["CustomBoolValuesV6"]!.Value<bool>("RDMPvP_Forte_SubOption"),"saved false Vice of Thorns was overwritten");
+            Check(!updated["CustomBoolValuesV6"]!.Value<bool>("BLMPvP_Burst_SubOption"),"saved false defensive Burst was overwritten");
+            Check(updated["CustomIntValuesV6"]!.Value<int>("ASTPvP_Burst_PlayCardOption")==3,"saved card policy was overwritten");
+            Check(updated["ForkFeatures"]![job.JobId.ToString()]!.Value<bool>("PvPCommonHealing")==choices.Enabled(VariantId.Support),"common healing owner incorrect");
+            Check(updated["ForkFeatures"]![job.JobId.ToString()]!.Value<bool>("PvPCommonGuard")==choices.Enabled(VariantId.Protection),"common Guard owner incorrect");
+            Check(updated["ForkFeatures"]![job.JobId.ToString()]!.Value<bool>("PvPCommonPurify")==choices.Enabled(VariantId.Protection),"common Purify owner incorrect");
             Check(patch["Enable"]!.Values<int>().All(id=>names.Properties().Single(p=>p.Value.Value<int>()==id).Name.Contains("PvP")),"non-PvP preset touched");
             foreach(var name in job.Always)Check(updated["EnabledActionsV6"]!.Values<int>().Contains(names.Value<int>(name)),job.Job+" missing continuation "+name);
+            foreach(var (owner,presets) in job.Variants)
+                foreach(var preset in presets)
+                    Check(updated["EnabledActionsV6"]!.Values<int>().Contains(names.Value<int>(preset))==choices.Enabled(owner),job.Job+" incorrect delegation for "+preset);
             foreach(var name in job.Manual)Check(!updated["EnabledActionsV6"]!.Values<int>().Contains(names.Value<int>(name)),job.Job+" delegates manual intent "+name);
             foreach(var (feature,variant) in job.Features)
             {
@@ -54,6 +66,20 @@ internal static class PvPTests
                 Check(updated["ForkFeatures"]![job.JobId.ToString()]!.Value<bool>(feature)==choices.Enabled(variant),feature+" does not follow its owner");
             }
             var after=new JObject{["Settings"]=updated,["PresetIds"]=names};
+            foreach(var mode in Enum.GetValues<PvPRotationButtons>())
+            {
+                choices.Overrides.RotationButtons=mode;
+                foreach(bool allOff in new[]{false,true})
+                {
+                    var plan=PvPConfiguredLayout.Plan(job,choices,after,_=>false,_=>true,allOff);
+                    Check(plan.Valid,job.Job+" configured PvP layout conflict: "+string.Join(";",plan.Issues.Select(i=>i.Message)));
+                    Check(plan.Controls.Any(c=>c.Action.Id==(mode==PvPRotationButtons.One?1000015u:1000000u)),job.Job+" lost rotation control");
+                    Check(plan.Controls.Any(c=>c.Action.Id==1000001)==(mode==PvPRotationButtons.Two),job.Job+" wrong rotation button count");
+                    Check(plan.Controls.All(c=>c.Position.Bar<2),job.Job+" unexpectedly added default bar-3 actions");
+                    Check(plan.Controls.Select(c=>c.Position).Distinct().Count()==plan.Controls.Count,job.Job+" duplicate configured slot");
+                }
+            }
+            choices.Overrides.RotationButtons=PvPRotationButtons.Two;
             var values=job.Controls.Select(c=>PvPPack.Resolve(c,choices,after)).ToArray();
             // Reproduce a keyboard user whose overflow controller pages are all shared.
             var keyboardPairs=PvPLayout.Pairs(job,baseMaps);
@@ -103,6 +129,26 @@ internal static class PvPTests
             Check(PvPPack.Resolve(job.Controls[0],choices,new JObject{["Settings"]=custom,["PresetIds"]=names})==new SlotValue(1,1_000_000),job.Job+" ignored custom damage button");
         }
         var all=Enum.GetValues<VariantId>().ToDictionary(v=>v,v=>true);
+        var brd=pack.Find(23)!;
+        var bardChoices=new PvPSettings { Variants=all };
+        var bardPatch=pack.Patch([brd],bardChoices,snapshot);
+        Check(bardPatch["Enable"]!.Values<int>().Contains(names.Value<int>("BRDPvP_SilentNocturne")),"all-on Bard still disables Nocturne");
+        var bardAfter=new JObject{["Settings"]=SettingsPatch.Apply(personal,bardPatch,ids),["PresetIds"]=names};
+        Check(!PvPConfiguredLayout.Plan(brd,bardChoices,bardAfter,_=>false,_=>true).Controls.Any(c=>c.Action.Id==29395),"automated manual Nocturne was not optional");
+        bardChoices.Overrides.Global.Mapping!.Areas[0].Entries.Single(e=>e.Intent==ControlIntent.Other).KeepManual=true;
+        Check(PvPConfiguredLayout.Plan(brd,bardChoices,bardAfter,_=>false,_=>true).Controls.Any(c=>c.Action.Id==29395),"group retention failed");
+        Check(JToken.DeepEquals(bardPatch,pack.Patch([brd],bardChoices,snapshot)),"retaining a manual button changed automation");
+        bardChoices.Overrides.Global.Exclusions=[new(){Action=new(){Id=29395,Name="Silent Nocturne"},ExcludedFrom=[ControlIntent.SingleTarget]}];
+        var bardRoutes=PvPConfiguredLayout.Routes(brd,bardChoices);
+        Check(bardRoutes["1000000"]!["Excluded"]!.Values<uint>().Contains(29395u) && bardRoutes["1000001"] is null,"exclusion scope crossed into AoE");
+        Check(bardRoutes[WrathCombo.Engine.PvPAreaChoice.RouteInput(1000015,false).ToString()]!["Excluded"]!.Values<uint>().Contains(29395u),"one-button ST route bypasses exclusions");
+        Check(bardRoutes[WrathCombo.Engine.PvPAreaChoice.RouteInput(1000015,true).ToString()] is null,"one-button area path inherited ST-only exclusions");
+        var excludedState=SettingsPatch.Apply(personal,pack.Patch([brd],bardChoices,snapshot),ids);
+        bardChoices.Overrides.Global.Exclusions=[];
+        var clearedState=SettingsPatch.Apply(excludedState,pack.Patch([brd],bardChoices,
+            new JObject{["Settings"]=excludedState,["PresetIds"]=names}),ids);
+        Check(((JObject)clearedState["PvPActionRoutes"]!["23"]!).Count==0,"deleted PvP exclusion survived recursive merge");
+        Check(JToken.DeepEquals(personal["ActionRoutes"],clearedState["ActionRoutes"]),"PvP exclusions changed PvE routes");
         var dnc=pack.Find(38)!;
         var zero=(JObject)personal.DeepClone();zero["CustomIntValuesV6"]!["DNCWaltzThreshold"]=0;
         var safe=new JObject{["Settings"]=zero,["PresetIds"]=names};

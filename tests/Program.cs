@@ -7,6 +7,7 @@ using Newtonsoft.Json.Linq;
 using WrathFork.Contract;
 
 int checks = 0;
+checks += PvPOverrideTests.Run();
 void Check(bool condition, string message)
 {
     checks++;

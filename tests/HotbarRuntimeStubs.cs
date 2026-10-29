@@ -5,7 +5,7 @@ namespace ECommons.GameHelpers
 {
     internal static class Player { internal static bool Available = true; internal static uint Job = 19; }
 }
-namespace Lumina.Excel.Sheets { public struct Action {} public struct CraftAction {} public struct ActionComboRoute {} }
+namespace Lumina.Excel.Sheets { public struct Action {} public struct CraftAction {} public struct ActionComboRoute {} public struct ClassJobCategory {} }
 namespace ECommons.DalamudServices
 {
     internal static class Svc
@@ -44,6 +44,7 @@ namespace ECommons.DalamudServices
         internal bool IsPvP => true;
         internal bool IsPlayerAction => true;
         internal FakeRef[] Action => [new()];
+        internal FakeRef ClassJobCategory => new();
     }
     internal sealed class FakeName { internal bool IsEmpty => false; }
     internal sealed class FakeRef { internal uint RowId => 1; internal FakeRow Value => new(); }

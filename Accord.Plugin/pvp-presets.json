@@ -3,7 +3,7 @@
     "JobId": 19,
     "Job": "PLD",
     "Descriptions": {
-      "Burst": "Imperator \u2192 Confiteor; offensive role action",
+      "Burst": "Imperator → Confiteor; offensive role action. Also delegates supported Shield Smite, Intervene branches, using Wrath's saved conditions.",
       "Protection": "Holy Sheltron, self-healing Holy Spirit, selected defensive role action",
       "Support": "Guardian remains deliberate damage redirection",
       "ClassMechanics": "No extra mechanic"
@@ -18,7 +18,8 @@
         "Intent": "ST damage",
         "KeyboardBar": 0,
         "Order": 0,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "SingleTarget"
       },
       {
         "Name": "Shield Smite",
@@ -28,7 +29,9 @@
         },
         "Intent": "Shield Smite",
         "KeyboardBar": 0,
-        "Order": 2
+        "Order": 2,
+        "Group": "Other",
+        "ManualOwner": "Burst"
       },
       {
         "Name": "AoE damage",
@@ -39,20 +42,22 @@
         "Intent": "AoE damage",
         "KeyboardBar": 0,
         "Order": 1,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "AreaDamage"
       },
       {
-        "Name": "Burst \u00b7 Imperator",
+        "Name": "Burst · Imperator",
         "Binding": {
           "Type": 1,
           "Id": 1000010
         },
-        "Intent": "Burst \u00b7 Imperator",
+        "Intent": "Burst · Imperator",
         "KeyboardBar": 0,
         "Order": 5,
         "Variant": "Burst",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Burst"
       },
       {
         "Name": "Intervene",
@@ -62,20 +67,23 @@
         },
         "Intent": "Intervene",
         "KeyboardBar": 1,
-        "Order": 0
+        "Order": 0,
+        "Group": "Movement",
+        "ManualOwner": "Burst"
       },
       {
-        "Name": "Protection \u00b7 Sheltron / Holy Spirit",
+        "Name": "Protection · Sheltron / Holy Spirit",
         "Binding": {
           "Type": 1,
           "Id": 1000011
         },
-        "Intent": "Protection \u00b7 Sheltron / Holy Spirit",
+        "Intent": "Protection · Sheltron / Holy Spirit",
         "KeyboardBar": 1,
         "Order": 7,
         "Variant": "Protection",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Protection"
       },
       {
         "Name": "Guardian",
@@ -85,7 +93,8 @@
         },
         "Intent": "Guardian",
         "KeyboardBar": 0,
-        "Order": 3
+        "Order": 3,
+        "Group": "Other"
       },
       {
         "Name": "Phalanx",
@@ -95,7 +104,8 @@
         },
         "Intent": "Phalanx",
         "KeyboardBar": 0,
-        "Order": 4
+        "Order": 4,
+        "Group": "LimitBreak"
       },
       {
         "Name": "Standard-issue Elixir",
@@ -105,7 +115,8 @@
         },
         "Intent": "Standard-issue Elixir",
         "KeyboardBar": 1,
-        "Order": 1
+        "Order": 1,
+        "Group": "Recovery"
       },
       {
         "Name": "Recuperate",
@@ -115,7 +126,8 @@
         },
         "Intent": "Recuperate",
         "KeyboardBar": 1,
-        "Order": 2
+        "Order": 2,
+        "Group": "Recovery"
       },
       {
         "Name": "Purify",
@@ -125,7 +137,8 @@
         },
         "Intent": "Purify",
         "KeyboardBar": 1,
-        "Order": 3
+        "Order": 3,
+        "Group": "Cleanse"
       },
       {
         "Name": "Guard",
@@ -135,7 +148,8 @@
         },
         "Intent": "Guard",
         "KeyboardBar": 1,
-        "Order": 4
+        "Order": 4,
+        "Group": "PersonalProtection"
       },
       {
         "Name": "Sprint",
@@ -145,7 +159,8 @@
         },
         "Intent": "Sprint",
         "KeyboardBar": 1,
-        "Order": 6
+        "Order": 6,
+        "Group": "Sprint"
       },
       {
         "Name": "Selected PvP role action",
@@ -155,7 +170,8 @@
         },
         "Intent": "Selected PvP role action",
         "KeyboardBar": 1,
-        "Order": 5
+        "Order": 5,
+        "Group": "ImportantRole"
       },
       {
         "Name": "Unused",
@@ -165,7 +181,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 6
+        "Order": 6,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -175,7 +192,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 7
+        "Order": 7,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -185,7 +203,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 8
+        "Order": 8,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -195,7 +214,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 9
+        "Order": 9,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -205,7 +225,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 10
+        "Order": 10,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -215,7 +236,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 11
+        "Order": 11,
+        "Group": "Preparation"
       }
     ],
     "Always": [
@@ -225,7 +247,9 @@
     ],
     "Variants": {
       "Burst": [
-        "PLDPvP_Imperator"
+        "PLDPvP_Imperator",
+        "PLDPvP_Intervene",
+        "PLDPvP_ShieldSmite"
       ],
       "Protection": [
         "PLDPvP_Sheltron",
@@ -235,11 +259,7 @@
       "Support": [],
       "ClassMechanics": []
     },
-    "Manual": [
-      "PLDPvP_Intervene",
-      "PLDPvP_Intervene_Melee",
-      "PLDPvP_ShieldSmite"
-    ],
+    "Manual": [],
     "Features": {},
     "RequiredBools": [],
     "RequiredInts": {},
@@ -307,7 +327,7 @@
     "JobId": 21,
     "Job": "WAR",
     "Descriptions": {
-      "Burst": "Primal Rend/Ruination, Orogeny and offensive Onslaught",
+      "Burst": "Primal Rend/Ruination, Orogeny and offensive Onslaught. Also delegates supported Blota branches, using Wrath's saved conditions.",
       "Protection": "Bloodwhetting/Nascent Chaos, selected defensive role action",
       "Support": "No extra support",
       "ClassMechanics": "No extra mechanic"
@@ -322,7 +342,8 @@
         "Intent": "ST damage",
         "KeyboardBar": 0,
         "Order": 0,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "SingleTarget"
       },
       {
         "Name": "AoE damage",
@@ -333,7 +354,8 @@
         "Intent": "AoE damage",
         "KeyboardBar": 0,
         "Order": 1,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "AreaDamage"
       },
       {
         "Name": "Onslaught",
@@ -343,20 +365,22 @@
         },
         "Intent": "Onslaught",
         "KeyboardBar": 1,
-        "Order": 0
+        "Order": 0,
+        "Group": "Movement"
       },
       {
-        "Name": "Burst \u00b7 Primal Rend",
+        "Name": "Burst · Primal Rend",
         "Binding": {
           "Type": 1,
           "Id": 1000010
         },
-        "Intent": "Burst \u00b7 Primal Rend",
+        "Intent": "Burst · Primal Rend",
         "KeyboardBar": 0,
         "Order": 4,
         "Variant": "Burst",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Burst"
       },
       {
         "Name": "Blota",
@@ -366,20 +390,23 @@
         },
         "Intent": "Blota",
         "KeyboardBar": 0,
-        "Order": 2
+        "Order": 2,
+        "Group": "Other",
+        "ManualOwner": "Burst"
       },
       {
-        "Name": "Protection \u00b7 Bloodwhetting",
+        "Name": "Protection · Bloodwhetting",
         "Binding": {
           "Type": 1,
           "Id": 1000011
         },
-        "Intent": "Protection \u00b7 Bloodwhetting",
+        "Intent": "Protection · Bloodwhetting",
         "KeyboardBar": 1,
         "Order": 7,
         "Variant": "Protection",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Protection"
       },
       {
         "Name": "Primal Scream",
@@ -389,7 +416,8 @@
         },
         "Intent": "Primal Scream",
         "KeyboardBar": 0,
-        "Order": 3
+        "Order": 3,
+        "Group": "LimitBreak"
       },
       {
         "Name": "Standard-issue Elixir",
@@ -399,7 +427,8 @@
         },
         "Intent": "Standard-issue Elixir",
         "KeyboardBar": 1,
-        "Order": 1
+        "Order": 1,
+        "Group": "Recovery"
       },
       {
         "Name": "Recuperate",
@@ -409,7 +438,8 @@
         },
         "Intent": "Recuperate",
         "KeyboardBar": 1,
-        "Order": 2
+        "Order": 2,
+        "Group": "Recovery"
       },
       {
         "Name": "Purify",
@@ -419,7 +449,8 @@
         },
         "Intent": "Purify",
         "KeyboardBar": 1,
-        "Order": 3
+        "Order": 3,
+        "Group": "Cleanse"
       },
       {
         "Name": "Guard",
@@ -429,7 +460,8 @@
         },
         "Intent": "Guard",
         "KeyboardBar": 1,
-        "Order": 4
+        "Order": 4,
+        "Group": "PersonalProtection"
       },
       {
         "Name": "Sprint",
@@ -439,7 +471,8 @@
         },
         "Intent": "Sprint",
         "KeyboardBar": 1,
-        "Order": 6
+        "Order": 6,
+        "Group": "Sprint"
       },
       {
         "Name": "Selected PvP role action",
@@ -449,7 +482,8 @@
         },
         "Intent": "Selected PvP role action",
         "KeyboardBar": 1,
-        "Order": 5
+        "Order": 5,
+        "Group": "ImportantRole"
       },
       {
         "Name": "Unused",
@@ -459,7 +493,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 5
+        "Order": 5,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -469,7 +504,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 6
+        "Order": 6,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -479,7 +515,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 7
+        "Order": 7,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -489,7 +526,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 8
+        "Order": 8,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -499,7 +537,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 9
+        "Order": 9,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -509,7 +548,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 10
+        "Order": 10,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -519,7 +559,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 11
+        "Order": 11,
+        "Group": "Preparation"
       }
     ],
     "Always": [
@@ -532,7 +573,8 @@
     "Variants": {
       "Burst": [
         "WARPvP_BurstMode_Onslaught",
-        "WARPvP_BurstMode_Orogeny"
+        "WARPvP_BurstMode_Orogeny",
+        "WARPvP_BurstMode_Blota"
       ],
       "Protection": [
         "WARPvP_Rampart"
@@ -540,9 +582,7 @@
       "Support": [],
       "ClassMechanics": []
     },
-    "Manual": [
-      "WARPvP_BurstMode_Blota"
-    ],
+    "Manual": [],
     "Features": {
       "PvPWarBloodwhettingInitiation": "Protection",
       "PvPWarRendInitiation": "Burst"
@@ -609,7 +649,7 @@
     "JobId": 32,
     "Job": "DRK",
     "Descriptions": {
-      "Burst": "Shadowbringer and its available repetitions",
+      "Burst": "Shadowbringer and its available repetitions. Also delegates supported Plunge branches, using Wrath's saved conditions.",
       "Protection": "Self TBN, Impalement, defensive Salted Earth and role action",
       "Support": "Chosen-ally shield remains available",
       "ClassMechanics": "No extra mechanic"
@@ -624,7 +664,8 @@
         "Intent": "ST damage",
         "KeyboardBar": 0,
         "Order": 0,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "SingleTarget"
       },
       {
         "Name": "AoE damage",
@@ -635,20 +676,22 @@
         "Intent": "AoE damage",
         "KeyboardBar": 0,
         "Order": 1,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "AreaDamage"
       },
       {
-        "Name": "Burst \u00b7 Shadowbringer",
+        "Name": "Burst · Shadowbringer",
         "Binding": {
           "Type": 1,
           "Id": 1000010
         },
-        "Intent": "Burst \u00b7 Shadowbringer",
+        "Intent": "Burst · Shadowbringer",
         "KeyboardBar": 0,
         "Order": 5,
         "Variant": "Burst",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Burst"
       },
       {
         "Name": "Plunge",
@@ -658,7 +701,9 @@
         },
         "Intent": "Plunge",
         "KeyboardBar": 1,
-        "Order": 0
+        "Order": 0,
+        "Group": "Movement",
+        "ManualOwner": "Burst"
       },
       {
         "Name": "The Blackest Night",
@@ -668,7 +713,8 @@
         },
         "Intent": "The Blackest Night",
         "KeyboardBar": 0,
-        "Order": 2
+        "Order": 2,
+        "Group": "Other"
       },
       {
         "Name": "Salted Earth",
@@ -678,7 +724,8 @@
         },
         "Intent": "Salted Earth",
         "KeyboardBar": 0,
-        "Order": 3
+        "Order": 3,
+        "Group": "Other"
       },
       {
         "Name": "Eventide",
@@ -688,7 +735,8 @@
         },
         "Intent": "Eventide",
         "KeyboardBar": 0,
-        "Order": 4
+        "Order": 4,
+        "Group": "LimitBreak"
       },
       {
         "Name": "Standard-issue Elixir",
@@ -698,7 +746,8 @@
         },
         "Intent": "Standard-issue Elixir",
         "KeyboardBar": 1,
-        "Order": 1
+        "Order": 1,
+        "Group": "Recovery"
       },
       {
         "Name": "Recuperate",
@@ -708,7 +757,8 @@
         },
         "Intent": "Recuperate",
         "KeyboardBar": 1,
-        "Order": 2
+        "Order": 2,
+        "Group": "Recovery"
       },
       {
         "Name": "Purify",
@@ -718,7 +768,8 @@
         },
         "Intent": "Purify",
         "KeyboardBar": 1,
-        "Order": 3
+        "Order": 3,
+        "Group": "Cleanse"
       },
       {
         "Name": "Guard",
@@ -728,7 +779,8 @@
         },
         "Intent": "Guard",
         "KeyboardBar": 1,
-        "Order": 4
+        "Order": 4,
+        "Group": "PersonalProtection"
       },
       {
         "Name": "Sprint",
@@ -738,7 +790,8 @@
         },
         "Intent": "Sprint",
         "KeyboardBar": 1,
-        "Order": 6
+        "Order": 6,
+        "Group": "Sprint"
       },
       {
         "Name": "Selected PvP role action",
@@ -748,20 +801,22 @@
         },
         "Intent": "Selected PvP role action",
         "KeyboardBar": 1,
-        "Order": 5
+        "Order": 5,
+        "Group": "ImportantRole"
       },
       {
-        "Name": "Protection \u00b7 self-defence",
+        "Name": "Protection · self-defence",
         "Binding": {
           "Type": 1,
           "Id": 1000011
         },
-        "Intent": "Protection \u00b7 self-defence",
+        "Intent": "Protection · self-defence",
         "KeyboardBar": 1,
         "Order": 7,
         "Variant": "Protection",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Protection"
       },
       {
         "Name": "Unused",
@@ -771,7 +826,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 6
+        "Order": 6,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -781,7 +837,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 7
+        "Order": 7,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -791,7 +848,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 8
+        "Order": 8,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -801,7 +859,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 9
+        "Order": 9,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -811,7 +870,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 10
+        "Order": 10,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -821,7 +881,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 11
+        "Order": 11,
+        "Group": "Preparation"
       }
     ],
     "Always": [
@@ -831,7 +892,8 @@
     ],
     "Variants": {
       "Burst": [
-        "DRKPvP_Shadowbringer"
+        "DRKPvP_Shadowbringer",
+        "DRKPvP_Plunge"
       ],
       "Protection": [
         "DRKPvP_BlackestNight",
@@ -842,10 +904,7 @@
       "Support": [],
       "ClassMechanics": []
     },
-    "Manual": [
-      "DRKPvP_Plunge",
-      "DRKPvP_PlungeMelee"
-    ],
+    "Manual": [],
     "Features": {},
     "RequiredBools": [],
     "RequiredInts": {},
@@ -909,7 +968,7 @@
     "JobId": 37,
     "Job": "GNB",
     "Descriptions": {
-      "Burst": "Rough Divide's No Mercy \u2192 Gnashing/Continuation, Fated Circle, Blasting Zone",
+      "Burst": "Rough Divide's No Mercy → Gnashing/Continuation, Fated Circle, Blasting Zone",
       "Protection": "Self Corundum and selected defensive role action",
       "Support": "Chosen-ally Corundum remains available",
       "ClassMechanics": "No extra mechanic"
@@ -924,7 +983,8 @@
         "Intent": "ST damage",
         "KeyboardBar": 0,
         "Order": 0,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "SingleTarget"
       },
       {
         "Name": "AoE damage",
@@ -935,20 +995,22 @@
         "Intent": "AoE damage",
         "KeyboardBar": 0,
         "Order": 1,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "AreaDamage"
       },
       {
-        "Name": "Burst \u00b7 No Mercy entry",
+        "Name": "Burst · No Mercy entry",
         "Binding": {
           "Type": 1,
           "Id": 1000010
         },
-        "Intent": "Burst \u00b7 No Mercy entry",
+        "Intent": "Burst · No Mercy entry",
         "KeyboardBar": 0,
         "Order": 4,
         "Variant": "Burst",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Burst"
       },
       {
         "Name": "Rough Divide",
@@ -958,20 +1020,22 @@
         },
         "Intent": "Rough Divide",
         "KeyboardBar": 1,
-        "Order": 0
+        "Order": 0,
+        "Group": "Movement"
       },
       {
-        "Name": "Protection \u00b7 self-defence",
+        "Name": "Protection · self-defence",
         "Binding": {
           "Type": 1,
           "Id": 1000011
         },
-        "Intent": "Protection \u00b7 self-defence",
+        "Intent": "Protection · self-defence",
         "KeyboardBar": 1,
         "Order": 7,
         "Variant": "Protection",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Protection"
       },
       {
         "Name": "Heart of Corundum",
@@ -981,7 +1045,8 @@
         },
         "Intent": "Heart of Corundum",
         "KeyboardBar": 0,
-        "Order": 2
+        "Order": 2,
+        "Group": "Other"
       },
       {
         "Name": "Relentless Rush",
@@ -991,7 +1056,8 @@
         },
         "Intent": "Relentless Rush",
         "KeyboardBar": 0,
-        "Order": 3
+        "Order": 3,
+        "Group": "LimitBreak"
       },
       {
         "Name": "Standard-issue Elixir",
@@ -1001,7 +1067,8 @@
         },
         "Intent": "Standard-issue Elixir",
         "KeyboardBar": 1,
-        "Order": 1
+        "Order": 1,
+        "Group": "Recovery"
       },
       {
         "Name": "Recuperate",
@@ -1011,7 +1078,8 @@
         },
         "Intent": "Recuperate",
         "KeyboardBar": 1,
-        "Order": 2
+        "Order": 2,
+        "Group": "Recovery"
       },
       {
         "Name": "Purify",
@@ -1021,7 +1089,8 @@
         },
         "Intent": "Purify",
         "KeyboardBar": 1,
-        "Order": 3
+        "Order": 3,
+        "Group": "Cleanse"
       },
       {
         "Name": "Guard",
@@ -1031,7 +1100,8 @@
         },
         "Intent": "Guard",
         "KeyboardBar": 1,
-        "Order": 4
+        "Order": 4,
+        "Group": "PersonalProtection"
       },
       {
         "Name": "Sprint",
@@ -1041,7 +1111,8 @@
         },
         "Intent": "Sprint",
         "KeyboardBar": 1,
-        "Order": 6
+        "Order": 6,
+        "Group": "Sprint"
       },
       {
         "Name": "Selected PvP role action",
@@ -1051,7 +1122,8 @@
         },
         "Intent": "Selected PvP role action",
         "KeyboardBar": 1,
-        "Order": 5
+        "Order": 5,
+        "Group": "ImportantRole"
       },
       {
         "Name": "Unused",
@@ -1061,7 +1133,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 5
+        "Order": 5,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -1071,7 +1144,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 6
+        "Order": 6,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -1081,7 +1155,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 7
+        "Order": 7,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -1091,7 +1166,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 8
+        "Order": 8,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -1101,7 +1177,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 9
+        "Order": 9,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -1111,7 +1188,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 10
+        "Order": 10,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -1121,7 +1199,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 11
+        "Order": 11,
+        "Group": "Preparation"
       }
     ],
     "Always": [
@@ -1208,7 +1287,7 @@
     "JobId": 24,
     "Job": "WHM",
     "Descriptions": {
-      "Burst": "Seraph Strike, Misery and available Glare IV follow-through",
+      "Burst": "Seraph Strike, Misery and available Glare IV follow-through. Also delegates supported Miracle of Nature, Afflatus Purgation branches, using Wrath's saved conditions.",
       "Protection": "No extra job-specific protection beyond healing/common controls",
       "Support": "Cure II/III and Aquaveil through damage; Heal stays available in M",
       "ClassMechanics": "No extra mechanic"
@@ -1223,7 +1302,8 @@
         "Intent": "ST damage",
         "KeyboardBar": 0,
         "Order": 0,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "SingleTarget"
       },
       {
         "Name": "Cure II",
@@ -1233,7 +1313,8 @@
         },
         "Intent": "Cure II",
         "KeyboardBar": 0,
-        "Order": 2
+        "Order": 2,
+        "Group": "SingleHealing"
       },
       {
         "Name": "AoE damage",
@@ -1244,20 +1325,22 @@
         "Intent": "AoE damage",
         "KeyboardBar": 0,
         "Order": 1,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "AreaDamage"
       },
       {
-        "Name": "Burst \u00b7 Seraph/Misery",
+        "Name": "Burst · Seraph/Misery",
         "Binding": {
           "Type": 1,
           "Id": 1000010
         },
-        "Intent": "Burst \u00b7 Seraph/Misery",
+        "Intent": "Burst · Seraph/Misery",
         "KeyboardBar": 0,
         "Order": 5,
         "Variant": "Burst",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Burst"
       },
       {
         "Name": "Miracle of Nature",
@@ -1267,7 +1350,9 @@
         },
         "Intent": "Miracle of Nature",
         "KeyboardBar": 0,
-        "Order": 3
+        "Order": 3,
+        "Group": "Other",
+        "ManualOwner": "Burst"
       },
       {
         "Name": "Seraph Strike",
@@ -1277,7 +1362,8 @@
         },
         "Intent": "Seraph Strike",
         "KeyboardBar": 1,
-        "Order": 0
+        "Order": 0,
+        "Group": "Movement"
       },
       {
         "Name": "Afflatus Purgation",
@@ -1287,7 +1373,9 @@
         },
         "Intent": "Afflatus Purgation",
         "KeyboardBar": 0,
-        "Order": 4
+        "Order": 4,
+        "Group": "LimitBreak",
+        "ManualOwner": "Burst"
       },
       {
         "Name": "Standard-issue Elixir",
@@ -1297,7 +1385,8 @@
         },
         "Intent": "Standard-issue Elixir",
         "KeyboardBar": 1,
-        "Order": 1
+        "Order": 1,
+        "Group": "Recovery"
       },
       {
         "Name": "Recuperate",
@@ -1307,7 +1396,8 @@
         },
         "Intent": "Recuperate",
         "KeyboardBar": 1,
-        "Order": 2
+        "Order": 2,
+        "Group": "Recovery"
       },
       {
         "Name": "Purify",
@@ -1317,7 +1407,8 @@
         },
         "Intent": "Purify",
         "KeyboardBar": 1,
-        "Order": 3
+        "Order": 3,
+        "Group": "Cleanse"
       },
       {
         "Name": "Guard",
@@ -1327,7 +1418,8 @@
         },
         "Intent": "Guard",
         "KeyboardBar": 1,
-        "Order": 4
+        "Order": 4,
+        "Group": "PersonalProtection"
       },
       {
         "Name": "Sprint",
@@ -1337,7 +1429,8 @@
         },
         "Intent": "Sprint",
         "KeyboardBar": 1,
-        "Order": 6
+        "Order": 6,
+        "Group": "Sprint"
       },
       {
         "Name": "Selected PvP role action",
@@ -1347,7 +1440,8 @@
         },
         "Intent": "Selected PvP role action",
         "KeyboardBar": 1,
-        "Order": 5
+        "Order": 5,
+        "Group": "ImportantRole"
       },
       {
         "Name": "Unused",
@@ -1357,7 +1451,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 6
+        "Order": 6,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -1367,7 +1462,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 7
+        "Order": 7,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -1377,7 +1473,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 7
+        "Order": 7,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -1387,7 +1484,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 8
+        "Order": 8,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -1397,7 +1495,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 9
+        "Order": 9,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -1407,7 +1506,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 10
+        "Order": 10,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -1417,7 +1517,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 11
+        "Order": 11,
+        "Group": "Preparation"
       }
     ],
     "Always": [
@@ -1430,7 +1531,9 @@
       "Burst": [
         "WHMPvP_Seraph_Strike",
         "WHMPvP_Afflatus_Misery",
-        "WHMPvP_Diabrosis"
+        "WHMPvP_Diabrosis",
+        "WHMPvP_AfflatusPurgation",
+        "WHMPvP_Mirace_of_Nature"
       ],
       "Protection": [],
       "Support": [
@@ -1438,11 +1541,7 @@
       ],
       "ClassMechanics": []
     },
-    "Manual": [
-      "WHMPvP_AfflatusPurgation",
-      "WHMPvP_Mirace_of_Nature",
-      "WHMPvP_Seraphstrike"
-    ],
+    "Manual": [],
     "Features": {},
     "RequiredBools": [],
     "RequiredInts": {},
@@ -1506,7 +1605,7 @@
     "JobId": 28,
     "Job": "SCH",
     "Descriptions": {
-      "Burst": "Chain Stratagem and selected offensive role action",
+      "Burst": "Chain Stratagem and selected offensive role action. Also delegates supported Deployment Tactics branches, using Wrath's saved conditions.",
       "Protection": "No extra job-specific protection switch",
       "Support": "Adloquium and conditional Expedient; Heal remains in M",
       "ClassMechanics": "Biolysis remains baseline"
@@ -1521,7 +1620,8 @@
         "Intent": "ST damage",
         "KeyboardBar": 0,
         "Order": 0,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "SingleTarget"
       },
       {
         "Name": "Adloquium",
@@ -1531,7 +1631,8 @@
         },
         "Intent": "Adloquium",
         "KeyboardBar": 0,
-        "Order": 2
+        "Order": 2,
+        "Group": "SingleHealing"
       },
       {
         "Name": "Deployment Tactics",
@@ -1541,7 +1642,9 @@
         },
         "Intent": "Deployment Tactics",
         "KeyboardBar": 0,
-        "Order": 3
+        "Order": 3,
+        "Group": "Other",
+        "ManualOwner": "Burst"
       },
       {
         "Name": "AoE damage",
@@ -1552,7 +1655,8 @@
         "Intent": "AoE damage",
         "KeyboardBar": 0,
         "Order": 1,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "AreaDamage"
       },
       {
         "Name": "Expedient",
@@ -1562,7 +1666,8 @@
         },
         "Intent": "Expedient",
         "KeyboardBar": 0,
-        "Order": 4
+        "Order": 4,
+        "Group": "Other"
       },
       {
         "Name": "Summon Seraph",
@@ -1572,7 +1677,8 @@
         },
         "Intent": "Summon Seraph",
         "KeyboardBar": 0,
-        "Order": 5
+        "Order": 5,
+        "Group": "LimitBreak"
       },
       {
         "Name": "Seraphism",
@@ -1582,7 +1688,8 @@
         },
         "Intent": "Seraphism",
         "KeyboardBar": 0,
-        "Order": 6
+        "Order": 6,
+        "Group": "Other"
       },
       {
         "Name": "Standard-issue Elixir",
@@ -1592,7 +1699,8 @@
         },
         "Intent": "Standard-issue Elixir",
         "KeyboardBar": 1,
-        "Order": 0
+        "Order": 0,
+        "Group": "Recovery"
       },
       {
         "Name": "Recuperate",
@@ -1602,7 +1710,8 @@
         },
         "Intent": "Recuperate",
         "KeyboardBar": 1,
-        "Order": 1
+        "Order": 1,
+        "Group": "Recovery"
       },
       {
         "Name": "Purify",
@@ -1612,7 +1721,8 @@
         },
         "Intent": "Purify",
         "KeyboardBar": 1,
-        "Order": 2
+        "Order": 2,
+        "Group": "Cleanse"
       },
       {
         "Name": "Guard",
@@ -1622,7 +1732,8 @@
         },
         "Intent": "Guard",
         "KeyboardBar": 1,
-        "Order": 3
+        "Order": 3,
+        "Group": "PersonalProtection"
       },
       {
         "Name": "Sprint",
@@ -1632,7 +1743,8 @@
         },
         "Intent": "Sprint",
         "KeyboardBar": 1,
-        "Order": 5
+        "Order": 5,
+        "Group": "Sprint"
       },
       {
         "Name": "Selected PvP role action",
@@ -1642,20 +1754,22 @@
         },
         "Intent": "Selected PvP role action",
         "KeyboardBar": 1,
-        "Order": 4
+        "Order": 4,
+        "Group": "ImportantRole"
       },
       {
-        "Name": "Burst \u00b7 Chain Stratagem",
+        "Name": "Burst · Chain Stratagem",
         "Binding": {
           "Type": 1,
           "Id": 1000010
         },
-        "Intent": "Burst \u00b7 Chain Stratagem",
+        "Intent": "Burst · Chain Stratagem",
         "KeyboardBar": 0,
         "Order": 7,
         "Variant": "Burst",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Burst"
       },
       {
         "Name": "Unused",
@@ -1665,7 +1779,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 6
+        "Order": 6,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -1675,7 +1790,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 7
+        "Order": 7,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -1685,7 +1801,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 8
+        "Order": 8,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -1695,7 +1812,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 9
+        "Order": 9,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -1705,7 +1823,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 10
+        "Order": 10,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -1715,7 +1834,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 11
+        "Order": 11,
+        "Group": "Preparation"
       }
     ],
     "Always": [
@@ -1726,7 +1846,8 @@
     "Variants": {
       "Burst": [
         "SCHPvP_ChainStratagem",
-        "SCHPvP_Diabrosis"
+        "SCHPvP_Diabrosis",
+        "SCHPvP_DeploymentTactics"
       ],
       "Protection": [],
       "Support": [
@@ -1735,9 +1856,7 @@
       ],
       "ClassMechanics": []
     },
-    "Manual": [
-      "SCHPvP_DeploymentTactics"
-    ],
+    "Manual": [],
     "Features": {},
     "RequiredBools": [],
     "RequiredInts": {},
@@ -1801,10 +1920,10 @@
     "JobId": 33,
     "Job": "AST",
     "Descriptions": {
-      "Burst": "Gravity \u2192 Double Gravity \u2192 offensive Macrocosmos",
+      "Burst": "Gravity → Double Gravity → offensive Macrocosmos",
       "Protection": "No extra protection switch",
       "Support": "Aspected/Double Benefic through damage; Heal remains in M",
-      "ClassMechanics": "Draw \u2192 appropriate Lord/Lady play"
+      "ClassMechanics": "Draw → appropriate Lord/Lady play"
     },
     "Controls": [
       {
@@ -1816,7 +1935,8 @@
         "Intent": "ST damage",
         "KeyboardBar": 0,
         "Order": 0,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "SingleTarget"
       },
       {
         "Name": "Aspected Benefic",
@@ -1826,7 +1946,8 @@
         },
         "Intent": "Aspected Benefic",
         "KeyboardBar": 0,
-        "Order": 2
+        "Order": 2,
+        "Group": "SingleHealing"
       },
       {
         "Name": "AoE damage",
@@ -1837,33 +1958,36 @@
         "Intent": "AoE damage",
         "KeyboardBar": 0,
         "Order": 1,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "AreaDamage"
       },
       {
-        "Name": "Burst \u00b7 Gravity",
+        "Name": "Burst · Gravity",
         "Binding": {
           "Type": 1,
           "Id": 1000010
         },
-        "Intent": "Burst \u00b7 Gravity",
+        "Intent": "Burst · Gravity",
         "KeyboardBar": 0,
         "Order": 5,
         "Variant": "Burst",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Burst"
       },
       {
-        "Name": "Cards \u00b7 Minor Arcana",
+        "Name": "Cards · Minor Arcana",
         "Binding": {
           "Type": 1,
           "Id": 1000013
         },
-        "Intent": "Cards \u00b7 Minor Arcana",
+        "Intent": "Cards · Minor Arcana",
         "KeyboardBar": 1,
         "Order": 7,
         "Variant": "ClassMechanics",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Mechanics"
       },
       {
         "Name": "Macrocosmos",
@@ -1873,7 +1997,8 @@
         },
         "Intent": "Macrocosmos",
         "KeyboardBar": 0,
-        "Order": 3
+        "Order": 3,
+        "Group": "Other"
       },
       {
         "Name": "Epicycle",
@@ -1883,7 +2008,8 @@
         },
         "Intent": "Epicycle",
         "KeyboardBar": 1,
-        "Order": 0
+        "Order": 0,
+        "Group": "Movement"
       },
       {
         "Name": "Celestial River",
@@ -1893,7 +2019,8 @@
         },
         "Intent": "Celestial River",
         "KeyboardBar": 0,
-        "Order": 4
+        "Order": 4,
+        "Group": "LimitBreak"
       },
       {
         "Name": "Standard-issue Elixir",
@@ -1903,7 +2030,8 @@
         },
         "Intent": "Standard-issue Elixir",
         "KeyboardBar": 1,
-        "Order": 1
+        "Order": 1,
+        "Group": "Recovery"
       },
       {
         "Name": "Recuperate",
@@ -1913,7 +2041,8 @@
         },
         "Intent": "Recuperate",
         "KeyboardBar": 1,
-        "Order": 2
+        "Order": 2,
+        "Group": "Recovery"
       },
       {
         "Name": "Purify",
@@ -1923,7 +2052,8 @@
         },
         "Intent": "Purify",
         "KeyboardBar": 1,
-        "Order": 3
+        "Order": 3,
+        "Group": "Cleanse"
       },
       {
         "Name": "Guard",
@@ -1933,7 +2063,8 @@
         },
         "Intent": "Guard",
         "KeyboardBar": 1,
-        "Order": 4
+        "Order": 4,
+        "Group": "PersonalProtection"
       },
       {
         "Name": "Sprint",
@@ -1943,7 +2074,8 @@
         },
         "Intent": "Sprint",
         "KeyboardBar": 1,
-        "Order": 6
+        "Order": 6,
+        "Group": "Sprint"
       },
       {
         "Name": "Selected PvP role action",
@@ -1953,7 +2085,8 @@
         },
         "Intent": "Selected PvP role action",
         "KeyboardBar": 1,
-        "Order": 5
+        "Order": 5,
+        "Group": "ImportantRole"
       },
       {
         "Name": "Unused",
@@ -1963,7 +2096,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 6
+        "Order": 6,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -1973,7 +2107,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 7
+        "Order": 7,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -1983,7 +2118,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 8
+        "Order": 8,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -1993,7 +2129,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 9
+        "Order": 9,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -2003,7 +2140,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 10
+        "Order": 10,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -2013,7 +2151,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 11
+        "Order": 11,
+        "Group": "Preparation"
       }
     ],
     "Always": [
@@ -2038,9 +2177,7 @@
         "ASTPvP_Burst_DrawCard"
       ]
     },
-    "Manual": [
-      "ASTPvP_Epicycle"
-    ],
+    "Manual": [],
     "Features": {
       "PvPAstGravityInitiation": "Burst"
     },
@@ -2115,10 +2252,10 @@
     "JobId": 40,
     "Job": "SGE",
     "Descriptions": {
-      "Burst": "Phlegma \u2192 Psyche; selected offensive role action",
+      "Burst": "Phlegma → Psyche; selected offensive role action",
       "Protection": "No extra protection switch",
       "Support": "Pneuma and initial Kardia; targeted reassignment stays explicit",
-      "ClassMechanics": "Eukrasia \u2192 Eukrasian Dosis"
+      "ClassMechanics": "Eukrasia → Eukrasian Dosis"
     },
     "Controls": [
       {
@@ -2130,7 +2267,8 @@
         "Intent": "ST damage",
         "KeyboardBar": 0,
         "Order": 0,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "SingleTarget"
       },
       {
         "Name": "AoE damage",
@@ -2141,7 +2279,8 @@
         "Intent": "AoE damage",
         "KeyboardBar": 0,
         "Order": 1,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "AreaDamage"
       },
       {
         "Name": "Pneuma",
@@ -2151,20 +2290,22 @@
         },
         "Intent": "Pneuma",
         "KeyboardBar": 0,
-        "Order": 2
+        "Order": 2,
+        "Group": "Other"
       },
       {
-        "Name": "Burst \u00b7 Phlegma",
+        "Name": "Burst · Phlegma",
         "Binding": {
           "Type": 1,
           "Id": 1000010
         },
-        "Intent": "Burst \u00b7 Phlegma",
+        "Intent": "Burst · Phlegma",
         "KeyboardBar": 0,
         "Order": 5,
         "Variant": "Burst",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Burst"
       },
       {
         "Name": "Icarus",
@@ -2174,7 +2315,8 @@
         },
         "Intent": "Icarus",
         "KeyboardBar": 1,
-        "Order": 0
+        "Order": 0,
+        "Group": "Movement"
       },
       {
         "Name": "Kardia",
@@ -2184,7 +2326,8 @@
         },
         "Intent": "Kardia",
         "KeyboardBar": 0,
-        "Order": 3
+        "Order": 3,
+        "Group": "Other"
       },
       {
         "Name": "Mesotes",
@@ -2194,7 +2337,8 @@
         },
         "Intent": "Mesotes",
         "KeyboardBar": 0,
-        "Order": 4
+        "Order": 4,
+        "Group": "LimitBreak"
       },
       {
         "Name": "Standard-issue Elixir",
@@ -2204,7 +2348,8 @@
         },
         "Intent": "Standard-issue Elixir",
         "KeyboardBar": 1,
-        "Order": 1
+        "Order": 1,
+        "Group": "Recovery"
       },
       {
         "Name": "Recuperate",
@@ -2214,7 +2359,8 @@
         },
         "Intent": "Recuperate",
         "KeyboardBar": 1,
-        "Order": 2
+        "Order": 2,
+        "Group": "Recovery"
       },
       {
         "Name": "Purify",
@@ -2224,7 +2370,8 @@
         },
         "Intent": "Purify",
         "KeyboardBar": 1,
-        "Order": 3
+        "Order": 3,
+        "Group": "Cleanse"
       },
       {
         "Name": "Guard",
@@ -2234,7 +2381,8 @@
         },
         "Intent": "Guard",
         "KeyboardBar": 1,
-        "Order": 4
+        "Order": 4,
+        "Group": "PersonalProtection"
       },
       {
         "Name": "Sprint",
@@ -2244,7 +2392,8 @@
         },
         "Intent": "Sprint",
         "KeyboardBar": 1,
-        "Order": 6
+        "Order": 6,
+        "Group": "Sprint"
       },
       {
         "Name": "Selected PvP role action",
@@ -2254,20 +2403,22 @@
         },
         "Intent": "Selected PvP role action",
         "KeyboardBar": 1,
-        "Order": 5
+        "Order": 5,
+        "Group": "ImportantRole"
       },
       {
-        "Name": "Mechanic \u00b7 Eukrasia",
+        "Name": "Mechanic · Eukrasia",
         "Binding": {
           "Type": 1,
           "Id": 1000013
         },
-        "Intent": "Mechanic \u00b7 Eukrasia",
+        "Intent": "Mechanic · Eukrasia",
         "KeyboardBar": 1,
         "Order": 7,
         "Variant": "ClassMechanics",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Mechanics"
       },
       {
         "Name": "Unused",
@@ -2277,7 +2428,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 6
+        "Order": 6,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -2287,7 +2439,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 7
+        "Order": 7,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -2297,7 +2450,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 8
+        "Order": 8,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -2307,7 +2461,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 9
+        "Order": 9,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -2317,7 +2472,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 10
+        "Order": 10,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -2327,7 +2483,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 11
+        "Order": 11,
+        "Group": "Preparation"
       }
     ],
     "Always": [
@@ -2350,9 +2507,7 @@
         "SGEPvP_BurstMode_Eukrasia"
       ]
     },
-    "Manual": [
-      "SGEPvP_RetargetKardia"
-    ],
+    "Manual": [],
     "Features": {},
     "RequiredBools": [],
     "RequiredInts": {},
@@ -2418,7 +2573,7 @@
     "JobId": 20,
     "Job": "MNK",
     "Descriptions": {
-      "Burst": "Rising Phoenix \u2192 Fire's Reply / enhanced combo",
+      "Burst": "Rising Phoenix → Fire's Reply / enhanced combo. Also delegates supported Wind's Reply, Thunderclap, Meteodrive branches, using Wrath's saved conditions.",
       "Protection": "Riddle of Earth; existing recovery control initiates in M",
       "Support": "No additional support switch",
       "ClassMechanics": "Forms and Phantom Rush remain baseline"
@@ -2433,7 +2588,8 @@
         "Intent": "ST damage",
         "KeyboardBar": 0,
         "Order": 0,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "SingleTarget"
       },
       {
         "Name": "Wind's Reply",
@@ -2443,7 +2599,9 @@
         },
         "Intent": "Wind's Reply",
         "KeyboardBar": 0,
-        "Order": 2
+        "Order": 2,
+        "Group": "Other",
+        "ManualOwner": "Burst"
       },
       {
         "Name": "AoE damage",
@@ -2454,7 +2612,8 @@
         "Intent": "AoE damage",
         "KeyboardBar": 0,
         "Order": 1,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "AreaDamage"
       },
       {
         "Name": "Riddle of Earth",
@@ -2464,7 +2623,8 @@
         },
         "Intent": "Riddle of Earth",
         "KeyboardBar": 0,
-        "Order": 3
+        "Order": 3,
+        "Group": "Other"
       },
       {
         "Name": "Thunderclap",
@@ -2474,7 +2634,9 @@
         },
         "Intent": "Thunderclap",
         "KeyboardBar": 1,
-        "Order": 0
+        "Order": 0,
+        "Group": "Movement",
+        "ManualOwner": "Burst"
       },
       {
         "Name": "Meteodrive",
@@ -2484,7 +2646,9 @@
         },
         "Intent": "Meteodrive",
         "KeyboardBar": 0,
-        "Order": 4
+        "Order": 4,
+        "Group": "LimitBreak",
+        "ManualOwner": "Burst"
       },
       {
         "Name": "Standard-issue Elixir",
@@ -2494,7 +2658,8 @@
         },
         "Intent": "Standard-issue Elixir",
         "KeyboardBar": 1,
-        "Order": 1
+        "Order": 1,
+        "Group": "Recovery"
       },
       {
         "Name": "Recuperate",
@@ -2504,7 +2669,8 @@
         },
         "Intent": "Recuperate",
         "KeyboardBar": 1,
-        "Order": 2
+        "Order": 2,
+        "Group": "Recovery"
       },
       {
         "Name": "Purify",
@@ -2514,7 +2680,8 @@
         },
         "Intent": "Purify",
         "KeyboardBar": 1,
-        "Order": 3
+        "Order": 3,
+        "Group": "Cleanse"
       },
       {
         "Name": "Guard",
@@ -2524,7 +2691,8 @@
         },
         "Intent": "Guard",
         "KeyboardBar": 1,
-        "Order": 4
+        "Order": 4,
+        "Group": "PersonalProtection"
       },
       {
         "Name": "Sprint",
@@ -2534,7 +2702,8 @@
         },
         "Intent": "Sprint",
         "KeyboardBar": 1,
-        "Order": 6
+        "Order": 6,
+        "Group": "Sprint"
       },
       {
         "Name": "Selected PvP role action",
@@ -2544,20 +2713,22 @@
         },
         "Intent": "Selected PvP role action",
         "KeyboardBar": 1,
-        "Order": 5
+        "Order": 5,
+        "Group": "ImportantRole"
       },
       {
-        "Name": "Burst \u00b7 Rising Phoenix",
+        "Name": "Burst · Rising Phoenix",
         "Binding": {
           "Type": 1,
           "Id": 1000010
         },
-        "Intent": "Burst \u00b7 Rising Phoenix",
+        "Intent": "Burst · Rising Phoenix",
         "KeyboardBar": 0,
         "Order": 5,
         "Variant": "Burst",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Burst"
       },
       {
         "Name": "Unused",
@@ -2567,7 +2738,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 6
+        "Order": 6,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -2577,7 +2749,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 7
+        "Order": 7,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -2587,7 +2760,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 7
+        "Order": 7,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -2597,7 +2771,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 8
+        "Order": 8,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -2607,7 +2782,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 9
+        "Order": 9,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -2617,7 +2793,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 10
+        "Order": 10,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -2627,7 +2804,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 11
+        "Order": 11,
+        "Group": "Preparation"
       }
     ],
     "Always": [
@@ -2637,7 +2815,10 @@
     "Variants": {
       "Burst": [
         "MNKPvP_Burst_RisingPhoenix",
-        "MNKPvP_Smite"
+        "MNKPvP_Smite",
+        "MNKPvP_Burst_WindsReply",
+        "MNKPvP_Burst_Thunderclap",
+        "MNKPvP_Burst_Meteodrive"
       ],
       "Protection": [
         "MNKPvP_Burst_RiddleOfEarth"
@@ -2645,11 +2826,7 @@
       "Support": [],
       "ClassMechanics": []
     },
-    "Manual": [
-      "MNKPvP_Burst_WindsReply",
-      "MNKPvP_Burst_Thunderclap",
-      "MNKPvP_Burst_Meteodrive"
-    ],
+    "Manual": [],
     "Features": {},
     "RequiredBools": [],
     "RequiredInts": {},
@@ -2709,7 +2886,7 @@
     "JobId": 22,
     "Job": "DRG",
     "Descriptions": {
-      "Burst": "Geirskogul \u2192 High Jump, Nastrond and Starcross",
+      "Burst": "Geirskogul → High Jump, Nastrond and Starcross; Chaotic Spring execute under its existing HP condition",
       "Protection": "Horrid Roar and Chaotic Spring sustain",
       "Support": "No extra support",
       "ClassMechanics": "Life/procs remain baseline"
@@ -2724,7 +2901,8 @@
         "Intent": "ST damage",
         "KeyboardBar": 0,
         "Order": 0,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "SingleTarget"
       },
       {
         "Name": "AoE damage",
@@ -2735,33 +2913,36 @@
         "Intent": "AoE damage",
         "KeyboardBar": 0,
         "Order": 1,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "AreaDamage"
       },
       {
-        "Name": "Burst \u00b7 Geirskogul",
+        "Name": "Burst · Geirskogul",
         "Binding": {
           "Type": 1,
           "Id": 1000010
         },
-        "Intent": "Burst \u00b7 Geirskogul",
+        "Intent": "Burst · Geirskogul",
         "KeyboardBar": 0,
         "Order": 3,
         "Variant": "Burst",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Burst"
       },
       {
-        "Name": "Protection \u00b7 Roar / sustain",
+        "Name": "Protection · Roar / sustain",
         "Binding": {
           "Type": 1,
           "Id": 1000011
         },
-        "Intent": "Protection \u00b7 Roar / sustain",
+        "Intent": "Protection · Roar / sustain",
         "KeyboardBar": 1,
         "Order": 7,
         "Variant": "Protection",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Protection"
       },
       {
         "Name": "Elusive Jump",
@@ -2771,7 +2952,8 @@
         },
         "Intent": "Elusive Jump",
         "KeyboardBar": 1,
-        "Order": 0
+        "Order": 0,
+        "Group": "Movement"
       },
       {
         "Name": "Unused",
@@ -2781,7 +2963,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 4
+        "Order": 4,
+        "Group": "Other"
       },
       {
         "Name": "Sky High",
@@ -2791,7 +2974,8 @@
         },
         "Intent": "Sky High",
         "KeyboardBar": 0,
-        "Order": 2
+        "Order": 2,
+        "Group": "LimitBreak"
       },
       {
         "Name": "Standard-issue Elixir",
@@ -2801,7 +2985,8 @@
         },
         "Intent": "Standard-issue Elixir",
         "KeyboardBar": 1,
-        "Order": 1
+        "Order": 1,
+        "Group": "Recovery"
       },
       {
         "Name": "Recuperate",
@@ -2811,7 +2996,8 @@
         },
         "Intent": "Recuperate",
         "KeyboardBar": 1,
-        "Order": 2
+        "Order": 2,
+        "Group": "Recovery"
       },
       {
         "Name": "Purify",
@@ -2821,7 +3007,8 @@
         },
         "Intent": "Purify",
         "KeyboardBar": 1,
-        "Order": 3
+        "Order": 3,
+        "Group": "Cleanse"
       },
       {
         "Name": "Guard",
@@ -2831,7 +3018,8 @@
         },
         "Intent": "Guard",
         "KeyboardBar": 1,
-        "Order": 4
+        "Order": 4,
+        "Group": "PersonalProtection"
       },
       {
         "Name": "Sprint",
@@ -2841,7 +3029,8 @@
         },
         "Intent": "Sprint",
         "KeyboardBar": 1,
-        "Order": 6
+        "Order": 6,
+        "Group": "Sprint"
       },
       {
         "Name": "Selected PvP role action",
@@ -2851,7 +3040,8 @@
         },
         "Intent": "Selected PvP role action",
         "KeyboardBar": 1,
-        "Order": 5
+        "Order": 5,
+        "Group": "ImportantRole"
       },
       {
         "Name": "Unused",
@@ -2861,7 +3051,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 5
+        "Order": 5,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -2871,7 +3062,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 6
+        "Order": 6,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -2881,7 +3073,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 7
+        "Order": 7,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -2891,7 +3084,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 8
+        "Order": 8,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -2901,7 +3095,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 9
+        "Order": 9,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -2911,7 +3106,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 10
+        "Order": 10,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -2921,7 +3117,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 11
+        "Order": 11,
+        "Group": "Preparation"
       }
     ],
     "Always": [
@@ -2933,7 +3130,8 @@
     "Variants": {
       "Burst": [
         "DRGPvP_HighJump",
-        "DRGPvP_Smite"
+        "DRGPvP_Smite",
+        "DRGPvP_ChaoticSpringExecute"
       ],
       "Protection": [
         "DRGPvP_HorridRoar",
@@ -3008,10 +3206,10 @@
     "JobId": 30,
     "Job": "NIN",
     "Descriptions": {
-      "Burst": "Bunshin/Dokumori \u2192 Zesho and accepted offensive sequence",
+      "Burst": "Bunshin/Dokumori → Zesho and accepted offensive sequence. Also delegates supported Seiton Tenchu branches, using Wrath's saved conditions.",
       "Protection": "Huton/Meisui choices; must be able to enter Three Mudra for this request",
       "Support": "No extra support",
-      "ClassMechanics": "Three Mudra \u2192 chosen ST/AoE ninjutsu; completion remains enabled"
+      "ClassMechanics": "Three Mudra → chosen ST/AoE ninjutsu; completion remains enabled"
     },
     "Controls": [
       {
@@ -3023,7 +3221,8 @@
         "Intent": "ST damage",
         "KeyboardBar": 0,
         "Order": 0,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "SingleTarget"
       },
       {
         "Name": "AoE damage",
@@ -3034,46 +3233,50 @@
         "Intent": "AoE damage",
         "KeyboardBar": 0,
         "Order": 1,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "AreaDamage"
       },
       {
-        "Name": "Burst \u00b7 Bunshin/Dokumori",
+        "Name": "Burst · Bunshin/Dokumori",
         "Binding": {
           "Type": 1,
           "Id": 1000010
         },
-        "Intent": "Burst \u00b7 Bunshin/Dokumori",
+        "Intent": "Burst · Bunshin/Dokumori",
         "KeyboardBar": 0,
         "Order": 3,
         "Variant": "Burst",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Burst"
       },
       {
-        "Name": "Protection \u00b7 defensive ninjutsu",
+        "Name": "Protection · defensive ninjutsu",
         "Binding": {
           "Type": 1,
           "Id": 1000011
         },
-        "Intent": "Protection \u00b7 defensive ninjutsu",
+        "Intent": "Protection · defensive ninjutsu",
         "KeyboardBar": 1,
         "Order": 7,
         "Variant": "Protection",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Protection"
       },
       {
-        "Name": "Mechanic \u00b7 Three Mudra",
+        "Name": "Mechanic · Three Mudra",
         "Binding": {
           "Type": 1,
           "Id": 1000013
         },
-        "Intent": "Mechanic \u00b7 Three Mudra",
+        "Intent": "Mechanic · Three Mudra",
         "KeyboardBar": 1,
         "Order": 8,
         "Variant": "ClassMechanics",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Mechanics"
       },
       {
         "Name": "Shukuchi",
@@ -3083,7 +3286,8 @@
         },
         "Intent": "Shukuchi",
         "KeyboardBar": 1,
-        "Order": 0
+        "Order": 0,
+        "Group": "Movement"
       },
       {
         "Name": "Seiton Tenchu",
@@ -3093,7 +3297,9 @@
         },
         "Intent": "Seiton Tenchu",
         "KeyboardBar": 0,
-        "Order": 2
+        "Order": 2,
+        "Group": "LimitBreak",
+        "ManualOwner": "Burst"
       },
       {
         "Name": "Standard-issue Elixir",
@@ -3103,7 +3309,8 @@
         },
         "Intent": "Standard-issue Elixir",
         "KeyboardBar": 1,
-        "Order": 1
+        "Order": 1,
+        "Group": "Recovery"
       },
       {
         "Name": "Recuperate",
@@ -3113,7 +3320,8 @@
         },
         "Intent": "Recuperate",
         "KeyboardBar": 1,
-        "Order": 2
+        "Order": 2,
+        "Group": "Recovery"
       },
       {
         "Name": "Purify",
@@ -3123,7 +3331,8 @@
         },
         "Intent": "Purify",
         "KeyboardBar": 1,
-        "Order": 3
+        "Order": 3,
+        "Group": "Cleanse"
       },
       {
         "Name": "Guard",
@@ -3133,7 +3342,8 @@
         },
         "Intent": "Guard",
         "KeyboardBar": 1,
-        "Order": 4
+        "Order": 4,
+        "Group": "PersonalProtection"
       },
       {
         "Name": "Sprint",
@@ -3143,7 +3353,8 @@
         },
         "Intent": "Sprint",
         "KeyboardBar": 1,
-        "Order": 6
+        "Order": 6,
+        "Group": "Sprint"
       },
       {
         "Name": "Selected PvP role action",
@@ -3153,7 +3364,8 @@
         },
         "Intent": "Selected PvP role action",
         "KeyboardBar": 1,
-        "Order": 5
+        "Order": 5,
+        "Group": "ImportantRole"
       },
       {
         "Name": "Unused",
@@ -3163,7 +3375,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 4
+        "Order": 4,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -3173,7 +3386,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 5
+        "Order": 5,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -3183,7 +3397,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 6
+        "Order": 6,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -3193,7 +3408,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 7
+        "Order": 7,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -3203,7 +3419,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 9
+        "Order": 9,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -3213,7 +3430,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 10
+        "Order": 10,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -3223,7 +3441,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 11
+        "Order": 11,
+        "Group": "Preparation"
       }
     ],
     "Always": [
@@ -3240,7 +3459,9 @@
         "NINPvP_AoE_Bunshin",
         "NINPvP_ST_Dokumori",
         "NINPvP_AoE_Dokumori",
-        "NINPvP_Smite"
+        "NINPvP_Smite",
+        "NINPvP_ST_SeitonTenchu",
+        "NINPvP_AoE_SeitonTenchu"
       ],
       "Protection": [
         "NINPvP_ST_Meisui",
@@ -3252,10 +3473,7 @@
         "NINPvP_AoE_ThreeMudra"
       ]
     },
-    "Manual": [
-      "NINPvP_ST_SeitonTenchu",
-      "NINPvP_AoE_SeitonTenchu"
-    ],
+    "Manual": [],
     "Features": {},
     "RequiredBools": [],
     "RequiredInts": {},
@@ -3319,7 +3537,7 @@
     "JobId": 34,
     "Job": "SAM",
     "Descriptions": {
-      "Burst": "Meikyo and Ogi \u2192 Tendo, Kaeshi and Zanshin",
+      "Burst": "Meikyo and Ogi → Tendo, Kaeshi and Zanshin. Also delegates supported Hissatsu: Soten, Mineuchi, Zantetsuken branches, using Wrath's saved conditions.",
       "Protection": "Chiten",
       "Support": "No extra support",
       "ClassMechanics": "Ordinary combo/status follow-through remains baseline"
@@ -3334,7 +3552,8 @@
         "Intent": "ST damage",
         "KeyboardBar": 0,
         "Order": 0,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "SingleTarget"
       },
       {
         "Name": "AoE damage",
@@ -3345,7 +3564,8 @@
         "Intent": "AoE damage",
         "KeyboardBar": 0,
         "Order": 1,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "AreaDamage"
       },
       {
         "Name": "Hissatsu: Soten",
@@ -3355,20 +3575,23 @@
         },
         "Intent": "Hissatsu: Soten",
         "KeyboardBar": 1,
-        "Order": 0
+        "Order": 0,
+        "Group": "Movement",
+        "ManualOwner": "Burst"
       },
       {
-        "Name": "Burst \u00b7 Meikyo/Ogi",
+        "Name": "Burst · Meikyo/Ogi",
         "Binding": {
           "Type": 1,
           "Id": 1000010
         },
-        "Intent": "Burst \u00b7 Meikyo/Ogi",
+        "Intent": "Burst · Meikyo/Ogi",
         "KeyboardBar": 0,
         "Order": 4,
         "Variant": "Burst",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Burst"
       },
       {
         "Name": "Mineuchi",
@@ -3378,15 +3601,17 @@
         },
         "Intent": "Mineuchi",
         "KeyboardBar": 0,
-        "Order": 2
+        "Order": 2,
+        "Group": "Other",
+        "ManualOwner": "Burst"
       },
       {
-        "Name": "Protection \u00b7 Chiten",
+        "Name": "Protection · Chiten",
         "Binding": {
           "Type": 1,
           "Id": 1000011
         },
-        "Intent": "Protection \u00b7 Chiten",
+        "Intent": "Protection · Chiten",
         "KeyboardBar": 1,
         "Order": 7,
         "Variant": "Protection",
@@ -3404,7 +3629,8 @@
               "SAMPvP_Chiten_PlayerHP"
             ]
           }
-        ]
+        ],
+        "Group": "Protection"
       },
       {
         "Name": "Zantetsuken",
@@ -3414,7 +3640,9 @@
         },
         "Intent": "Zantetsuken",
         "KeyboardBar": 0,
-        "Order": 3
+        "Order": 3,
+        "Group": "LimitBreak",
+        "ManualOwner": "Burst"
       },
       {
         "Name": "Standard-issue Elixir",
@@ -3424,7 +3652,8 @@
         },
         "Intent": "Standard-issue Elixir",
         "KeyboardBar": 1,
-        "Order": 1
+        "Order": 1,
+        "Group": "Recovery"
       },
       {
         "Name": "Recuperate",
@@ -3434,7 +3663,8 @@
         },
         "Intent": "Recuperate",
         "KeyboardBar": 1,
-        "Order": 2
+        "Order": 2,
+        "Group": "Recovery"
       },
       {
         "Name": "Purify",
@@ -3444,7 +3674,8 @@
         },
         "Intent": "Purify",
         "KeyboardBar": 1,
-        "Order": 3
+        "Order": 3,
+        "Group": "Cleanse"
       },
       {
         "Name": "Guard",
@@ -3454,7 +3685,8 @@
         },
         "Intent": "Guard",
         "KeyboardBar": 1,
-        "Order": 4
+        "Order": 4,
+        "Group": "PersonalProtection"
       },
       {
         "Name": "Sprint",
@@ -3464,7 +3696,8 @@
         },
         "Intent": "Sprint",
         "KeyboardBar": 1,
-        "Order": 6
+        "Order": 6,
+        "Group": "Sprint"
       },
       {
         "Name": "Selected PvP role action",
@@ -3474,7 +3707,8 @@
         },
         "Intent": "Selected PvP role action",
         "KeyboardBar": 1,
-        "Order": 5
+        "Order": 5,
+        "Group": "ImportantRole"
       },
       {
         "Name": "Unused",
@@ -3484,7 +3718,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 5
+        "Order": 5,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -3494,7 +3729,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 6
+        "Order": 6,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -3504,7 +3740,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 7
+        "Order": 7,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -3514,7 +3751,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 8
+        "Order": 8,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -3524,7 +3762,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 9
+        "Order": 9,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -3534,7 +3773,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 10
+        "Order": 10,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -3544,7 +3784,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 11
+        "Order": 11,
+        "Group": "Preparation"
       }
     ],
     "Always": [
@@ -3553,7 +3794,10 @@
     "Variants": {
       "Burst": [
         "SAMPvP_Meikyo",
-        "SAMPvP_Smite"
+        "SAMPvP_Smite",
+        "SAMPvP_Zantetsuken",
+        "SAMPvP_Mineuchi",
+        "SAMPvP_Soten"
       ],
       "Protection": [
         "SAMPvP_Chiten"
@@ -3561,11 +3805,7 @@
       "Support": [],
       "ClassMechanics": []
     },
-    "Manual": [
-      "SAMPvP_Zantetsuken",
-      "SAMPvP_Mineuchi",
-      "SAMPvP_Soten"
-    ],
+    "Manual": [],
     "Features": {
       "PvPSamOgiInitiation": "Burst"
     },
@@ -3646,7 +3886,8 @@
         "Intent": "ST damage",
         "KeyboardBar": 0,
         "Order": 0,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "SingleTarget"
       },
       {
         "Name": "AoE damage",
@@ -3657,20 +3898,22 @@
         "Intent": "AoE damage",
         "KeyboardBar": 0,
         "Order": 1,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "AreaDamage"
       },
       {
-        "Name": "Burst \u00b7 Warrant/Harvest",
+        "Name": "Burst · Warrant/Harvest",
         "Binding": {
           "Type": 1,
           "Id": 1000010
         },
-        "Intent": "Burst \u00b7 Warrant/Harvest",
+        "Intent": "Burst · Warrant/Harvest",
         "KeyboardBar": 0,
         "Order": 4,
         "Variant": "Burst",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Burst"
       },
       {
         "Name": "Death Warrant - release early",
@@ -3681,7 +3924,8 @@
         "Intent": "Release the active effect without starting a new sequence",
         "KeyboardBar": 0,
         "Order": 2,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "AdditionalBurst"
       },
       {
         "Name": "Hell's Ingress",
@@ -3691,15 +3935,16 @@
         },
         "Intent": "Hell's Ingress",
         "KeyboardBar": 1,
-        "Order": 0
+        "Order": 0,
+        "Group": "Movement"
       },
       {
-        "Name": "Protection \u00b7 Arcane Crest",
+        "Name": "Protection · Arcane Crest",
         "Binding": {
           "Type": 1,
           "Id": 1000011
         },
-        "Intent": "Protection \u00b7 Arcane Crest",
+        "Intent": "Protection · Arcane Crest",
         "KeyboardBar": 1,
         "Order": 7,
         "Variant": "Protection",
@@ -3717,7 +3962,8 @@
               "RPRPvPArcaneCircleOption"
             ]
           }
-        ]
+        ],
+        "Group": "Protection"
       },
       {
         "Name": "Tenebrae Lemurum",
@@ -3727,7 +3973,8 @@
         },
         "Intent": "Tenebrae Lemurum",
         "KeyboardBar": 0,
-        "Order": 3
+        "Order": 3,
+        "Group": "LimitBreak"
       },
       {
         "Name": "Standard-issue Elixir",
@@ -3737,7 +3984,8 @@
         },
         "Intent": "Standard-issue Elixir",
         "KeyboardBar": 1,
-        "Order": 1
+        "Order": 1,
+        "Group": "Recovery"
       },
       {
         "Name": "Recuperate",
@@ -3747,7 +3995,8 @@
         },
         "Intent": "Recuperate",
         "KeyboardBar": 1,
-        "Order": 2
+        "Order": 2,
+        "Group": "Recovery"
       },
       {
         "Name": "Purify",
@@ -3757,7 +4006,8 @@
         },
         "Intent": "Purify",
         "KeyboardBar": 1,
-        "Order": 3
+        "Order": 3,
+        "Group": "Cleanse"
       },
       {
         "Name": "Guard",
@@ -3767,7 +4017,8 @@
         },
         "Intent": "Guard",
         "KeyboardBar": 1,
-        "Order": 4
+        "Order": 4,
+        "Group": "PersonalProtection"
       },
       {
         "Name": "Sprint",
@@ -3777,7 +4028,8 @@
         },
         "Intent": "Sprint",
         "KeyboardBar": 1,
-        "Order": 6
+        "Order": 6,
+        "Group": "Sprint"
       },
       {
         "Name": "Selected PvP role action",
@@ -3787,7 +4039,8 @@
         },
         "Intent": "Selected PvP role action",
         "KeyboardBar": 1,
-        "Order": 5
+        "Order": 5,
+        "Group": "ImportantRole"
       },
       {
         "Name": "Unused",
@@ -3797,7 +4050,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 5
+        "Order": 5,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -3807,7 +4061,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 6
+        "Order": 6,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -3817,7 +4072,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 7
+        "Order": 7,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -3827,7 +4083,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 8
+        "Order": 8,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -3837,7 +4094,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 9
+        "Order": 9,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -3847,7 +4105,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 10
+        "Order": 10,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -3857,7 +4116,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 11
+        "Order": 11,
+        "Group": "Preparation"
       }
     ],
     "Always": [
@@ -3946,8 +4206,8 @@
     "JobId": 41,
     "Job": "VPR",
     "Descriptions": {
-      "Burst": "Bloodcoil and burst spending; ranged uptime is not disabled in M",
-      "Protection": "Proposed optional Snake Scales start; hold/release stays deliberate",
+      "Burst": "Bloodcoil and burst spending; ranged uptime is not disabled in M. Also delegates supported Slither branches, using Wrath's saved conditions.",
+      "Protection": "Conditional Snake Scales start; hold/release stays deliberate",
       "Support": "No extra support",
       "ClassMechanics": "Rattling Coil refill/reset; existing status/generation follow-through remains"
     },
@@ -3961,7 +4221,8 @@
         "Intent": "ST damage",
         "KeyboardBar": 0,
         "Order": 0,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "SingleTarget"
       },
       {
         "Name": "AoE damage",
@@ -3972,15 +4233,16 @@
         "Intent": "AoE damage",
         "KeyboardBar": 0,
         "Order": 1,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "AreaDamage"
       },
       {
-        "Name": "Burst \u00b7 Bloodcoil",
+        "Name": "Burst · Bloodcoil",
         "Binding": {
           "Type": 1,
           "Id": 1000010
         },
-        "Intent": "Burst \u00b7 Bloodcoil",
+        "Intent": "Burst · Bloodcoil",
         "KeyboardBar": 0,
         "Order": 4,
         "Variant": "Burst",
@@ -3999,7 +4261,8 @@
               "VPRPvP_Bloodcoil_PlayerHP"
             ]
           }
-        ]
+        ],
+        "Group": "Burst"
       },
       {
         "Name": "Slither",
@@ -4009,7 +4272,9 @@
         },
         "Intent": "Slither",
         "KeyboardBar": 1,
-        "Order": 0
+        "Order": 0,
+        "Group": "Movement",
+        "ManualOwner": "Burst"
       },
       {
         "Name": "Snake Scales",
@@ -4019,15 +4284,16 @@
         },
         "Intent": "Snake Scales",
         "KeyboardBar": 0,
-        "Order": 2
+        "Order": 2,
+        "Group": "Other"
       },
       {
-        "Name": "Mechanic \u00b7 Rattling Coil",
+        "Name": "Mechanic · Rattling Coil",
         "Binding": {
           "Type": 1,
           "Id": 1000013
         },
-        "Intent": "Mechanic \u00b7 Rattling Coil",
+        "Intent": "Mechanic · Rattling Coil",
         "KeyboardBar": 1,
         "Order": 7,
         "Variant": "ClassMechanics",
@@ -4043,7 +4309,8 @@
             "Variant": "ClassMechanics",
             "AnyOption": "VPRPvP_RattlingCoil_SubOptions"
           }
-        ]
+        ],
+        "Group": "Mechanics"
       },
       {
         "Name": "World-swallower",
@@ -4053,7 +4320,8 @@
         },
         "Intent": "World-swallower",
         "KeyboardBar": 0,
-        "Order": 3
+        "Order": 3,
+        "Group": "LimitBreak"
       },
       {
         "Name": "Standard-issue Elixir",
@@ -4063,7 +4331,8 @@
         },
         "Intent": "Standard-issue Elixir",
         "KeyboardBar": 1,
-        "Order": 1
+        "Order": 1,
+        "Group": "Recovery"
       },
       {
         "Name": "Recuperate",
@@ -4073,7 +4342,8 @@
         },
         "Intent": "Recuperate",
         "KeyboardBar": 1,
-        "Order": 2
+        "Order": 2,
+        "Group": "Recovery"
       },
       {
         "Name": "Purify",
@@ -4083,7 +4353,8 @@
         },
         "Intent": "Purify",
         "KeyboardBar": 1,
-        "Order": 3
+        "Order": 3,
+        "Group": "Cleanse"
       },
       {
         "Name": "Guard",
@@ -4093,7 +4364,8 @@
         },
         "Intent": "Guard",
         "KeyboardBar": 1,
-        "Order": 4
+        "Order": 4,
+        "Group": "PersonalProtection"
       },
       {
         "Name": "Sprint",
@@ -4103,7 +4375,8 @@
         },
         "Intent": "Sprint",
         "KeyboardBar": 1,
-        "Order": 6
+        "Order": 6,
+        "Group": "Sprint"
       },
       {
         "Name": "Selected PvP role action",
@@ -4113,7 +4386,8 @@
         },
         "Intent": "Selected PvP role action",
         "KeyboardBar": 1,
-        "Order": 5
+        "Order": 5,
+        "Group": "ImportantRole"
       },
       {
         "Name": "Unused",
@@ -4123,7 +4397,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 5
+        "Order": 5,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -4133,7 +4408,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 6
+        "Order": 6,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -4143,7 +4419,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 7
+        "Order": 7,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -4153,7 +4430,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 8
+        "Order": 8,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -4163,7 +4441,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 9
+        "Order": 9,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -4173,7 +4452,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 10
+        "Order": 10,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -4183,7 +4463,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 11
+        "Order": 11,
+        "Group": "Preparation"
       }
     ],
     "Always": [
@@ -4194,7 +4475,8 @@
       "Burst": [
         "VPRPvP_Bloodcoil",
         "VPRPvP_UncoiledFury",
-        "VPRPvP_Smite"
+        "VPRPvP_Smite",
+        "VPRPvP_Slither"
       ],
       "Protection": [],
       "Support": [],
@@ -4202,9 +4484,7 @@
         "VPRPvP_RattlingCoil"
       ]
     },
-    "Manual": [
-      "VPRPvP_Slither"
-    ],
+    "Manual": [],
     "Features": {
       "PvPVprScalesProtection": "Protection"
     },
@@ -4270,10 +4550,10 @@
     "JobId": 23,
     "Job": "BRD",
     "Descriptions": {
-      "Burst": "Harmonic Arrow spending; selected offensive role action",
+      "Burst": "Harmonic Arrow spending; selected offensive role action. Also delegates supported Silent Nocturne branches, using Wrath's saved conditions.",
       "Protection": "Reactive self-cleanse",
-      "Support": "Proposed reactive ally cleanse; prevention stays a deliberate control",
-      "ClassMechanics": "Apex \u2192 Blast Arrow; ordinary Pitch Perfect remains baseline"
+      "Support": "Reactive ally cleanse; prevention stays a deliberate control",
+      "ClassMechanics": "Apex → Blast Arrow; ordinary Pitch Perfect remains baseline"
     },
     "Controls": [
       {
@@ -4285,7 +4565,8 @@
         "Intent": "ST damage",
         "KeyboardBar": 0,
         "Order": 0,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "SingleTarget"
       },
       {
         "Name": "AoE damage",
@@ -4296,20 +4577,22 @@
         "Intent": "AoE damage",
         "KeyboardBar": 0,
         "Order": 1,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "AreaDamage"
       },
       {
-        "Name": "Burst \u00b7 Harmonic Arrow",
+        "Name": "Burst · Harmonic Arrow",
         "Binding": {
           "Type": 1,
           "Id": 1000010
         },
-        "Intent": "Burst \u00b7 Harmonic Arrow",
+        "Intent": "Burst · Harmonic Arrow",
         "KeyboardBar": 0,
         "Order": 5,
         "Variant": "Burst",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Burst"
       },
       {
         "Name": "Silent Nocturne",
@@ -4319,7 +4602,9 @@
         },
         "Intent": "Silent Nocturne",
         "KeyboardBar": 0,
-        "Order": 2
+        "Order": 2,
+        "Group": "Other",
+        "ManualOwner": "Burst"
       },
       {
         "Name": "Repelling Shot",
@@ -4329,7 +4614,8 @@
         },
         "Intent": "Repelling Shot",
         "KeyboardBar": 1,
-        "Order": 0
+        "Order": 0,
+        "Group": "Movement"
       },
       {
         "Name": "The Warden's Paean",
@@ -4339,7 +4625,8 @@
         },
         "Intent": "The Warden's Paean",
         "KeyboardBar": 0,
-        "Order": 3
+        "Order": 3,
+        "Group": "Other"
       },
       {
         "Name": "Final Fantasia",
@@ -4349,7 +4636,8 @@
         },
         "Intent": "Final Fantasia",
         "KeyboardBar": 0,
-        "Order": 4
+        "Order": 4,
+        "Group": "LimitBreak"
       },
       {
         "Name": "Standard-issue Elixir",
@@ -4359,7 +4647,8 @@
         },
         "Intent": "Standard-issue Elixir",
         "KeyboardBar": 1,
-        "Order": 1
+        "Order": 1,
+        "Group": "Recovery"
       },
       {
         "Name": "Recuperate",
@@ -4369,7 +4658,8 @@
         },
         "Intent": "Recuperate",
         "KeyboardBar": 1,
-        "Order": 2
+        "Order": 2,
+        "Group": "Recovery"
       },
       {
         "Name": "Purify",
@@ -4379,7 +4669,8 @@
         },
         "Intent": "Purify",
         "KeyboardBar": 1,
-        "Order": 3
+        "Order": 3,
+        "Group": "Cleanse"
       },
       {
         "Name": "Guard",
@@ -4389,7 +4680,8 @@
         },
         "Intent": "Guard",
         "KeyboardBar": 1,
-        "Order": 4
+        "Order": 4,
+        "Group": "PersonalProtection"
       },
       {
         "Name": "Sprint",
@@ -4399,7 +4691,8 @@
         },
         "Intent": "Sprint",
         "KeyboardBar": 1,
-        "Order": 6
+        "Order": 6,
+        "Group": "Sprint"
       },
       {
         "Name": "Selected PvP role action",
@@ -4409,33 +4702,36 @@
         },
         "Intent": "Selected PvP role action",
         "KeyboardBar": 1,
-        "Order": 5
+        "Order": 5,
+        "Group": "ImportantRole"
       },
       {
-        "Name": "Protection \u00b7 self-cleanse",
+        "Name": "Protection · self-cleanse",
         "Binding": {
           "Type": 1,
           "Id": 1000011
         },
-        "Intent": "Protection \u00b7 self-cleanse",
+        "Intent": "Protection · self-cleanse",
         "KeyboardBar": 1,
         "Order": 7,
         "Variant": "Protection",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Protection"
       },
       {
-        "Name": "Mechanic \u00b7 Apex Arrow",
+        "Name": "Mechanic · Apex Arrow",
         "Binding": {
           "Type": 1,
           "Id": 1000013
         },
-        "Intent": "Mechanic \u00b7 Apex Arrow",
+        "Intent": "Mechanic · Apex Arrow",
         "KeyboardBar": 1,
         "Order": 8,
         "Variant": "ClassMechanics",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Mechanics"
       },
       {
         "Name": "Unused",
@@ -4445,7 +4741,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 6
+        "Order": 6,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -4455,7 +4752,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 7
+        "Order": 7,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -4465,7 +4763,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 9
+        "Order": 9,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -4475,7 +4774,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 10
+        "Order": 10,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -4485,7 +4785,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 11
+        "Order": 11,
+        "Group": "Preparation"
       }
     ],
     "Always": [
@@ -4496,7 +4797,8 @@
     "Variants": {
       "Burst": [
         "BRDPvP_HarmonicArrow",
-        "BRDPvP_Eagle"
+        "BRDPvP_Eagle",
+        "BRDPvP_SilentNocturne"
       ],
       "Protection": [
         "BRDPvP_Wardens"
@@ -4506,9 +4808,7 @@
         "BRDPvP_ApexArrow"
       ]
     },
-    "Manual": [
-      "BRDPvP_SilentNocturne"
-    ],
+    "Manual": [],
     "Features": {
       "PvPBrdAllyCleanse": "Support"
     },
@@ -4574,10 +4874,10 @@
     "JobId": 31,
     "Job": "MCH",
     "Descriptions": {
-      "Burst": "Full Metal Field and Wildfire \u2192 normal detonation",
+      "Burst": "Full Metal Field and Wildfire → normal detonation. Also delegates supported Marksman's Spite branches, using Wrath's saved conditions.",
       "Protection": "No extra protection",
       "Support": "Turret placement remains deliberate",
-      "ClassMechanics": "Analysis \u2192 selected tool and accepted tool-cycle continuation"
+      "ClassMechanics": "Analysis → selected tool and accepted tool-cycle continuation"
     },
     "Controls": [
       {
@@ -4589,7 +4889,8 @@
         "Intent": "ST damage",
         "KeyboardBar": 0,
         "Order": 0,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "SingleTarget"
       },
       {
         "Name": "Scattergun",
@@ -4599,7 +4900,8 @@
         },
         "Intent": "Scattergun",
         "KeyboardBar": 0,
-        "Order": 2
+        "Order": 2,
+        "Group": "Other"
       },
       {
         "Name": "AoE damage",
@@ -4610,15 +4912,16 @@
         "Intent": "AoE damage",
         "KeyboardBar": 0,
         "Order": 1,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "AreaDamage"
       },
       {
-        "Name": "Burst \u00b7 Full Metal/Wildfire",
+        "Name": "Burst · Full Metal/Wildfire",
         "Binding": {
           "Type": 1,
           "Id": 1000010
         },
-        "Intent": "Burst \u00b7 Full Metal/Wildfire",
+        "Intent": "Burst · Full Metal/Wildfire",
         "KeyboardBar": 0,
         "Order": 6,
         "Variant": "Burst",
@@ -4634,7 +4937,8 @@
             "Variant": "Burst",
             "TimingOption": "MCHPvP_FMFOption"
           }
-        ]
+        ],
+        "Group": "Burst"
       },
       {
         "Name": "Wildfire - release early",
@@ -4645,7 +4949,8 @@
         "Intent": "Release the active effect without starting a new sequence",
         "KeyboardBar": 0,
         "Order": 4,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "AdditionalBurst"
       },
       {
         "Name": "Bishop Autoturret",
@@ -4655,20 +4960,22 @@
         },
         "Intent": "Bishop Autoturret",
         "KeyboardBar": 0,
-        "Order": 3
+        "Order": 3,
+        "Group": "Other"
       },
       {
-        "Name": "Mechanic \u00b7 Analysis/tool cycle",
+        "Name": "Mechanic · Analysis/tool cycle",
         "Binding": {
           "Type": 1,
           "Id": 1000013
         },
-        "Intent": "Mechanic \u00b7 Analysis/tool cycle",
+        "Intent": "Mechanic · Analysis/tool cycle",
         "KeyboardBar": 1,
         "Order": 6,
         "Variant": "ClassMechanics",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Mechanics"
       },
       {
         "Name": "Marksman's Spite",
@@ -4678,7 +4985,9 @@
         },
         "Intent": "Marksman's Spite",
         "KeyboardBar": 0,
-        "Order": 5
+        "Order": 5,
+        "Group": "LimitBreak",
+        "ManualOwner": "Burst"
       },
       {
         "Name": "Standard-issue Elixir",
@@ -4688,7 +4997,8 @@
         },
         "Intent": "Standard-issue Elixir",
         "KeyboardBar": 1,
-        "Order": 0
+        "Order": 0,
+        "Group": "Recovery"
       },
       {
         "Name": "Recuperate",
@@ -4698,7 +5008,8 @@
         },
         "Intent": "Recuperate",
         "KeyboardBar": 1,
-        "Order": 1
+        "Order": 1,
+        "Group": "Recovery"
       },
       {
         "Name": "Purify",
@@ -4708,7 +5019,8 @@
         },
         "Intent": "Purify",
         "KeyboardBar": 1,
-        "Order": 2
+        "Order": 2,
+        "Group": "Cleanse"
       },
       {
         "Name": "Guard",
@@ -4718,7 +5030,8 @@
         },
         "Intent": "Guard",
         "KeyboardBar": 1,
-        "Order": 3
+        "Order": 3,
+        "Group": "PersonalProtection"
       },
       {
         "Name": "Sprint",
@@ -4728,7 +5041,8 @@
         },
         "Intent": "Sprint",
         "KeyboardBar": 1,
-        "Order": 5
+        "Order": 5,
+        "Group": "Sprint"
       },
       {
         "Name": "Selected PvP role action",
@@ -4738,7 +5052,8 @@
         },
         "Intent": "Selected PvP role action",
         "KeyboardBar": 1,
-        "Order": 4
+        "Order": 4,
+        "Group": "ImportantRole"
       },
       {
         "Name": "Unused",
@@ -4748,7 +5063,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 7
+        "Order": 7,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -4758,7 +5074,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 7
+        "Order": 7,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -4768,7 +5085,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 8
+        "Order": 8,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -4778,7 +5096,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 9
+        "Order": 9,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -4788,7 +5107,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 10
+        "Order": 10,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -4798,7 +5118,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 11
+        "Order": 11,
+        "Group": "Preparation"
       }
     ],
     "Always": [
@@ -4808,7 +5129,8 @@
       "Burst": [
         "MCHPvP_BurstMode_FullMetalField",
         "MCHPvP_BurstMode_Wildfire",
-        "MCHPvP_Eagle"
+        "MCHPvP_Eagle",
+        "MCHPvP_BurstMode_MarksmanSpite"
       ],
       "Protection": [],
       "Support": [],
@@ -4820,9 +5142,7 @@
         "MCHPvP_BurstMode_ChainSaw"
       ]
     },
-    "Manual": [
-      "MCHPvP_BurstMode_MarksmanSpite"
-    ],
+    "Manual": [],
     "Features": {},
     "RequiredBools": [],
     "RequiredInts": {},
@@ -4893,7 +5213,7 @@
       "Burst": "Starfall; Dance of the Dawn/procs continue",
       "Protection": "Fan Dance",
       "Support": "Partner assignment and conditional Waltz; direct party heal stays",
-      "ClassMechanics": "Honing entry, channel hold and normal Ovation completion"
+      "ClassMechanics": "Honing entry, channel hold and normal Ovation completion. Also delegates supported En Avant branches, using Wrath's saved conditions."
     },
     "Controls": [
       {
@@ -4905,7 +5225,8 @@
         "Intent": "ST damage",
         "KeyboardBar": 0,
         "Order": 0,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "SingleTarget"
       },
       {
         "Name": "AoE damage",
@@ -4916,7 +5237,8 @@
         "Intent": "AoE damage",
         "KeyboardBar": 0,
         "Order": 1,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "AreaDamage"
       },
       {
         "Name": "Honing Dance - release early",
@@ -4927,20 +5249,22 @@
         "Intent": "Release the active effect without starting a new sequence",
         "KeyboardBar": 0,
         "Order": 3,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "AdditionalBurst"
       },
       {
-        "Name": "Burst \u00b7 Starfall",
+        "Name": "Burst · Starfall",
         "Binding": {
           "Type": 1,
           "Id": 1000010
         },
-        "Intent": "Burst \u00b7 Starfall",
+        "Intent": "Burst · Starfall",
         "KeyboardBar": 0,
         "Order": 5,
         "Variant": "Burst",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Burst"
       },
       {
         "Name": "Curing Waltz",
@@ -4950,7 +5274,8 @@
         },
         "Intent": "Curing Waltz",
         "KeyboardBar": 0,
-        "Order": 2
+        "Order": 2,
+        "Group": "Other"
       },
       {
         "Name": "En Avant",
@@ -4960,20 +5285,23 @@
         },
         "Intent": "En Avant",
         "KeyboardBar": 1,
-        "Order": 0
+        "Order": 0,
+        "Group": "Movement",
+        "ManualOwner": "ClassMechanics"
       },
       {
-        "Name": "Protection \u00b7 Fan Dance",
+        "Name": "Protection · Fan Dance",
         "Binding": {
           "Type": 1,
           "Id": 1000011
         },
-        "Intent": "Protection \u00b7 Fan Dance",
+        "Intent": "Protection · Fan Dance",
         "KeyboardBar": 1,
         "Order": 7,
         "Variant": "Protection",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Protection"
       },
       {
         "Name": "Contradance",
@@ -4983,7 +5311,8 @@
         },
         "Intent": "Contradance",
         "KeyboardBar": 0,
-        "Order": 4
+        "Order": 4,
+        "Group": "LimitBreak"
       },
       {
         "Name": "Standard-issue Elixir",
@@ -4993,7 +5322,8 @@
         },
         "Intent": "Standard-issue Elixir",
         "KeyboardBar": 1,
-        "Order": 1
+        "Order": 1,
+        "Group": "Recovery"
       },
       {
         "Name": "Recuperate",
@@ -5003,7 +5333,8 @@
         },
         "Intent": "Recuperate",
         "KeyboardBar": 1,
-        "Order": 2
+        "Order": 2,
+        "Group": "Recovery"
       },
       {
         "Name": "Purify",
@@ -5013,7 +5344,8 @@
         },
         "Intent": "Purify",
         "KeyboardBar": 1,
-        "Order": 3
+        "Order": 3,
+        "Group": "Cleanse"
       },
       {
         "Name": "Guard",
@@ -5023,7 +5355,8 @@
         },
         "Intent": "Guard",
         "KeyboardBar": 1,
-        "Order": 4
+        "Order": 4,
+        "Group": "PersonalProtection"
       },
       {
         "Name": "Sprint",
@@ -5033,7 +5366,8 @@
         },
         "Intent": "Sprint",
         "KeyboardBar": 1,
-        "Order": 6
+        "Order": 6,
+        "Group": "Sprint"
       },
       {
         "Name": "Selected PvP role action",
@@ -5043,31 +5377,34 @@
         },
         "Intent": "Selected PvP role action",
         "KeyboardBar": 1,
-        "Order": 5
+        "Order": 5,
+        "Group": "ImportantRole"
       },
       {
-        "Name": "Partner \u00b7 Closed Position",
+        "Name": "Partner · Closed Position",
         "Binding": {
           "Type": 1,
           "Id": 29431
         },
-        "Intent": "Partner \u00b7 Closed Position",
+        "Intent": "Partner · Closed Position",
         "KeyboardBar": 1,
         "Order": 8,
-        "Variant": "Support"
+        "Variant": "Support",
+        "Group": "Preparation"
       },
       {
-        "Name": "Mechanic \u00b7 Honing Dance",
+        "Name": "Mechanic · Honing Dance",
         "Binding": {
           "Type": 1,
           "Id": 1000013
         },
-        "Intent": "Mechanic \u00b7 Honing Dance",
+        "Intent": "Mechanic · Honing Dance",
         "KeyboardBar": 1,
         "Order": 9,
         "Variant": "ClassMechanics",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Mechanics"
       },
       {
         "Name": "Unused",
@@ -5077,7 +5414,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 6
+        "Order": 6,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -5087,7 +5425,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 7
+        "Order": 7,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -5097,7 +5436,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 10
+        "Order": 10,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -5107,7 +5447,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 11
+        "Order": 11,
+        "Group": "Preparation"
       }
     ],
     "Always": [
@@ -5123,11 +5464,11 @@
         "DNCPvP_BurstMode_CuringWaltz",
         "DNCPvP_BurstMode_Partner"
       ],
-      "ClassMechanics": []
+      "ClassMechanics": [
+        "DNCPvP_BurstMode_Dash"
+      ]
     },
-    "Manual": [
-      "DNCPvP_BurstMode_Dash"
-    ],
+    "Manual": [],
     "Features": {
       "PvPDncStarfallInitiation": "Burst",
       "PvPDncFanInitiation": "Protection",
@@ -5201,7 +5542,7 @@
     "JobId": 25,
     "Job": "BLM",
     "Descriptions": {
-      "Burst": "Offensive Burst/Weave/Xenoglossy",
+      "Burst": "Offensive Burst/Weave/Xenoglossy. Also delegates supported Lethargy branches, using Wrath's saved conditions.",
       "Protection": "Defensive Burst/ice Weave/Xenoglossy",
       "Support": "No extra support",
       "ClassMechanics": "Elemental progression/Paradox remain baseline"
@@ -5216,7 +5557,8 @@
         "Intent": "ST damage",
         "KeyboardBar": 0,
         "Order": 0,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "SingleTarget"
       },
       {
         "Name": "Blizzard",
@@ -5226,7 +5568,8 @@
         },
         "Intent": "Blizzard",
         "KeyboardBar": 0,
-        "Order": 2
+        "Order": 2,
+        "Group": "Other"
       },
       {
         "Name": "AoE damage",
@@ -5237,15 +5580,16 @@
         "Intent": "AoE damage",
         "KeyboardBar": 0,
         "Order": 1,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "AreaDamage"
       },
       {
-        "Name": "Burst \u00b7 offensive package",
+        "Name": "Burst · offensive package",
         "Binding": {
           "Type": 1,
           "Id": 1000010
         },
-        "Intent": "Burst \u00b7 offensive package",
+        "Intent": "Burst · offensive package",
         "KeyboardBar": 0,
         "Order": 5,
         "Variant": "Burst",
@@ -5262,7 +5606,8 @@
               "BLMPvP_Xenoglossy_TargetHP"
             ]
           }
-        ]
+        ],
+        "Group": "Burst"
       },
       {
         "Name": "Lethargy",
@@ -5272,7 +5617,9 @@
         },
         "Intent": "Lethargy",
         "KeyboardBar": 0,
-        "Order": 3
+        "Order": 3,
+        "Group": "Other",
+        "ManualOwner": "Burst"
       },
       {
         "Name": "Aetherial Manipulation",
@@ -5282,15 +5629,16 @@
         },
         "Intent": "Aetherial Manipulation",
         "KeyboardBar": 1,
-        "Order": 0
+        "Order": 0,
+        "Group": "Movement"
       },
       {
-        "Name": "Protection \u00b7 defensive package",
+        "Name": "Protection · defensive package",
         "Binding": {
           "Type": 1,
           "Id": 1000011
         },
-        "Intent": "Protection \u00b7 defensive package",
+        "Intent": "Protection · defensive package",
         "KeyboardBar": 1,
         "Order": 7,
         "Variant": "Protection",
@@ -5307,7 +5655,8 @@
               "BLMPvP_ElementalWeave_PlayerHP"
             ]
           }
-        ]
+        ],
+        "Group": "Protection"
       },
       {
         "Name": "Soul Resonance",
@@ -5317,7 +5666,8 @@
         },
         "Intent": "Soul Resonance",
         "KeyboardBar": 0,
-        "Order": 4
+        "Order": 4,
+        "Group": "LimitBreak"
       },
       {
         "Name": "Standard-issue Elixir",
@@ -5327,7 +5677,8 @@
         },
         "Intent": "Standard-issue Elixir",
         "KeyboardBar": 1,
-        "Order": 1
+        "Order": 1,
+        "Group": "Recovery"
       },
       {
         "Name": "Recuperate",
@@ -5337,7 +5688,8 @@
         },
         "Intent": "Recuperate",
         "KeyboardBar": 1,
-        "Order": 2
+        "Order": 2,
+        "Group": "Recovery"
       },
       {
         "Name": "Purify",
@@ -5347,7 +5699,8 @@
         },
         "Intent": "Purify",
         "KeyboardBar": 1,
-        "Order": 3
+        "Order": 3,
+        "Group": "Cleanse"
       },
       {
         "Name": "Guard",
@@ -5357,7 +5710,8 @@
         },
         "Intent": "Guard",
         "KeyboardBar": 1,
-        "Order": 4
+        "Order": 4,
+        "Group": "PersonalProtection"
       },
       {
         "Name": "Sprint",
@@ -5367,7 +5721,8 @@
         },
         "Intent": "Sprint",
         "KeyboardBar": 1,
-        "Order": 6
+        "Order": 6,
+        "Group": "Sprint"
       },
       {
         "Name": "Selected PvP role action",
@@ -5377,7 +5732,8 @@
         },
         "Intent": "Selected PvP role action",
         "KeyboardBar": 1,
-        "Order": 5
+        "Order": 5,
+        "Group": "ImportantRole"
       },
       {
         "Name": "Unused",
@@ -5387,7 +5743,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 6
+        "Order": 6,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -5397,7 +5754,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 7
+        "Order": 7,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -5407,7 +5765,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 8
+        "Order": 8,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -5417,7 +5776,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 9
+        "Order": 9,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -5427,7 +5787,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 10
+        "Order": 10,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -5437,7 +5798,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 11
+        "Order": 11,
+        "Group": "Preparation"
       }
     ],
     "Always": [
@@ -5449,15 +5811,14 @@
     ],
     "Variants": {
       "Burst": [
-        "BLMPvP_PhantomDart"
+        "BLMPvP_PhantomDart",
+        "BLMPvP_Lethargy"
       ],
       "Protection": [],
       "Support": [],
       "ClassMechanics": []
     },
-    "Manual": [
-      "BLMPvP_Lethargy"
-    ],
+    "Manual": [],
     "Features": {
       "PvPBlmOffensiveBurstInitiation": "Burst",
       "PvPBlmOffensiveWeaveInitiation": "Burst",
@@ -5536,7 +5897,7 @@
     "JobId": 27,
     "Job": "SMN",
     "Descriptions": {
-      "Burst": "Cyclone, Mountain Buster, Slipstream, Necrotize \u2192 Strike/Ruin IV",
+      "Burst": "Cyclone, Mountain Buster, Slipstream, Necrotize → Strike/Ruin IV",
       "Protection": "Self Radiant Aegis",
       "Support": "Chosen-ally shield stays available",
       "ClassMechanics": "Summons are deliberate LB choices"
@@ -5551,7 +5912,8 @@
         "Intent": "ST damage",
         "KeyboardBar": 0,
         "Order": 0,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "SingleTarget"
       },
       {
         "Name": "Mountain Buster",
@@ -5561,7 +5923,8 @@
         },
         "Intent": "Mountain Buster",
         "KeyboardBar": 0,
-        "Order": 2
+        "Order": 2,
+        "Group": "Other"
       },
       {
         "Name": "AoE damage",
@@ -5572,7 +5935,8 @@
         "Intent": "AoE damage",
         "KeyboardBar": 0,
         "Order": 1,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "AreaDamage"
       },
       {
         "Name": "Crimson Cyclone",
@@ -5582,20 +5946,22 @@
         },
         "Intent": "Crimson Cyclone",
         "KeyboardBar": 1,
-        "Order": 0
+        "Order": 0,
+        "Group": "Movement"
       },
       {
-        "Name": "Burst \u00b7 offensive package",
+        "Name": "Burst · offensive package",
         "Binding": {
           "Type": 1,
           "Id": 1000010
         },
-        "Intent": "Burst \u00b7 offensive package",
+        "Intent": "Burst · offensive package",
         "KeyboardBar": 0,
         "Order": 6,
         "Variant": "Burst",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Burst"
       },
       {
         "Name": "Radiant Aegis",
@@ -5605,7 +5971,8 @@
         },
         "Intent": "Radiant Aegis",
         "KeyboardBar": 0,
-        "Order": 3
+        "Order": 3,
+        "Group": "Other"
       },
       {
         "Name": "Summon Bahamut",
@@ -5615,7 +5982,8 @@
         },
         "Intent": "Summon Bahamut",
         "KeyboardBar": 0,
-        "Order": 4
+        "Order": 4,
+        "Group": "LimitBreak"
       },
       {
         "Name": "Summon Phoenix",
@@ -5625,7 +5993,8 @@
         },
         "Intent": "Summon Phoenix",
         "KeyboardBar": 0,
-        "Order": 5
+        "Order": 5,
+        "Group": "LimitBreak"
       },
       {
         "Name": "Standard-issue Elixir",
@@ -5635,7 +6004,8 @@
         },
         "Intent": "Standard-issue Elixir",
         "KeyboardBar": 1,
-        "Order": 1
+        "Order": 1,
+        "Group": "Recovery"
       },
       {
         "Name": "Recuperate",
@@ -5645,7 +6015,8 @@
         },
         "Intent": "Recuperate",
         "KeyboardBar": 1,
-        "Order": 2
+        "Order": 2,
+        "Group": "Recovery"
       },
       {
         "Name": "Purify",
@@ -5655,7 +6026,8 @@
         },
         "Intent": "Purify",
         "KeyboardBar": 1,
-        "Order": 3
+        "Order": 3,
+        "Group": "Cleanse"
       },
       {
         "Name": "Guard",
@@ -5665,7 +6037,8 @@
         },
         "Intent": "Guard",
         "KeyboardBar": 1,
-        "Order": 4
+        "Order": 4,
+        "Group": "PersonalProtection"
       },
       {
         "Name": "Sprint",
@@ -5675,7 +6048,8 @@
         },
         "Intent": "Sprint",
         "KeyboardBar": 1,
-        "Order": 6
+        "Order": 6,
+        "Group": "Sprint"
       },
       {
         "Name": "Selected PvP role action",
@@ -5685,20 +6059,22 @@
         },
         "Intent": "Selected PvP role action",
         "KeyboardBar": 1,
-        "Order": 5
+        "Order": 5,
+        "Group": "ImportantRole"
       },
       {
-        "Name": "Protection \u00b7 self-shield",
+        "Name": "Protection · self-shield",
         "Binding": {
           "Type": 1,
           "Id": 1000011
         },
-        "Intent": "Protection \u00b7 self-shield",
+        "Intent": "Protection · self-shield",
         "KeyboardBar": 1,
         "Order": 7,
         "Variant": "Protection",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Protection"
       },
       {
         "Name": "Unused",
@@ -5708,7 +6084,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 7
+        "Order": 7,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -5718,7 +6095,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 8
+        "Order": 8,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -5728,7 +6106,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 9
+        "Order": 9,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -5738,7 +6117,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 10
+        "Order": 10,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -5748,7 +6128,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 11
+        "Order": 11,
+        "Group": "Preparation"
       }
     ],
     "Always": [
@@ -5839,8 +6220,8 @@
     "JobId": 35,
     "Job": "RDM",
     "Descriptions": {
-      "Burst": "Embolden \u2192 Riposte combo, Scorch and Prefulgence",
-      "Protection": "Forte \u2192 Vice of Thorns",
+      "Burst": "Embolden → Riposte combo, Scorch and Prefulgence. Also delegates supported Resolution, Corps-a-corps, Displacement branches, using Wrath's saved conditions.",
+      "Protection": "Forte → Vice of Thorns",
       "Support": "No extra support",
       "ClassMechanics": "Native combo/proc handling remains baseline"
     },
@@ -5854,7 +6235,8 @@
         "Intent": "ST damage",
         "KeyboardBar": 0,
         "Order": 0,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "SingleTarget"
       },
       {
         "Name": "AoE damage",
@@ -5865,7 +6247,8 @@
         "Intent": "AoE damage",
         "KeyboardBar": 0,
         "Order": 1,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "AreaDamage"
       },
       {
         "Name": "Resolution",
@@ -5875,20 +6258,23 @@
         },
         "Intent": "Resolution",
         "KeyboardBar": 0,
-        "Order": 2
+        "Order": 2,
+        "Group": "Other",
+        "ManualOwner": "Burst"
       },
       {
-        "Name": "Burst \u00b7 Embolden/melee",
+        "Name": "Burst · Embolden/melee",
         "Binding": {
           "Type": 1,
           "Id": 1000010
         },
-        "Intent": "Burst \u00b7 Embolden/melee",
+        "Intent": "Burst · Embolden/melee",
         "KeyboardBar": 0,
         "Order": 4,
         "Variant": "Burst",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Burst"
       },
       {
         "Name": "Corps-a-corps",
@@ -5898,7 +6284,9 @@
         },
         "Intent": "Corps-a-corps",
         "KeyboardBar": 1,
-        "Order": 0
+        "Order": 0,
+        "Group": "Movement",
+        "ManualOwner": "Burst"
       },
       {
         "Name": "Displacement",
@@ -5908,15 +6296,17 @@
         },
         "Intent": "Displacement",
         "KeyboardBar": 1,
-        "Order": 1
+        "Order": 1,
+        "Group": "Preparation",
+        "ManualOwner": "Burst"
       },
       {
-        "Name": "Protection \u00b7 Forte",
+        "Name": "Protection · Forte",
         "Binding": {
           "Type": 1,
           "Id": 1000011
         },
-        "Intent": "Protection \u00b7 Forte",
+        "Intent": "Protection · Forte",
         "KeyboardBar": 1,
         "Order": 8,
         "Variant": "Protection",
@@ -5934,7 +6324,8 @@
               "RDMPvP_Forte_PlayerHP"
             ]
           }
-        ]
+        ],
+        "Group": "Protection"
       },
       {
         "Name": "Southern Cross",
@@ -5944,7 +6335,8 @@
         },
         "Intent": "Southern Cross",
         "KeyboardBar": 0,
-        "Order": 3
+        "Order": 3,
+        "Group": "LimitBreak"
       },
       {
         "Name": "Standard-issue Elixir",
@@ -5954,7 +6346,8 @@
         },
         "Intent": "Standard-issue Elixir",
         "KeyboardBar": 1,
-        "Order": 2
+        "Order": 2,
+        "Group": "Recovery"
       },
       {
         "Name": "Recuperate",
@@ -5964,7 +6357,8 @@
         },
         "Intent": "Recuperate",
         "KeyboardBar": 1,
-        "Order": 3
+        "Order": 3,
+        "Group": "Recovery"
       },
       {
         "Name": "Purify",
@@ -5974,7 +6368,8 @@
         },
         "Intent": "Purify",
         "KeyboardBar": 1,
-        "Order": 4
+        "Order": 4,
+        "Group": "Cleanse"
       },
       {
         "Name": "Guard",
@@ -5984,7 +6379,8 @@
         },
         "Intent": "Guard",
         "KeyboardBar": 1,
-        "Order": 5
+        "Order": 5,
+        "Group": "PersonalProtection"
       },
       {
         "Name": "Sprint",
@@ -5994,7 +6390,8 @@
         },
         "Intent": "Sprint",
         "KeyboardBar": 1,
-        "Order": 7
+        "Order": 7,
+        "Group": "Sprint"
       },
       {
         "Name": "Selected PvP role action",
@@ -6004,7 +6401,8 @@
         },
         "Intent": "Selected PvP role action",
         "KeyboardBar": 1,
-        "Order": 6
+        "Order": 6,
+        "Group": "ImportantRole"
       },
       {
         "Name": "Unused",
@@ -6014,7 +6412,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 5
+        "Order": 5,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -6024,7 +6423,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 6
+        "Order": 6,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -6034,7 +6434,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 7
+        "Order": 7,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -6044,7 +6445,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 9
+        "Order": 9,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -6054,7 +6456,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 10
+        "Order": 10,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -6064,7 +6467,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 11
+        "Order": 11,
+        "Group": "Preparation"
       }
     ],
     "Always": [
@@ -6075,17 +6479,16 @@
     ],
     "Variants": {
       "Burst": [
-        "RDMPvP_PhantomDart"
+        "RDMPvP_PhantomDart",
+        "RDMPvP_Corps",
+        "RDMPvP_Displacement",
+        "RDMPvP_Resolution"
       ],
       "Protection": [],
       "Support": [],
       "ClassMechanics": []
     },
-    "Manual": [
-      "RDMPvP_Corps",
-      "RDMPvP_Displacement",
-      "RDMPvP_Resolution"
-    ],
+    "Manual": [],
     "Features": {
       "PvPRdmEmboldenInitiation": "Burst",
       "PvPRdmRiposteInitiation": "Burst",
@@ -6161,9 +6564,9 @@
     "Job": "PCT",
     "Descriptions": {
       "Burst": "Holy/Comet spending; accepted proc/LB follow-through remains",
-      "Protection": "Coat \u2192 Grassa; retained shield control initiates in M",
+      "Protection": "Coat → Grassa; retained shield control initiates in M",
       "Support": "No extra support; Star Prism healing follows LB",
-      "ClassMechanics": "Paint \u2192 Muse \u2192 portrait, and deliberate palette stance"
+      "ClassMechanics": "Paint → Muse → portrait, and deliberate palette stance"
     },
     "Controls": [
       {
@@ -6175,7 +6578,8 @@
         "Intent": "ST damage",
         "KeyboardBar": 0,
         "Order": 0,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "SingleTarget"
       },
       {
         "Name": "AoE damage",
@@ -6186,20 +6590,22 @@
         "Intent": "AoE damage",
         "KeyboardBar": 0,
         "Order": 1,
-        "Custom": "PvPIntent"
+        "Custom": "PvPIntent",
+        "Group": "AreaDamage"
       },
       {
-        "Name": "Burst \u00b7 Holy/Comet",
+        "Name": "Burst · Holy/Comet",
         "Binding": {
           "Type": 1,
           "Id": 1000010
         },
-        "Intent": "Burst \u00b7 Holy/Comet",
+        "Intent": "Burst · Holy/Comet",
         "KeyboardBar": 0,
         "Order": 4,
         "Variant": "Burst",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Burst"
       },
       {
         "Name": "Smudge",
@@ -6209,7 +6615,8 @@
         },
         "Intent": "Smudge",
         "KeyboardBar": 1,
-        "Order": 0
+        "Order": 0,
+        "Group": "Movement"
       },
       {
         "Name": "Tempera Coat",
@@ -6219,20 +6626,22 @@
         },
         "Intent": "Tempera Coat",
         "KeyboardBar": 0,
-        "Order": 2
+        "Order": 2,
+        "Group": "Other"
       },
       {
-        "Name": "Mechanic \u00b7 paint cycle",
+        "Name": "Mechanic · paint cycle",
         "Binding": {
           "Type": 1,
           "Id": 1000013
         },
-        "Intent": "Mechanic \u00b7 paint cycle",
+        "Intent": "Mechanic · paint cycle",
         "KeyboardBar": 1,
         "Order": 7,
         "Variant": "ClassMechanics",
         "Custom": "PvPIntent",
-        "Fallbacks": []
+        "Fallbacks": [],
+        "Group": "Mechanics"
       },
       {
         "Name": "Advent of Chocobastion",
@@ -6242,7 +6651,8 @@
         },
         "Intent": "Advent of Chocobastion",
         "KeyboardBar": 0,
-        "Order": 3
+        "Order": 3,
+        "Group": "LimitBreak"
       },
       {
         "Name": "Standard-issue Elixir",
@@ -6252,7 +6662,8 @@
         },
         "Intent": "Standard-issue Elixir",
         "KeyboardBar": 1,
-        "Order": 1
+        "Order": 1,
+        "Group": "Recovery"
       },
       {
         "Name": "Recuperate",
@@ -6262,7 +6673,8 @@
         },
         "Intent": "Recuperate",
         "KeyboardBar": 1,
-        "Order": 2
+        "Order": 2,
+        "Group": "Recovery"
       },
       {
         "Name": "Purify",
@@ -6272,7 +6684,8 @@
         },
         "Intent": "Purify",
         "KeyboardBar": 1,
-        "Order": 3
+        "Order": 3,
+        "Group": "Cleanse"
       },
       {
         "Name": "Guard",
@@ -6282,7 +6695,8 @@
         },
         "Intent": "Guard",
         "KeyboardBar": 1,
-        "Order": 4
+        "Order": 4,
+        "Group": "PersonalProtection"
       },
       {
         "Name": "Sprint",
@@ -6292,7 +6706,8 @@
         },
         "Intent": "Sprint",
         "KeyboardBar": 1,
-        "Order": 6
+        "Order": 6,
+        "Group": "Sprint"
       },
       {
         "Name": "Selected PvP role action",
@@ -6302,18 +6717,20 @@
         },
         "Intent": "Selected PvP role action",
         "KeyboardBar": 1,
-        "Order": 5
+        "Order": 5,
+        "Group": "ImportantRole"
       },
       {
-        "Name": "Palette \u00b7 stance",
+        "Name": "Palette · stance",
         "Binding": {
           "Type": 1,
           "Id": 39213
         },
-        "Intent": "Palette \u00b7 stance",
+        "Intent": "Palette · stance",
         "KeyboardBar": 1,
         "Order": 8,
-        "Variant": "ClassMechanics"
+        "Variant": "ClassMechanics",
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -6323,7 +6740,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 5
+        "Order": 5,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -6333,7 +6751,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 6
+        "Order": 6,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -6343,7 +6762,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 0,
-        "Order": 7
+        "Order": 7,
+        "Group": "Other"
       },
       {
         "Name": "Unused",
@@ -6353,7 +6773,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 9
+        "Order": 9,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -6363,7 +6784,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 10
+        "Order": 10,
+        "Group": "Preparation"
       },
       {
         "Name": "Unused",
@@ -6373,7 +6795,8 @@
         },
         "Intent": "Unused",
         "KeyboardBar": 1,
-        "Order": 11
+        "Order": 11,
+        "Group": "Preparation"
       }
     ],
     "Always": [

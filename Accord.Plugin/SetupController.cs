@@ -29,7 +29,7 @@ internal sealed class SetupController : IDisposable
     private bool previousPvP;
     internal bool Live => Settings.LiveMode;
     internal bool VariantEnabled(VariantId id) => Player.Available && Pack.IsActive((uint)Player.Job, Settings)
-        ? (pendingChoices ?? Settings).Enabled(id, Pack.Find((uint)Player.Job)!.JobId) : Settings.Enabled(id);
+        ? (pendingChoices ?? Settings).Enabled(id, Pack.Find((uint)Player.Job)!.JobId, IsPvP) : Settings.Enabled(id);
     internal AccordSettings Settings => Plugin.Instance.Settings;
     internal string LayoutStatus { get; private set; } = "";
     private ActionCatalog? layoutCatalog;
@@ -73,6 +73,13 @@ internal sealed class SetupController : IDisposable
         var desired = CloneSettings(); desired.Layouts = preferences;
         return LayoutPlan(Pack.Find(job)!, desired, true);
     }
+    internal LayoutResult InspectPvPLayout(uint job, LayoutPreferences preferences)
+    {
+        var desired = CloneSettings(); desired.Layouts = preferences;
+        var profile = PvP.Pack.Find(job)!;
+        return PvPConfiguredLayout.Plan(profile, desired.SharedPvP(), engine.Read(), SharedRegularBar,
+            a => PvPHotbars.Available(profile, a), allManual: true);
+    }
     internal IntentMapping DefaultMapping() => Layouts.CreateDefaults();
 
     internal void PreviewLayout(uint jobId, LayoutPreferences preferences)
@@ -88,6 +95,18 @@ internal sealed class SetupController : IDisposable
     {
         var desired = CloneSettings(); desired.Layouts = preferences;
         ApplyChoices(desired);
+        var snapshot = engine.Read();
+        var issues = PvP.Pack.Jobs.Where(j => desired.ActiveJobs?.Contains(j.JobId) == true)
+            .SelectMany(j => PvPConfiguredLayout.Plan(j, desired.SharedPvP(), snapshot, SharedRegularBar,
+                a => PvPHotbars.Available(j, a), allManual: true).Issues).ToArray();
+        var warnings = issues.GroupBy(i => (Role: LayoutPreferences.Role(i.Job), i.Bar, i.Message)).Select(group =>
+        {
+            var affected = group.Select(i => i.Job).ToHashSet();
+            var roleJobs = PvP.Pack.Jobs.Where(j => LayoutPreferences.Role(j.JobId) == group.Key.Role).Select(j => j.JobId).ToHashSet();
+            string who = roleJobs.SetEquals(affected) ? group.Key.Role + " (all classes)" : string.Join(", ", affected.Select(id => Pack.Find(id)!.Job));
+            return $"PvP {who}, bar {group.Key.Bar}: {group.Key.Message}";
+        });
+        LayoutStatus = string.Join("\n", new[] { LayoutStatus }.Concat(warnings).Where(s => s.Length > 0));
     }
 
     private AccordSettings? pendingChoices;
@@ -95,7 +114,7 @@ internal sealed class SetupController : IDisposable
     private void ApplyChoices(AccordSettings desired)
     {
         RequireNormalLayouts();
-        if (!desired.LiveMode || IsPvP || !Player.Available)
+        if (!desired.LiveMode || !Player.Available)
         {
             ApplySettings(Pack.SelectedJobs(desired), desired);
             PvP.Invalidate(); updates.Request();
@@ -110,6 +129,11 @@ internal sealed class SetupController : IDisposable
             return;
         }
         var previous = CloneSettings();
+        if (IsPvP)
+        {
+            PvP.ApplyChoices(desired, () => ApplySettings(Pack.SelectedJobs(desired), desired));
+            return;
+        }
         var snapshot = engine.Read();
         CombinedUpdate.Apply(() => ApplySettings(Pack.SelectedJobs(desired), desired), () =>
         {
@@ -450,7 +474,7 @@ internal sealed class SetupController : IDisposable
     internal void SetVariant(VariantId id, bool enabled, bool global = false)
     {
         var desired = pendingChoices is null ? CloneSettings() : ConfiguredLayout.Clone(pendingChoices);
-        desired.SetAutomation(id, enabled, !global && Player.Available ? Pack.Find((uint)Player.Job)?.JobId ?? 0 : 0);
+        desired.SetAutomation(id, enabled, !global && Player.Available ? Pack.Find((uint)Player.Job)?.JobId ?? 0 : 0, !global && IsPvP);
         ApplyChoices(desired);
         PvP.Invalidate();
         if (Settings.LiveMode) RequestCurrentHotbars();
@@ -590,10 +614,8 @@ internal sealed class SetupController : IDisposable
             var definition = VariantDefinitions.All[i];
             var current = Player.Available ? Pack.Find((uint)Player.Job) : null;
             var choices = pendingChoices ?? Settings;
-            bool overridden = current is not null && choices.ActiveJobs?.Contains(current.JobId) == true &&
-                choices.Layouts.Classes.TryGetValue(current.JobId, out var over) && over.Automation.ContainsKey(definition.Id);
             entries[i].Tooltip = definition.Label + ": click to switch A/M.\nChanges " +
-                (overridden ? current!.Job + " override." : "Global.") + "\n" + definition.Description;
+                choices.AutomationTarget(definition.Id, current?.JobId ?? 0, IsPvP) + ".\n" + definition.Description;
             entries[i].Text = new SeStringBuilder().AddIcon(Enum.Parse<BitmapFontIcon>(definition.Icon))
                 .AddText(" " + (VariantEnabled(definition.Id) ? "A" : "M")).Build();
         }

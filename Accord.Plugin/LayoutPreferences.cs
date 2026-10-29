@@ -8,7 +8,7 @@ namespace Accord;
 // Intent/group definitions have no keyboard or controller coordinates. Only the
 // mapping owns destinations, so a future controller editor can reuse the content.
 public enum JobRole { Tank, Healer, Melee, PhysicalRanged, MagicalRanged, Noncombat }
-public enum ControlIntent { SingleTarget, AreaDamage, Burst, Protection, Support, Mechanics, Movement, Cleanse, ImportantRole, OtherRole, Exclusions, Travel, SingleHealing, AreaHealing, Raise, Knockback, Invulnerability, Enmity, Stance, Shirk, Other, Sprint, PartyProtection, PersonalProtection, TargetedProtection, Recovery, Rescue, Preparation, Interrupt, HealingProtection, AdditionalBurst, PrimaryMechanics }
+public enum ControlIntent { SingleTarget, AreaDamage, Burst, Protection, Support, Mechanics, Movement, Cleanse, ImportantRole, OtherRole, Exclusions, Travel, SingleHealing, AreaHealing, Raise, Knockback, Invulnerability, Enmity, Stance, Shirk, Other, Sprint, PartyProtection, PersonalProtection, TargetedProtection, Recovery, Rescue, Preparation, Interrupt, HealingProtection, AdditionalBurst, PrimaryMechanics, LimitBreak }
 
 public sealed class ActionChoice
 {
@@ -49,6 +49,8 @@ public sealed class RoleActionSelection
 
 public sealed class PersonalGroup
 {
+    [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+    public PersonalGroup? PvP { get; set; }
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public string Name { get; set; } = "New group";
     public List<ActionChoice> Contents { get; set; } = new();
@@ -56,6 +58,7 @@ public sealed class PersonalGroup
     public Dictionary<uint, List<ActionChoice>> Classes { get; set; } = new();
     public IReadOnlyList<ActionChoice> Resolve(uint job) => Classes.TryGetValue(job, out var cls) ? cls
         : Roles.TryGetValue(LayoutPreferences.Role(job), out var role) ? role : Contents;
+    public IReadOnlyList<ActionChoice> Resolve(uint job, bool pvp) => pvp && PvP is not null ? PvP.Resolve(job) : Resolve(job);
 }
 
 public sealed class MappingEntry
@@ -129,6 +132,7 @@ public sealed class LayoutOverride
 
 public sealed class LayoutPreferences
 {
+    public PvPOverrides PvP { get; set; } = new();
     public bool DefaultsInitialized { get; set; }
     public int MappingVersion { get; set; }
     public LayoutValues Global { get; set; } = new();
@@ -156,6 +160,7 @@ public sealed class LayoutPreferences
     };
     internal void RebaseAutomation(LayoutPreferences baseline, LayoutPreferences latest)
     {
+        PvP.RebaseAutomation(baseline.PvP, latest.PvP);
         foreach (var (job, draft) in Classes)
         {
             if (!baseline.Classes.TryGetValue(job, out var before) || !latest.Classes.TryGetValue(job, out var current)) continue;
@@ -175,6 +180,68 @@ public sealed class LayoutPreferences
         static bool Empty(LayoutOverride o) => o.Automation.Count == 0 && o.Mapping is null && o.KeepManual is null && o.SplitMechanics is null && o.RoleActions is null && o.Exclusions is null;
         foreach (var role in Roles.Where(p => Empty(p.Value)).Select(p => p.Key).ToArray()) Roles.Remove(role);
         foreach (var job in Classes.Where(p => Empty(p.Value)).Select(p => p.Key).ToArray()) Classes.Remove(job);
+        foreach (var role in PvP.Roles.Where(p => Empty(p.Value)).Select(p => p.Key).ToArray()) PvP.Roles.Remove(role);
+        foreach (var job in PvP.Classes.Where(p => Empty(p.Value)).Select(p => p.Key).ToArray()) PvP.Classes.Remove(job);
+    }
+}
+
+public enum PvPRotationButtons { Two, One }
+
+// PvP is an upper layer: first resolve the ordinary job, then apply these values.
+// Empty entries inherit live and are never populated by previewing a job.
+public sealed class PvPOverrides
+{
+    [Newtonsoft.Json.JsonProperty(ObjectCreationHandling = Newtonsoft.Json.ObjectCreationHandling.Replace)]
+    public LayoutOverride Global { get; set; } = new()
+    {
+        Mapping = PvPConfiguredLayout.DefaultMapping(),
+        RoleActions = new() { Important = [new() { Id = 43259, Name = "Selected PvP role action" }], Other = [] },
+    };
+    public Dictionary<JobRole, LayoutOverride> Roles { get; set; } = new();
+    public Dictionary<uint, LayoutOverride> Classes { get; set; } = new();
+    public PvPRotationButtons RotationButtons { get; set; } = PvPRotationButtons.Two;
+
+    public IEnumerable<LayoutOverride> Layers(uint job)
+    {
+        yield return Global;
+        if (Roles.TryGetValue(LayoutPreferences.Role(job), out var role)) yield return role;
+        if (Classes.TryGetValue(job, out var cls)) yield return cls;
+    }
+    public LayoutValues Resolve(uint job, LayoutValues normal)
+    {
+        foreach (var layer in Layers(job)) normal = layer.Over(normal);
+        return normal;
+    }
+    public bool Enabled(VariantId id, uint job, bool normal)
+    {
+        foreach (var layer in Layers(job))
+            if (layer.Automation.TryGetValue(id, out var value)) normal = value;
+        return normal;
+    }
+    public (LayoutOverride Value, string Name)? AutomationTarget(VariantId id, uint job)
+    {
+        if (Classes.TryGetValue(job, out var cls) && cls.Automation.ContainsKey(id)) return (cls, "PvP class override");
+        if (Roles.TryGetValue(LayoutPreferences.Role(job), out var role) && role.Automation.ContainsKey(id)) return (role, "PvP role override");
+        return Global.Automation.ContainsKey(id) ? (Global, "PvP Global") : null;
+    }
+    internal void RebaseAutomation(PvPOverrides baseline, PvPOverrides latest)
+    {
+        Rebase(Global, baseline.Global, latest.Global);
+        foreach (var (key, draft) in Roles)
+            if (baseline.Roles.TryGetValue(key, out var before) && latest.Roles.TryGetValue(key, out var current)) Rebase(draft, before, current);
+        foreach (var (key, draft) in Classes)
+            if (baseline.Classes.TryGetValue(key, out var before) && latest.Classes.TryGetValue(key, out var current)) Rebase(draft, before, current);
+        static void Rebase(LayoutOverride draft, LayoutOverride before, LayoutOverride current)
+        {
+            foreach (var id in Enum.GetValues<VariantId>())
+            {
+                bool? old = before.Automation.TryGetValue(id, out var a) ? a : null;
+                bool? edited = draft.Automation.TryGetValue(id, out var b) ? b : null;
+                if (old != edited) continue;
+                if (current.Automation.TryGetValue(id, out var value)) draft.Automation[id] = value;
+                else draft.Automation.Remove(id);
+            }
+        }
     }
 }
 

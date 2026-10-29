@@ -23,18 +23,29 @@ public sealed class AccordSettings : Dalamud.Configuration.IPluginConfiguration
     public bool Enabled(VariantId id) => Variants.GetValueOrDefault(id);
     public bool Enabled(VariantId id, uint job) => Layouts.Classes.TryGetValue(job, out var over) && over.Automation.TryGetValue(id, out var value)
         ? value : Enabled(id);
-    public void SetAutomation(VariantId id, bool value, uint currentJob = 0)
+    public bool Enabled(VariantId id, uint job, bool pvp) => pvp ? Layouts.PvP.Enabled(id, job, Enabled(id, job)) : Enabled(id, job);
+    public string AutomationTarget(VariantId id, uint job, bool pvp)
     {
-        if (ActiveJobs?.Contains(currentJob) == true && Layouts.Classes.TryGetValue(currentJob, out var over) && over.Automation.ContainsKey(id))
+        if (ActiveJobs?.Contains(job) != true) return "Global";
+        if (pvp && Layouts.PvP.AutomationTarget(id, job) is { } target) return target.Name;
+        return Layouts.Classes.TryGetValue(job, out var over) && over.Automation.ContainsKey(id) ? "class override" : "Global";
+    }
+    public void SetAutomation(VariantId id, bool value, uint currentJob = 0, bool pvp = false)
+    {
+        if (ActiveJobs?.Contains(currentJob) == true && pvp && Layouts.PvP.AutomationTarget(id, currentJob) is { } target)
+            target.Value.Automation[id] = value;
+        else if (ActiveJobs?.Contains(currentJob) == true && Layouts.Classes.TryGetValue(currentJob, out var over) && over.Automation.ContainsKey(id))
             over.Automation[id] = value;
         else Variants[id] = value;
     }
 
-    // PvP keeps its native preparation/backup history, but never owns user choices.
+    // Runtime normal choices are refreshed; explicit PvP overlays remain separate.
     public PvPSettings SharedPvP()
     {
         PvP.ActiveJobs = new HashSet<uint>(ActiveJobs ?? []);
         PvP.Variants = new Dictionary<VariantId, bool>(Variants);
+        PvP.Overrides = Layouts.PvP;
+        PvP.Layouts = Layouts;
         PvP.ClassAutomation = new();
         foreach (var (job, over) in Layouts.Classes) PvP.ClassAutomation[job] = new(over.Automation);
         PvP.LiveMode = LiveMode;

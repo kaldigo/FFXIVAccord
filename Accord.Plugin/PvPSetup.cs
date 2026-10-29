@@ -43,6 +43,18 @@ internal sealed class PvPSetup
         engine.Apply(snapshot,Pack.Patch(jobs,desired.PvP,snapshot),desired);
     }
     private PvPProfile[] Selected(PvPSettings settings) => Pack.Jobs.Where(j=>settings.ActiveJobs.Contains(j.JobId)).ToArray();
+    internal void ApplyChoices(AccordSettings desired, Action prepare)
+    {
+        var profile=Pack.Find((uint)Player.Job);
+        if(profile is null || desired.ActiveJobs?.Contains(profile.JobId)!=true) { prepare(); Invalidate(); return; }
+        var previous=Clone();
+        var snapshot=engine.Read();
+        // Validate the complete all-manual layout before changing rotation behavior.
+        hotbars.Apply([profile],desired.SharedPvP(),snapshot,inspect:true);
+        CombinedUpdate.Apply(prepare,()=>Apply([profile],engine.Read()),()=>engine.RestoreSettings(snapshot,previous));
+        Invalidate();
+        Status="PvP settings and hotbars updated.";
+    }
     internal void Reset() {Prepare(Clone(),Selected(Settings));Invalidate();Status="PvP intent settings reapplied. Personal thresholds and hands-free settings retained.";}
     internal unsafe void ApplySelected()
     {
@@ -83,6 +95,7 @@ internal sealed class PvPSetup
             if(Settings.ConfigurationId!=snapshot.Value<string>("ConfigurationId"))updates.Invalidate();
             if(!updates.Applied)
                 updates.Apply(job,character,()=>{
+                    if(Settings.LiveMode || Settings.PendingLayouts.Contains(job))hotbars.Apply([profile],Settings,snapshot,inspect:true);
                     Prepare(Clone(),[profile]);
                     if(Settings.LiveMode || Settings.PendingLayouts.Contains(job))Apply([profile],engine.Read());
                 });

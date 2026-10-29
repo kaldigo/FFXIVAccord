@@ -47,19 +47,26 @@ internal sealed class PvPHotbars
             if(existingSprint)
                 for(int i=0;i<values.Length;i++)if(job.Controls[i].Binding is { Type:1, Id:29057 })values[i]=default;
             foreach (var control in job.Controls) ValidateBinding(control.Binding);
-            var route=PvPLayout.IntentRoutes(job,pairs,values,Protected);
-            var layoutRoute=route.Where(r=>maps.Any(m=>m.Id==r.Key)).ToDictionary(r=>r.Key,r=>r.Value);
-            LayoutRoutes.Effective(maps.Where(m=>m.Applies(job.JobId)),layoutRoute);
             var keep=new HashSet<Position>();
+            var plan=PvPConfiguredLayout.Plan(job,settings,snapshot,b=>Protected(new(b-1,0)),a=>Available(job,a),allManual:true);
+            if(!plan.Valid)throw new InvalidOperationException(job.Job+" PvP: "+string.Join(" ",plan.Issues.Select(i=>i.Message)));
+            plan=PvPConfiguredLayout.Plan(job,settings,snapshot,b=>Protected(new(b-1,0)),a=>Available(job,a));
             var design=job.Controls.Select(c=>c.Binding).Concat(job.RetiredBindings).Append(new SlotValue(1,1_000_000)).ToHashSet();
             for(int i=0;i<pairs.Length;i++)
             {
-                if(route.TryGetValue(pairs[i].Id,out var destination))Add(destination,values[i]);
                 if(maps.Any(m=>m.Id==pairs[i].Id) && !Protected(pairs[i].Cross))Add(pairs[i].Cross,values[i]);
                 else if(values[i]!=default)Notice=" Some controls are keyboard-only because their controller slots are shared or unavailable. Shared bars were preserved.";
             }
+            foreach(var control in plan.Controls)
+                if(!existingSprint || control.Action.Id!=29057)Add(control.Position,control.Action.Value);
+            foreach(int bar in settings.Layouts.ManagedBars)
+                for(int slot=0;slot<12;slot++)
+                {
+                    var p=new Position(bar-1,slot);
+                    if(!keep.Contains(p) && !Protected(p))Add(p,default);
+                }
             if(settings.ClearOtherActions)
-                for(int bar=0;bar<18;bar++)
+                for(int bar=10;bar<18;bar++)
                     for(int slot=0;slot<(bar<10?12:16);slot++)
                     {
                         var p=new Position(bar,slot);
@@ -72,13 +79,24 @@ internal sealed class PvPHotbars
                 if(!keep.Add(p) || !p.Valid)throw new InvalidDataException("Duplicate or invalid PvP destination.");
                 if(Protected(p))throw new InvalidOperationException($"{p} is on a shared game hotbar; PvP setup preserves it. Choose job-specific bars.");
                 var before=NativeHotbars.Read(job.JobId,p,pvp:true);
-                if(value==default && !settings.ClearOtherActions && !design.Contains(before))return;
+                if(value==default && p.Bar>=10 && !settings.ClearOtherActions && !design.Contains(before))return;
                 if(before!=value)backup.Edits.Add(new(job.JobId,p,before,value));
             }
         }
         bool changed=backup.Edits.Count>0;
         if(inspect)return changed?"refresh":null;
         return Commit(backup);
+    }
+
+    internal static bool Available(PvPProfile job,ActionChoice action)
+    {
+        if(job.Controls.Any(c=>c.Binding==action.Value))return true;
+        if(action.Type==1 && action.Id is 1000000 or 1000001 or >=1000010 and <=1000015)return true;
+        if(action.Type==26)return job.Controls.Any(c=>c.Binding==action.Value);
+        if(action.Type!=1)return false;
+        var row=Svc.Data.GetExcelSheet<Sheets.Action>(ClientLanguage.English).GetRow(action.Id);
+        return row.IsPvP && row.IsPlayerAction &&
+            (typeof(Sheets.ClassJobCategory).GetProperty(job.Job)?.GetValue(row.ClassJobCategory.Value) is true || action.Id==43259);
     }
 
     private static void ValidateBinding(SlotValue value)
