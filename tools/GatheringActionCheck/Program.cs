@@ -49,7 +49,7 @@ foreach (var (job, names) in new (string, string[])[]
     ("MCH", ["Head Graze", "Second Wind"]), ("DNC", ["Head Graze", "Second Wind"]),
     ("MNK", ["Second Wind", "Bloodbath", "Arm's Length"]), ("DRG", ["Second Wind", "Bloodbath", "Arm's Length"]),
     ("NIN", ["Second Wind", "Bloodbath", "Arm's Length"]), ("SAM", ["Second Wind", "Bloodbath", "Arm's Length"]),
-    ("RPR", ["Second Wind", "Bloodbath", "Arm's Length"]), ("VPR", ["Second Wind", "Bloodbath", "Arm's Length"]),
+    ("RPR", ["Arcane Circle", "Second Wind", "Bloodbath", "Arm's Length"]), ("VPR", ["Second Wind", "Bloodbath", "Arm's Length"]),
     ("BLM", ["Surecast"]), ("SMN", ["Surecast"]), ("RDM", ["Surecast"]), ("PCT", ["Surecast"]),
 })
     foreach (string name in names)

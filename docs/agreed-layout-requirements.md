@@ -7,7 +7,7 @@ This is the controlling checklist reconstructed from the user's requests. Previo
 - User clarification, 2026-10-28: use ONE global rule and normalize conflicting historical orders rather than create automatic exceptions. Healer movement may follow the common movement rule.
 - Global is editable configuration, applies to every combat class, and offers every intent (including resurrection/healing/mechanics). Available does not mean placed.
 - Normal editing: choose a bar, left/right edge, and ordered intents or reusable groups. Both edges fill inward; first group is nearest its edge. Latest clarification: exact positions are unnecessary for ordinary editing. The editor offers edges; existing custom assignments are preserved for compatibility.
-- Close gaps for unavailable actions. Keep zero-count items. Deduplicate direct actions by priority; automation selectors are exempt.
+- Close gaps for actions inapplicable to the class, not actions locked by current/synced level. Layouts always represent the max-level toolkit; never hard-code a numeric level cap. Keep zero-count items. Deduplicate direct actions by priority; automation selectors are exempt.
 - Whole-mapping replacement only. Global → explicit role → explicit class overrides. Apply per setting; unchecked settings inherit future parent changes. No generated overrides, no reset-to-inherited button.
 - Separate Global, override list/editor (one at a time), and read-only Preview. Class selection belongs in Preview, not Global.
 
@@ -58,3 +58,9 @@ A server-status click (or the matching automation command) updates the applied t
 Unsaved unrelated layout edits must not undo subsequent server-status changes. Persist overrides, preserve explicit false, and retain them when a class is temporarily disabled. Native status interaction and class switching still require in-game verification.
 
 Class automation verification: paired build passed with 247,372 assertions and three packaging checks. Added checks cover all four override values, explicit false serialization, inactive/inheriting click routing, cross-class isolation, dirty-editor rebasing, effective engine flags, controller/PvE visibility, PvP visibility and all-off validation. Server-status clicks and class switching have not been exercised in the running game.
+
+## Max-level layout regression — reported 2026-10-29
+
+Reaper's burst trigger disappeared during a level-synced dungeon because the live eligibility predicate checked the current character level. Preview already bypassed that check. Live and preview placement now share class/catalog eligibility and do not consult current/synced or stored class levels. The game decides whether a placed action is executable. There is no hard-coded level cap. Automation and explicit mapping choices still control visibility as configured.
+
+Native verification remains open: enter a level-synced dungeon on Reaper with manual burst enabled and verify the burst trigger stays on the bar before, during and after the sync.

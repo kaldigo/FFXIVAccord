@@ -47,24 +47,17 @@ internal sealed class SetupController : IDisposable
         return module != null && module->ModuleReady && bar is >= 1 and <= 10 && module->IsHotbarShared((uint)(bar - 1));
     }
 
-    private unsafe bool ActionAvailable(JobPreset job, ActionChoice action, bool includeFuture = false)
+    private bool ActionAvailable(JobPreset job, ActionChoice action)
     {
         if (action.Type != 1) return true; // Inventory count never affects placement.
         var row = Svc.Data.GetExcelSheet<Lumina.Excel.Sheets.Action>().GetRowOrDefault(action.Id);
         if (row is null || !row.Value.IsPlayerAction || row.Value.IsPvP) return false;
         var property = typeof(Lumina.Excel.Sheets.ClassJobCategory).GetProperty(job.Job);
         if (property is null || !(bool)property.GetValue(row.Value.ClassJobCategory.Value)!) return false;
-        if (includeFuture || !Player.Available) return true;
-        int level;
-        if (Pack.Find((uint)Player.Job)?.JobId == job.JobId) level = Player.Level;
-        else
-        {
-            var player = FFXIVClientStructs.FFXIV.Client.Game.UI.PlayerState.Instance();
-            var index = Svc.Data.GetExcelSheet<Lumina.Excel.Sheets.ClassJob>().GetRow(job.JobId).ExpArrayIndex;
-            if (player == null || index < 0) return false;
-            level = player->ClassJobLevels[index];
-        }
-        return row.Value.ClassJobLevel <= level;
+        // Layouts represent the class's complete max-level toolkit. Level sync
+        // affects whether the game can execute an action, never its placement.
+        // Use catalog eligibility rather than a numeric cap so future caps work too.
+        return true;
     }
 
     private unsafe LayoutResult LayoutPlan(JobPreset job, AccordSettings settings, bool manual)
@@ -72,7 +65,7 @@ internal sealed class SetupController : IDisposable
         var module = FFXIVClientStructs.FFXIV.Client.UI.Misc.RaptureHotbarModule.Instance();
         bool sharedSprint = module != null && module->ModuleReady && ModeActions.HasSharedSprint(
             p => module->IsHotbarShared((uint)p.Bar), p => NativeHotbars.Read(job.JobId, p));
-        return Layouts.Plan(job, settings, SharedRegularBar, a => ActionAvailable(job, a, includeFuture: manual), manual, !sharedSprint);
+        return Layouts.Plan(job, settings, SharedRegularBar, a => ActionAvailable(job, a), manual, !sharedSprint);
     }
 
     internal LayoutResult InspectLayout(uint job, LayoutPreferences preferences)
