@@ -48,3 +48,13 @@ Native visual acceptance and the delayed-update reproduction remain open. No cla
 Local verification: paired client/engine build passed; final focused run passed 247,336 assertions; all three packaging checks passed. Package vulnerability-feed lookups emitted network warnings. Native acceptance boxes remain unchecked.
 
 Final review also found and fixed a tank knockback/important-role duplicate. The direct Arm’s Length control remains deduplicated even when it occupies the primary protection group. A dedicated regression assertion covers that case.
+
+## Class automation overrides — requested 2026-10-29
+
+Each class override can apply any of the four automation toggles independently, including an explicit off value. Unchecked toggles inherit Global. Role automation overrides are not introduced by this request. Global automation remains editable on its own page.
+
+A server-status click (or the matching automation command) updates the applied toggle override for the current active class; otherwise it updates Global. It never creates an override merely because a class is selected. Effective values must be used by status display, engine configuration, keyboard/controller visibility and the existing shared PvP automation choices. All-off capacity validation remains all-off regardless of class choices.
+
+Unsaved unrelated layout edits must not undo subsequent server-status changes. Persist overrides, preserve explicit false, and retain them when a class is temporarily disabled. Native status interaction and class switching still require in-game verification.
+
+Class automation verification: paired build passed with 247,372 assertions and three packaging checks. Added checks cover all four override values, explicit false serialization, inactive/inheriting click routing, cross-class isolation, dirty-editor rebasing, effective engine flags, controller/PvE visibility, PvP visibility and all-off validation. Server-status clicks and class switching have not been exercised in the running game.

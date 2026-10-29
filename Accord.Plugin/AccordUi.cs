@@ -14,7 +14,7 @@ internal static class AccordUi
     internal enum Page { General, Automation, Classes, Hotbars, RoleActions, Exclusions, Groups, Overrides, Preview, Recovery }
     private static Page page;
     private static string search = "";
-    private static readonly string[] titles = ["General", "Automation", "Active classes", "Global mapping", "Global role actions", "Global exclusions", "Personal groups", "Mapping overrides", "Preview", "Recovery & tools"];
+    private static readonly string[] titles = ["General", "Global automation", "Active classes", "Global mapping", "Global role actions", "Global exclusions", "Personal groups", "Mapping overrides", "Preview", "Recovery & tools"];
     private static readonly string[] keywords = ["live mode bars shared", "burst protection support mechanics", "jobs enable", "layout slots position manual defaults override", "important role", "exclude manual wrath", "potions roulette items extras", "role class overrides add edit inheritance", "preview class result inherited", "backup restore logout diagnostics"];
 
     internal static void Draw()
@@ -63,13 +63,13 @@ internal static class AccordUi
 
     private static void DrawAutomation(SetupController setup)
     {
-        ImGui.TextWrapped("Choose what your rotation buttons handle automatically. Changes apply immediately.");
+        ImGui.TextWrapped("Choose the global automation defaults. Class overrides can replace individual options; server-status buttons update an applied override for the active class.");
         var job = Player.Available ? setup.Pack.Find((uint)Player.Job) : null;
         if (job is null) ImGui.TextWrapped("Switch to a supported class to see what each variant controls for that class.");
         foreach (var definition in VariantDefinitions.All)
         {
             bool enabled = setup.Settings.Enabled(definition.Id);
-            if (ImGui.Checkbox(definition.Label, ref enabled)) setup.Run(() => setup.SetVariant(definition.Id, enabled));
+            if (ImGui.Checkbox(definition.Label, ref enabled)) setup.Run(() => setup.SetVariant(definition.Id, enabled, global: true));
             if (ImGui.IsItemHovered()) ImGui.SetTooltip(definition.Description);
             if (job is not null)
             {

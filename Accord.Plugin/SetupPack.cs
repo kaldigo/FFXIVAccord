@@ -72,9 +72,9 @@ internal sealed class SetupPack
         var flags = new Dictionary<Feature, bool>();
         if (job < 19) return flags;
         flags[Feature.BurstContinuation] = true;
-        bool protection = settings.Enabled(VariantId.Protection);
-        bool support = settings.Enabled(VariantId.Support);
-        bool mechanics = settings.Enabled(VariantId.ClassMechanics);
+        bool protection = settings.Enabled(VariantId.Protection, job);
+        bool support = settings.Enabled(VariantId.Support, job);
+        bool mechanics = settings.Enabled(VariantId.ClassMechanics, job);
         if (job is 20 or 22 or 30 or 34 or 39 or 41) flags[Feature.MeleeFeintOnAoe] = protection;
         if (job is 25 or 27 or 35 or 42) flags[Feature.CasterAddleOnAoe] = protection;
         if (job is 23 or 31 or 38)
@@ -90,7 +90,7 @@ internal sealed class SetupPack
             case 24: flags[Feature.WhmDivineCaressOnDamage] = protection; break;
             case 25: flags[Feature.BlmManawardOnAoe] = protection; break;
             case 30: flags[Feature.TcjContinuation] = true; break;
-            case 31: flags[Feature.MchFlamethrowerContinuation] = true; flags[Feature.MchWildfireOnAoe] = settings.Enabled(VariantId.Burst); flags[Feature.MchDismantleOnSt] = protection; flags[Feature.MchDismantleOnAoe] = protection; break;
+            case 31: flags[Feature.MchFlamethrowerContinuation] = true; flags[Feature.MchWildfireOnAoe] = settings.Enabled(VariantId.Burst, job); flags[Feature.MchDismantleOnSt] = protection; flags[Feature.MchDismantleOnAoe] = protection; break;
             case 33: flags[Feature.AstCardsOnStDamage] = true; flags[Feature.AstCardsOnAoeDamage] = true; break;
             case 35: flags[Feature.RdmBarrierOnAoe] = protection; break;
             case 38:
@@ -109,35 +109,35 @@ internal sealed class SetupPack
     {
         var result = Variants.Resolve(job, new VariantSelection
         {
-            AutoBurst = settings.Enabled(VariantId.Burst),
-            AutoMitigation = settings.Enabled(VariantId.Protection),
-            AutoMechanics = settings.Enabled(VariantId.ClassMechanics),
+            AutoBurst = settings.Enabled(VariantId.Burst, job.JobId),
+            AutoMitigation = settings.Enabled(VariantId.Protection, job.JobId),
+            AutoMechanics = settings.Enabled(VariantId.ClassMechanics, job.JobId),
         });
         var enabled = result.Settings["EnabledActionsV6"]!.AsArray().Select(n => n!.GetValue<int>()).ToHashSet();
         foreach (var id in SupportPresets(job.JobId))
         {
-            if (settings.Enabled(VariantId.Support)) enabled.Add(id);
+            if (settings.Enabled(VariantId.Support, job.JobId)) enabled.Add(id);
             else enabled.Remove(id);
         }
         foreach (var id in ProtectionPresets(job.JobId))
         {
-            if (settings.Enabled(VariantId.Protection)) enabled.Add(id);
+            if (settings.Enabled(VariantId.Protection, job.JobId)) enabled.Add(id);
             else enabled.Remove(id);
         }
         foreach (var id in BurstPresets(job.JobId))
         {
-            if (settings.Enabled(VariantId.Burst)) enabled.Add(id);
+            if (settings.Enabled(VariantId.Burst, job.JobId)) enabled.Add(id);
             else enabled.Remove(id);
         }
         if (job.JobId == 31)
         {
-            if (settings.Enabled(VariantId.ClassMechanics)) enabled.Add(8305);
+            if (settings.Enabled(VariantId.ClassMechanics, job.JobId)) enabled.Add(8305);
             else enabled.Remove(8305);
         }
         if (job.JobId == 33)
             foreach (int id in new[] { 1011, 1044 })
             {
-                if (settings.Enabled(VariantId.ClassMechanics)) enabled.Add(id);
+                if (settings.Enabled(VariantId.ClassMechanics, job.JobId)) enabled.Add(id);
                 else enabled.Remove(id);
             }
         if (job.Job == "BRD")
@@ -180,14 +180,14 @@ internal sealed class SetupPack
             // Automatic damage paths keep their own partner resolver.
             enabled.Remove(4175);
         }
-        if (settings.Enabled(VariantId.Burst))
+        if (settings.Enabled(VariantId.Burst, job.JobId))
         {
             if (job.JobId is 24 or 28) ReplaceSlot(11, "Empty", "Burst initiation is delegated to ST/AoE");
             if (job.JobId is 33 or 38) ReplaceSlot(12, "Empty", "Burst initiation is delegated to ST/AoE");
             if (job.JobId == 31) ReplaceSlot(3, "Empty", "Burst and overheat are handled by ST/AoE");
             if (job.JobId == 32) ReplaceSlot(3, "Empty", "Burst is handled by ST/AoE; interrupt has its own control");
         }
-        if (settings.Enabled(VariantId.ClassMechanics))
+        if (settings.Enabled(VariantId.ClassMechanics, job.JobId))
         {
             if (job.JobId == 31) ReplaceSlot(6, "Empty", "Conditional Flamethrower initiation and channel holding are handled by AoE");
             if (job.JobId is 23 or 33) ReplaceSlot(11, "Empty", "Song or draw initiation is delegated to ST/AoE");
@@ -197,7 +197,7 @@ internal sealed class SetupPack
                 ReplaceSlot(11, "Empty", "Standard dance follows upstream initiation and completion through ST/AoE");
             }
         }
-        if (settings.Enabled(VariantId.Support))
+        if (settings.Enabled(VariantId.Support, job.JobId))
         {
             if (job.JobId == 38)
             {
@@ -207,7 +207,7 @@ internal sealed class SetupPack
             if (job.JobId == 20) ReplaceSlot(9, "Empty", "Mantra is handled by ST/AoE");
             if (job.JobId == 23) ReplaceSlot(6, "Empty", "Nature's Minne is handled by ST/AoE");
         }
-        bool protection = settings.Enabled(VariantId.Protection);
+        bool protection = settings.Enabled(VariantId.Protection, job.JobId);
         var layoutValues = settings.Layouts.Resolve(job.JobId);
         bool keepProtection = layoutValues.KeepManual || layoutValues.Mapping.Areas.SelectMany(a => a.Entries)
             .Any(e => (e.Intent is ControlIntent.Protection or ControlIntent.HealingProtection) && e.KeepManual);

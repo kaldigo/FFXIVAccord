@@ -42,7 +42,7 @@ internal sealed class PvPHotbars
             // Do not create a never-visited job's saved PvP page before the game initializes it.
             if (job.JobId!=current && !Initialized(job.JobId)) throw new InvalidOperationException("Visit PvP on "+job.Job+" before writing its saved layout.");
             var pairs=PvPLayout.Pairs(job,maps);
-            var values=job.Controls.Select(c=>PvPPack.Resolve(c,settings,snapshot)).ToArray();
+            var values=job.Controls.Select(c=>PvPPack.Resolve(c,settings,snapshot,job.JobId)).ToArray();
             bool existingSprint=ModeActions.HasSharedSprint(Protected, p=>NativeHotbars.Read(job.JobId,p,pvp:true));
             if(existingSprint)
                 for(int i=0;i<values.Length;i++)if(job.Controls[i].Binding is { Type:1, Id:29057 })values[i]=default;

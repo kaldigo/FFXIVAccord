@@ -105,6 +105,9 @@ public sealed class LayoutValues
 // displays effective inherited values without freezing them into the override.
 public sealed class LayoutOverride
 {
+    // Presence is Apply; false is an explicit manual choice, not inheritance.
+    public Dictionary<VariantId, bool> Automation { get; set; } = new();
+    public bool ShouldSerializeAutomation() => Automation.Count > 0;
     [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
     public IntentMapping? Mapping { get; set; }
     [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
@@ -151,9 +154,25 @@ public sealed class LayoutPreferences
         7 or 25 or 26 or 27 or 35 or 42 => JobRole.MagicalRanged,
         _ => JobRole.Noncombat,
     };
+    internal void RebaseAutomation(LayoutPreferences baseline, LayoutPreferences latest)
+    {
+        foreach (var (job, draft) in Classes)
+        {
+            if (!baseline.Classes.TryGetValue(job, out var before) || !latest.Classes.TryGetValue(job, out var current)) continue;
+            foreach (var id in Enum.GetValues<VariantId>())
+            {
+                bool? oldValue = before.Automation.TryGetValue(id, out var old) ? old : null;
+                bool? draftValue = draft.Automation.TryGetValue(id, out var edited) ? edited : null;
+                if (oldValue != draftValue) continue; // Explicit unsaved changes still belong to the editor.
+                if (current.Automation.TryGetValue(id, out var value)) draft.Automation[id] = value;
+                else draft.Automation.Remove(id);
+            }
+        }
+    }
+
     internal void PruneUnusedOverrides()
     {
-        static bool Empty(LayoutOverride o) => o.Mapping is null && o.KeepManual is null && o.SplitMechanics is null && o.RoleActions is null && o.Exclusions is null;
+        static bool Empty(LayoutOverride o) => o.Automation.Count == 0 && o.Mapping is null && o.KeepManual is null && o.SplitMechanics is null && o.RoleActions is null && o.Exclusions is null;
         foreach (var role in Roles.Where(p => Empty(p.Value)).Select(p => p.Key).ToArray()) Roles.Remove(role);
         foreach (var job in Classes.Where(p => Empty(p.Value)).Select(p => p.Key).ToArray()) Classes.Remove(job);
     }

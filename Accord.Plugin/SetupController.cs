@@ -28,7 +28,8 @@ internal sealed class SetupController : IDisposable
     internal static unsafe bool IsPvP => FFXIVClientStructs.FFXIV.Client.UI.Misc.RaptureHotbarModule.Instance()!=null && FFXIVClientStructs.FFXIV.Client.UI.Misc.RaptureHotbarModule.Instance()->PvPHotbarsActive;
     private bool previousPvP;
     internal bool Live => Settings.LiveMode;
-    internal bool VariantEnabled(VariantId id) => Settings.Enabled(id);
+    internal bool VariantEnabled(VariantId id) => Player.Available && Pack.IsActive((uint)Player.Job, Settings)
+        ? (pendingChoices ?? Settings).Enabled(id, Pack.Find((uint)Player.Job)!.JobId) : Settings.Enabled(id);
     internal AccordSettings Settings => Plugin.Instance.Settings;
     internal string LayoutStatus { get; private set; } = "";
     private ActionCatalog? layoutCatalog;
@@ -453,10 +454,10 @@ internal sealed class SetupController : IDisposable
     internal bool HasPendingOperation => engine.HasPending;
     internal void AbandonPendingOperation() { engine.ReviewRejectedOperation(); migrationPatch = null; Status = "Previous request retained for diagnosis. Review settings before reapplying."; }
 
-    internal void SetVariant(VariantId id, bool enabled)
+    internal void SetVariant(VariantId id, bool enabled, bool global = false)
     {
         var desired = pendingChoices is null ? CloneSettings() : ConfiguredLayout.Clone(pendingChoices);
-        desired.Variants[id] = enabled;
+        desired.SetAutomation(id, enabled, !global && Player.Available ? Pack.Find((uint)Player.Job)?.JobId ?? 0 : 0);
         ApplyChoices(desired);
         PvP.Invalidate();
         if (Settings.LiveMode) RequestCurrentHotbars();
@@ -594,6 +595,12 @@ internal sealed class SetupController : IDisposable
         {
             entries[i].Shown = Player.Available && (IsPvP ? PvP.Active((uint)Player.Job) : Pack.IsActive((uint)Player.Job, Settings));
             var definition = VariantDefinitions.All[i];
+            var current = Player.Available ? Pack.Find((uint)Player.Job) : null;
+            var choices = pendingChoices ?? Settings;
+            bool overridden = current is not null && choices.ActiveJobs?.Contains(current.JobId) == true &&
+                choices.Layouts.Classes.TryGetValue(current.JobId, out var over) && over.Automation.ContainsKey(definition.Id);
+            entries[i].Tooltip = definition.Label + ": click to switch A/M.\nChanges " +
+                (overridden ? current!.Job + " override." : "Global.") + "\n" + definition.Description;
             entries[i].Text = new SeStringBuilder().AddIcon(Enum.Parse<BitmapFontIcon>(definition.Icon))
                 .AddText(" " + (VariantEnabled(definition.Id) ? "A" : "M")).Build();
         }

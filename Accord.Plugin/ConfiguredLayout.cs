@@ -245,7 +245,7 @@ internal sealed class ConfiguredLayout
         var owners = content.Values.SelectMany(c => c).Where(c => c.Action.Automation is not null)
             .GroupBy(c => c.Action.Value).ToDictionary(g => g.Key, g => g.First().Action.Automation);
         if (!includeDefaultSprint) content[ControlIntent.Sprint].Clear();
-        var result = IntentLayoutResolver.Resolve(job.JobId, settings.Layouts, i => content[i], available, settings.Enabled, shared, allManual,
+        var result = IntentLayoutResolver.Resolve(job.JobId, settings.Layouts, i => content[i], available, id => settings.Enabled(id, job.JobId), shared, allManual,
             a => owners.GetValueOrDefault(a.Value));
         return result with { Controls = result.Controls.Select(c => c with { Action = DirectControl(c.Action) }).ToArray() };
     }

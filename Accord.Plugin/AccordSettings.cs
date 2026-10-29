@@ -21,12 +21,22 @@ public sealed class AccordSettings : Dalamud.Configuration.IPluginConfiguration
     public bool ManualLogoutFallback { get; set; } = true;
     public string LastHotbarBackup { get; set; } = "";
     public bool Enabled(VariantId id) => Variants.GetValueOrDefault(id);
+    public bool Enabled(VariantId id, uint job) => Layouts.Classes.TryGetValue(job, out var over) && over.Automation.TryGetValue(id, out var value)
+        ? value : Enabled(id);
+    public void SetAutomation(VariantId id, bool value, uint currentJob = 0)
+    {
+        if (ActiveJobs?.Contains(currentJob) == true && Layouts.Classes.TryGetValue(currentJob, out var over) && over.Automation.ContainsKey(id))
+            over.Automation[id] = value;
+        else Variants[id] = value;
+    }
 
     // PvP keeps its native preparation/backup history, but never owns user choices.
     public PvPSettings SharedPvP()
     {
         PvP.ActiveJobs = new HashSet<uint>(ActiveJobs ?? []);
         PvP.Variants = new Dictionary<VariantId, bool>(Variants);
+        PvP.ClassAutomation = new();
+        foreach (var (job, over) in Layouts.Classes) PvP.ClassAutomation[job] = new(over.Automation);
         PvP.LiveMode = LiveMode;
         PvP.ClearOtherActions = ClearOtherActions;
         PvP.PendingLayouts.IntersectWith(PvP.ActiveJobs);

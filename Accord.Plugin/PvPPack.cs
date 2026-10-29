@@ -21,7 +21,9 @@ public sealed class PvPSettings
     [JsonIgnore] public bool LiveMode { get; set; }
     [JsonIgnore] public bool ClearOtherActions { get; set; }
     public string LastHotbarBackup { get; set; } = "";
+    [JsonIgnore] public Dictionary<uint, Dictionary<VariantId, bool>> ClassAutomation { get; set; } = new();
     public bool Enabled(VariantId id) => Variants.GetValueOrDefault(id);
+    public bool Enabled(VariantId id, uint job) => ClassAutomation.TryGetValue(job, out var values) && values.TryGetValue(id, out var value) ? value : Enabled(id);
 }
 
 internal sealed class PvPControl
@@ -82,10 +84,10 @@ internal sealed class PvPPack
             foreach (var name in job.Always) enable.Add(Id(name));
             foreach (var name in job.Manual) disable.Add(Id(name));
             foreach (var (variant, names) in job.Variants)
-                foreach (var name in names) (settings.Enabled(variant) ? enable : disable).Add(Id(name));
+                foreach (var name in names) (settings.Enabled(variant, job.JobId) ? enable : disable).Add(Id(name));
             var flags = new JObject();
             flags["PvPIntentRoutes"] = true;
-            foreach (var (feature, variant) in job.Features) flags[feature] = settings.Enabled(variant);
+            foreach (var (feature, variant) in job.Features) flags[feature] = settings.Enabled(variant, job.JobId);
             foreach (var feature in job.RecipientFeatures) flags[feature] = true;
             features[job.JobId.ToString()] = flags;
             // These are required follow-through/branch switches, not personal timing or HP policy.
@@ -97,11 +99,11 @@ internal sealed class PvPPack
             ["Enable"] = new JArray(enable.Order()), ["Disable"] = new JArray(disable.Order()) };
     }
 
-    internal static SlotValue Resolve(PvPControl control, PvPSettings settings, JObject snapshot)
+    internal static SlotValue Resolve(PvPControl control, PvPSettings settings, JObject snapshot, uint job = 0)
     {
-        bool delegated = control.Variant is { } variant && settings.Enabled(variant);
+        bool delegated = control.Variant is { } variant && settings.Enabled(variant, job);
         if(delegated && control.Fallbacks.Length>0)
-            delegated=control.Fallbacks.All(c=>Resolve(c,settings,snapshot)==default);
+            delegated=control.Fallbacks.All(c=>Resolve(c,settings,snapshot,job)==default);
         if (delegated && control.RequiredPreset is { } preset)
             delegated = snapshot["Settings"]!["EnabledActionsV6"]!.Values<int>().Contains(snapshot["PresetIds"]!.Value<int>(preset));
         if (delegated && control.AnyPositive.Length>0)

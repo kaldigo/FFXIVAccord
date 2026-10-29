@@ -35,6 +35,11 @@ internal static class LayoutEditor
         string current = JsonConvert.SerializeObject(setup.Settings.Layouts);
         if (draft is null || (JsonConvert.SerializeObject(draft) == saved && current != saved))
         { draft = Copy(setup.Settings.Layouts); saved = current; }
+        else if (current != saved)
+        {
+            draft.RebaseAutomation(JsonConvert.DeserializeObject<LayoutPreferences>(saved)!, setup.Settings.Layouts);
+            saved = current;
+        }
     }
     internal static void Footer(SetupController setup)
     {
@@ -194,6 +199,17 @@ internal static class LayoutEditor
             for (int i = 0; i < tabs.Length; i++) if (ImGui.BeginTabItem(tabs[i]))
             {
                 DrawSettings(setup, i == 0 ? AccordUi.Page.Hotbars : i == 1 ? AccordUi.Page.RoleActions : AccordUi.Page.Exclusions, over, parent);
+                ImGui.EndTabItem();
+            }
+            if (!scope.StartsWith("Role: ") && ImGui.BeginTabItem("Automation"))
+            {
+                ImGui.TextWrapped("Apply overrides this option for this class. Server-status buttons then change that override instead of Global. Uncheck Apply to inherit Global again.");
+                foreach (var definition in VariantDefinitions.All)
+                {
+                    bool? local = over.Automation.TryGetValue(definition.Id, out var value) ? value : null;
+                    Bool(definition.Label, local ?? setup.Settings.Enabled(definition.Id), local, true,
+                        v => { if (v.HasValue) over.Automation[definition.Id] = v.Value; else over.Automation.Remove(definition.Id); });
+                }
                 ImGui.EndTabItem();
             }
             ImGui.EndTabBar();

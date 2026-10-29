@@ -9,6 +9,37 @@ internal static class LayoutPreferencesTests
         int count = 0;
         void Check(bool value, string reason) { count++; if (!value) throw new Exception("Layout preferences: " + reason); }
         ActionChoice Action(uint id, VariantId? owner = null, bool selector = false) => new() { Id = id, Name = "Action " + id, Automation = owner, Selector = selector };
+        foreach (var id in Enum.GetValues<VariantId>())
+        {
+            var automation = new AccordSettings { ActiveJobs = [23, 31] };
+            automation.Variants[id] = true;
+            automation.Layouts.Classes[23] = new() { Automation = new() { [id] = false } };
+            Check(!automation.Enabled(id, 23) && automation.Enabled(id, 31), "explicit false override failed");
+            automation.SetAutomation(id, true, 23);
+            Check(automation.Enabled(id) && automation.Enabled(id, 23), "status click did not update override");
+            automation.SetAutomation(id, false, 23);
+            Check(automation.Enabled(id) && !automation.Enabled(id, 23) && automation.Enabled(id, 31), "class status click changed global or another class");
+            var round = ConfiguredLayout.Clone(automation);
+            Check(round.Layouts.Classes[23].Automation.ContainsKey(id) && !round.Enabled(id, 23), "explicit off override did not persist");
+            Check(!round.SharedPvP().Enabled(id, 23) && round.SharedPvP().Enabled(id, 31), "PvP lost class automation choice");
+            var pvpControl = new PvPControl { Binding = new(1, 123), Variant = id };
+            Check(PvPPack.Resolve(pvpControl, round.SharedPvP(), new(), 23) == pvpControl.Binding &&
+                PvPPack.Resolve(pvpControl, round.SharedPvP(), new(), 31) == default, "PvP hotbars used another class's automation choice");
+            automation.ActiveJobs.Remove(23);
+            automation.SetAutomation(id, false, 23);
+            Check(!automation.Enabled(id) && !automation.Layouts.Classes[23].Automation[id], "inactive class should update Global");
+            automation.ActiveJobs.Add(23); automation.Layouts.Classes[23].Automation.Remove(id);
+            automation.SetAutomation(id, true, 23);
+            Check(automation.Enabled(id) && !automation.Layouts.Classes[23].Automation.ContainsKey(id), "inherited click manufactured an override");
+        }
+        var rebaseBase = new LayoutPreferences(); rebaseBase.Classes[23] = new() { Automation = new() { [VariantId.Burst] = false, [VariantId.Support] = false } };
+        var rebaseDraft = JsonConvert.DeserializeObject<LayoutPreferences>(JsonConvert.SerializeObject(rebaseBase))!;
+        var rebaseCurrent = JsonConvert.DeserializeObject<LayoutPreferences>(JsonConvert.SerializeObject(rebaseBase))!;
+        rebaseDraft.Classes[23].KeepManual = true; rebaseDraft.Classes[23].Automation[VariantId.Support] = true;
+        rebaseCurrent.Classes[23].Automation[VariantId.Burst] = true;
+        rebaseDraft.RebaseAutomation(rebaseBase, rebaseCurrent);
+        Check(rebaseDraft.Classes[23].Automation[VariantId.Burst] && rebaseDraft.Classes[23].Automation[VariantId.Support] && rebaseDraft.Classes[23].KeepManual == true,
+            "status change was lost in a dirty editor or replaced unsaved choices");
         var preferences = new LayoutPreferences();
         preferences.Roles[JobRole.PhysicalRanged] = new() { KeepManual = true };
         preferences.Classes[23] = new() { SplitMechanics = true };
@@ -199,6 +230,14 @@ internal static class LayoutPreferencesTests
         Check(configured.Contents(pack.Find(38)!, customSettings)[ControlIntent.Mechanics].Any(c => c.Action.Name == "Technical Step"), "custom mapping lost its old dance membership");
         Check(configured.Contents(pack.Find(24)!, new AccordSettings { Layouts = shipped })[ControlIntent.HealingProtection].Any(c => c.Action.Name == "Asylum"), "repaired default did not use the new grouping");
 
+        var overrideSettings = new AccordSettings { ActiveJobs = [23, 31] };
+        configured.InitializeDefaults(overrideSettings.Layouts);
+        overrideSettings.Layouts.Classes[23] = new() { Automation = new() { [VariantId.Support] = true } };
+        var overridePlan = configured.Plan(pack.Find(23)!, overrideSettings, _ => false, a => Available(pack.Find(23)!, a), false);
+        var overrideManual = configured.Plan(pack.Find(23)!, overrideSettings, _ => false, a => Available(pack.Find(23)!, a), true);
+        Check(!overridePlan.Controls.Any(c => c.Action.Name == "Nature's Minne") && overrideManual.Controls.Any(c => c.Action.Name == "Nature's Minne"), "class automation visibility or all-off validation ignored override");
+        Check(SetupPack.EngineFeatures(23, overrideSettings)[WrathFork.Contract.Feature.BardMinneOnAoe], "engine feature ignored class automation");
+        Check(!pack.Resolve(pack.Find(23)!, overrideSettings).Slots.Any(s => s.Action == "Nature's Minne"), "resolved controller layout ignored class automation");
         var bard = pack.Find(23)!;
         var settings = new AccordSettings();
         var rain = new ActionChoice { Name = "Rain of Death", Id = catalog.ResolveSlot("BRD", "Rain of Death").Id };
