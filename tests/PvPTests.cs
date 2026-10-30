@@ -10,6 +10,16 @@ internal static class PvPTests
         int count=0;
         void Check(bool value,string message){count++;if(!value)throw new Exception("PvP: "+message);}
         var pack=new PvPPack();
+        var bardDefault = PvPConfiguredLayout.Plan(pack.Find(23)!, new PvPSettings
+            { Variants = Enum.GetValues<VariantId>().ToDictionary(v => v, _ => true) },
+            new JObject { ["Settings"] = new JObject { ["CustomIntValuesV6"] = new JObject { ["EmergencyHealThreshold"] = 50 } } },
+            _ => false, _ => true);
+        Check(bardDefault.Valid, "Bard corrected default conflicts");
+        Check(bardDefault.Controls.Where(c => c.Position.Bar == 0).OrderBy(c => c.Position.Slot)
+            .Take(4).Select(c => c.Action.Id).SequenceEqual(new uint[] { 1000015, 29401, 29055, 29711 }),
+            "Bard default must begin full rotation, LB, Elixir, Recuperate with automation on");
+        Check(bardDefault.Controls.Single(c => c.Position.Bar == 1 && c.Position.Slot == 0).Action.Id == 43259,
+            "Bard role action must start bar 2");
         Check(new AccordSettings().PvP.ActiveJobs.Count==0,"new selection is not empty");
         var allMaps=Defaults.Maps().Where(m=>m.Profile!="Noncombat").Concat(pack.Jobs.SelectMany(PvPLayout.Extras)).ToList();
         Defaults.Validate(allMaps);

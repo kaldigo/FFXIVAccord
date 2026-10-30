@@ -1,6 +1,6 @@
 # PvP automation and override plan
 
-Written 2026-10-29 before implementation. **Status: local implementation and automated verification completed; native UI/combat acceptance and publication remain pending.** Source decisions and limits are recorded in [rotation review](pvp-rotation-review.md).
+Written 2026-10-29 before implementation. **Status: local implementation and automated verification completed; published as Accord 0.2.15.11 with Wrath Combo 1.0.4.35; native UI/combat acceptance remains pending.** Source decisions and limits are recorded in [rotation review](pvp-rotation-review.md).
 
 This plan implements the user's direction following the Bard comparison. It supersedes previous PvP claims that Accord already provided maximum automation and the earlier requirement to always show separate ST/AoE buttons in PvP. It does not change the PvE two-button rule or authorize copying the other player's personal configuration.
 
@@ -70,11 +70,11 @@ Resolve settings in this order, with each later **applied** value replacing the 
 Add a clear global PvP setting: **Rotation buttons: One / Two**.
 
 - One: display a single rotation control. Two: display the existing ST/AoE pair.
-- Keep Two on upgrade to preserve the user's existing choice of layout until they explicitly select One. This is a proposed compatibility default, not a claim that two buttons are superior.
+- Default to One. On upgrade, migrate the exact previously shipped PvP Global mapping to the corrected default and One; preserve custom mappings, unchecked Mapping Apply, explicit role/class mappings and their existing button choice. Record the migration once so later user choices survive restarts.
 - Do not alter PvE's button count, automation categories, exclusions, personal thresholds, or manual-control retention when switching this option.
 - For jobs sharing one upstream PvP rotation, One routes to that complete rotation; Two must retain its existing documented routing, without claiming separate behavior where the roots are equivalent.
 - **Ninja is a release gate:** it has genuinely separate ST/AoE paths. User decision on 2026-10-29: automatically choose by nearby enemy count. Route through the existing ST/AoE policies and keep selection stable during a mudra sequence. Implement and test this before claiming parity; hiding AoE is insufficient.
-- Keep manual controls, LB, healing and selected role actions independently configurable. The friend's five listed positions are a useful test example, not a universal new default.
+- Default bar 1 starts with full rotation, Limit Break, Elixir and Recuperate, then remaining applicable controls. Bar 2 starts with the selected role action, then utility. Retain LB and recovery manual buttons by default even when automated, using the existing per-group retention settings. Keep all groups editable.
 - Reflow ordered groups without unmanaged gaps, unexpected bar-3 additions or silent overflow. Validate both button-count modes and all-off capacity after overrides; report the affected class/role.
 - Preserve approved controller behavior unless a separately documented change is necessary for this setting; keyboard simplification does not authorize a controller redesign.
 
@@ -113,7 +113,8 @@ Add a clear global PvP setting: **Rotation buttons: One / Two**.
 - [x] Both local Release builds and isolated archive checks pass. Public release versions/feeds have not been changed.
 - [x] Final source requirements comparison completed. Additional fixes found during comparison are recorded below.
 - [ ] Native PvP acceptance completed.
-- [ ] Publish a paired test release and verify its installation/feed.
+- [x] Publish the paired test release and verify the shared feed (2026-10-29): Accord 0.2.15.11 / Wrath Combo 1.0.4.35.
+- [ ] Verify installation and native gameplay in the user’s game.
 
 ## 8. Final local verification and remaining acceptance
 
@@ -123,3 +124,16 @@ Add a clear global PvP setting: **Rotation buttons: One / Two**.
 - Existing controller positions and explicit ST/AoE routing are retained. Shared bars and unselected regular bars are preserved. Live PvP changes validate all-manual capacity before changing engine behavior, and use the existing combined rollback flow.
 - No supplied personal configuration or live game settings were modified. No release was published in this implementation pass.
 - Native acceptance still requires a test build in the game: compare Bard all-on against the old supported rotation; check Support/Protection and retained manual controls; test an exclusion; change a class/role PvP override via the status toggle and return to PvE; test Ninja one/two enemies and mudra continuation; and inspect the UI/preview and layout reflow. Identify the PvP mode used. These checks cannot be marked complete by builds or unit tests.
+
+## 9. Publication verification — 2026-10-29
+
+Both release workflows passed: engine run 40930393111 and client run 40931028161. Shared feed refresh 40931505616 succeeded; the central pluginmaster.json reports WrathCombo 1.0.4.35 and Accord 0.2.15.11. Native acceptance remains open. Earlier statements about no publication describe the local implementation pass before this requested release.
+
+## 10. Corrected defaults (2026-10-30)
+
+User correction supersedes the old two-button compatibility default. Implement One by default and the friend-inspired ordering above. Only an exact match of the previous Global mapping migrates; a changed group, priority, retention flag, area or explicit inheritance is preserved. Role/class mappings, automation, exclusions and personal groups are untouched. A one-time marker preserves subsequent Two choices.
+
+- [x] Implementation and regression cases written.
+- [x] Client/engine builds passed; 257,470 assertions passed including all-job/all-toggle layouts, Bard first-four placement, custom mapping preservation and restart behavior. Three packaging tests and an actual staged archive check passed.
+- [ ] Publish client update and verify central feed. Wrath behavior is unchanged.
+- [ ] Native in-game acceptance (user testing).

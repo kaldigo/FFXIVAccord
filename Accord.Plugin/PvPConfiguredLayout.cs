@@ -13,6 +13,23 @@ internal static class PvPConfiguredLayout
     {
         IntentVersion = 3,
         Areas = [
+            new() { Name = "Rotation, limit break and healing", Bar = 1, Entries = [
+                new() { Intent = ControlIntent.SingleTarget }, new() { Intent = ControlIntent.AreaDamage },
+                new() { Intent = ControlIntent.LimitBreak, KeepManual = true },
+                new() { Intent = ControlIntent.Recovery, KeepManual = true },
+                .. Entries(ControlIntent.SingleHealing, ControlIntent.Other, ControlIntent.Burst, ControlIntent.AdditionalBurst)] },
+            new() { Name = "Role action and utility", Bar = 2, Entries = Entries(ControlIntent.ImportantRole,
+                ControlIntent.OtherRole, ControlIntent.Movement, ControlIntent.Cleanse, ControlIntent.PersonalProtection,
+                ControlIntent.Sprint, ControlIntent.Protection, ControlIntent.Mechanics, ControlIntent.Support,
+                ControlIntent.Preparation, ControlIntent.Exclusions) },
+        ],
+    };
+
+    // Exact historical fingerprint: even a retention or priority edit is a custom mapping.
+    internal static IntentMapping PreviousDefaultMapping() => new()
+    {
+        IntentVersion = 3,
+        Areas = [
             new() { Name = "Main actions", Bar = 1, Entries = Entries(ControlIntent.SingleTarget, ControlIntent.AreaDamage,
                 ControlIntent.SingleHealing, ControlIntent.Other, ControlIntent.LimitBreak, ControlIntent.Burst, ControlIntent.AdditionalBurst) },
             new() { Name = "Movement and utility", Bar = 2, Entries = Entries(ControlIntent.Movement, ControlIntent.Recovery,

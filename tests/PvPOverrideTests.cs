@@ -8,6 +8,34 @@ internal static class PvPOverrideTests
         int checks = 0;
         void Check(bool value, string reason) { checks++; if (!value) throw new Exception(reason); }
         const VariantId toggle = VariantId.Support;
+        var legacy = new PvPOverrides { RotationButtons = PvPRotationButtons.Two };
+        legacy.Global.Mapping = PvPConfiguredLayout.PreviousDefaultMapping();
+        legacy.Global.Automation[toggle] = true;
+        legacy.Classes[23] = new() { Mapping = PvPConfiguredLayout.PreviousDefaultMapping() };
+        string classMapping = JsonConvert.SerializeObject(legacy.Classes[23]);
+        Check(legacy.InitializeDefaults() && legacy.RotationButtons == PvPRotationButtons.One,
+            "Shipped defaults did not migrate to one button.");
+        Check(JsonConvert.SerializeObject(legacy.Global.Mapping) == JsonConvert.SerializeObject(PvPConfiguredLayout.DefaultMapping()),
+            "Shipped mapping did not migrate.");
+        Check(legacy.Global.Automation[toggle] && JsonConvert.SerializeObject(legacy.Classes[23]) == classMapping,
+            "Migration changed automation or an explicit class mapping.");
+        legacy.RotationButtons = PvPRotationButtons.Two;
+        var restarted = JsonConvert.DeserializeObject<PvPOverrides>(JsonConvert.SerializeObject(legacy))!;
+        Check(!restarted.InitializeDefaults() && restarted.RotationButtons == PvPRotationButtons.Two,
+            "Restart reset the user's later two-button choice.");
+        foreach (int edit in Enumerable.Range(0, 4))
+        {
+            var custom = new PvPOverrides { RotationButtons = PvPRotationButtons.Two };
+            custom.Global.Mapping = PvPConfiguredLayout.PreviousDefaultMapping();
+            if (edit == 0) custom.Global.Mapping.Areas[0].Entries[0].KeepManual = true;
+            if (edit == 1) custom.Global.Mapping.Areas[0].Entries[0].Priority = 99;
+            if (edit == 2) custom.Global.Mapping.Areas[0].Bar = 3;
+            if (edit == 3) custom.Global.Mapping = null;
+            string original = JsonConvert.SerializeObject(custom.Global);
+            custom.InitializeDefaults();
+            Check(JsonConvert.SerializeObject(custom.Global) == original && custom.RotationButtons == PvPRotationButtons.Two,
+                "Migration overwrote custom or inherited mapping/count.");
+        }
         var area = new WrathCombo.Engine.PvPAreaChoice();
         Check(!area.Select(true, false, 1), "Ninja chose area for one enemy.");
         Check(area.Select(true, false, 2), "Ninja did not choose area for multiple enemies.");
@@ -47,7 +75,7 @@ internal static class PvPOverrideTests
         Check(draft.PvP.Global.Mapping is not null && draft.PvP.Global.Automation[toggle], "Dirty PvP mapping lost a saved status toggle.");
         var roundtrip = JsonConvert.DeserializeObject<AccordSettings>(JsonConvert.SerializeObject(settings))!;
         Check(roundtrip.Layouts.PvP.Global.KeepManual == false && roundtrip.Enabled(toggle, 23, true), "PvP explicit false or automation lost on serialization.");
-        Check(roundtrip.Layouts.PvP.RotationButtons == PvPRotationButtons.Two, "Upgrade changed rotation count.");
+        Check(roundtrip.Layouts.PvP.RotationButtons == PvPRotationButtons.One, "New default is not one rotation button.");
         roundtrip.Layouts.PvP.Global.Mapping = null;
         roundtrip.Layouts.PvP.Global.RoleActions = null;
         roundtrip = JsonConvert.DeserializeObject<AccordSettings>(JsonConvert.SerializeObject(roundtrip))!;

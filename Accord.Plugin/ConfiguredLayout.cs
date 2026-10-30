@@ -19,7 +19,8 @@ internal sealed class ConfiguredLayout
 
     internal bool InitializeDefaults(LayoutPreferences preferences)
     {
-        if (preferences.MappingVersion >= 3) return false;
+        bool pvpChanged = preferences.PvP.InitializeDefaults();
+        if (preferences.MappingVersion >= 3) return pvpChanged;
         if (preferences.MappingVersion == 2)
         {
             // Repair only our unedited shipped default; never overwrite a user's mapping.

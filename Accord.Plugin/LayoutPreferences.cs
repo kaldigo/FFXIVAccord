@@ -199,7 +199,24 @@ public sealed class PvPOverrides
     };
     public Dictionary<JobRole, LayoutOverride> Roles { get; set; } = new();
     public Dictionary<uint, LayoutOverride> Classes { get; set; } = new();
-    public PvPRotationButtons RotationButtons { get; set; } = PvPRotationButtons.Two;
+    public PvPRotationButtons RotationButtons { get; set; } = PvPRotationButtons.One;
+    public int DefaultsVersion { get; set; }
+
+    internal bool InitializeDefaults()
+    {
+        if (DefaultsVersion >= 1) return false;
+        if (Newtonsoft.Json.Linq.JToken.DeepEquals(
+            Newtonsoft.Json.Linq.JToken.FromObject(Global.Mapping ?? new IntentMapping()),
+            Newtonsoft.Json.Linq.JToken.FromObject(PvPConfiguredLayout.PreviousDefaultMapping())))
+        {
+            Global.Mapping = PvPConfiguredLayout.DefaultMapping();
+            RotationButtons = PvPRotationButtons.One;
+        }
+        // Explicit role/class mappings and unchecked Global Apply remain untouched.
+        // Record the migration even for custom layouts so future edits are never mistaken for upgrades.
+        DefaultsVersion = 1;
+        return true;
+    }
 
     public IEnumerable<LayoutOverride> Layers(uint job)
     {

@@ -206,7 +206,7 @@ internal static class LayoutPreferencesTests
             legacyClass.Classes[23].Mapping!.Areas[0].Entries[1].Intent == ControlIntent.Sprint,
             "explicit legacy class mapping was not converted");
         var explicitEmpty = JsonConvert.DeserializeObject<LayoutPreferences>(JsonConvert.SerializeObject(new LayoutPreferences
-            { MappingVersion = 3, Classes = new() { [23] = new() } }))!;
+            { MappingVersion = 3, PvP = new() { DefaultsVersion = 1 }, Classes = new() { [23] = new() } }))!;
         Check(!configured.InitializeDefaults(explicitEmpty) && explicitEmpty.Classes.ContainsKey(23), "explicitly added empty override disappeared");
         // Fixture mirrors the shipped v2 mapping, not the new default factory.
         List<MappingEntry> OldEntries(params ControlIntent[] intents) => intents.Select(i => new MappingEntry
