@@ -1,6 +1,6 @@
 # Rotation behaviour and hands-free automation
 
-Agreed 2026-11-02. Status: implementation and local verification complete; native validation pending. No publication requested or performed.
+Agreed 2026-11-02. Status: implementation and local verification complete; native validation pending. Publication requested; release verification pending.
 
 ## Required behaviour
 
@@ -47,4 +47,4 @@ The expanded C# suite currently passes 471,920 assertions, including all job/tog
 
 Final verification on 2026-11-02: both plugins built successfully with the current local engine source, with 471,920 C# assertions passing. Client Python suite: 3 passed. Engine Python suite: 22 passed, including the production Dancer dispatch across 480 scenarios and the production action hook against a stale cached replacement. The checked action guard precedes the icon cache and does not overwrite unrelated cached actions. Both final local archives passed package/identity/dependency/checksum validation; local source feeds were restored unchanged. Shared contracts match and both repositories passed whitespace checks.
 
-The plan review found and corrected the missing normal role-automation resolution, stale role changes in an open editor, misleading fallback values in the override UI, Dancer's no-target dispatch boundary, and the cached-replacement bypass. There are no remaining known implementation checklist items. In-game acceptance above is explicitly outstanding. Release dependency pins have not been advanced; publishing will require coordinating both plugins and their compatibility pins. Existing deselection semantics are retained: deselecting an already configured class does not erase its installed engine settings.
+The plan review found and corrected the missing normal role-automation resolution, stale role changes in an open editor, misleading fallback values in the override UI, Dancer's no-target dispatch boundary, and the cached-replacement bypass. There are no remaining known implementation checklist items. In-game acceptance above is explicitly outstanding. Release dependency pins now reference the matching engine implementation and client compatibility tests; both publication workflows must pass before release completion is reported. Existing deselection semantics are retained: deselecting an already configured class does not erase its installed engine settings.
