@@ -1,6 +1,6 @@
 # Activity automation
 
-Requested 2026-11-02. Status: implemented locally; final verification below. Not released or tested in game.
+Requested 2026-11-02. Status: implemented locally; final verification below. Publication requested; release verification pending. Not tested in game.
 
 ## Contract
 
@@ -19,9 +19,9 @@ Requested 2026-11-02. Status: implemented locally; final verification below. Not
 - [x] Build both plugins and run compatibility tests.
 - [x] Compare implementation against this contract; record outstanding native checks.
 
-Local verification on 2026-11-02: both plugins built successfully using the current engine source; 470,710 C# assertions passed, covering 512 PvE and 336 PvP combinations plus activity policy checks. Client Python tests passed (3); engine Python tests passed (21). The engine suite required a writable temporary directory. Both repositories passed `git diff --check`. These results do not constitute in-game validation or publication; release dependency pins have not been advanced.
+Local verification on 2026-11-02: both plugins built successfully using the current engine source; 470,710 C# assertions passed, covering 512 PvE and 336 PvP combinations plus activity policy checks. Client Python tests passed (3); engine Python tests passed (21). The engine suite required a writable temporary directory. Both repositories passed `git diff --check`. These results do not constitute in-game validation or publication; release dependency pins now reference the matching activity implementation and tests.
 
-Publication is not part of this change until requested. Native acceptance remains pending.
+Publication requested on 2026-11-02. Both plugins must pass the release build and package checks before publication is reported complete. Native acceptance remains pending.
 
 Follow-up correction: direct attacks no longer depend on Burst. The compatibility suite was rerun after this policy change: all 470,710 assertions passed, including direct attacks and their parents with every toggle off, toggle-controlled buffs, and isolation from PvP/unmanaged classes. Packaging Python results above are from the preceding implementation pass; packaging code was unchanged by this correction.
 
@@ -50,3 +50,4 @@ Saved optional policies remain untouched: Phantom damage-buff restriction, Slowg
 - Manual native controls remain usable; this task does not add activity actions to hotbar mappings or equip duty actions for the player.
 - Hands-free auto-rotation remains a separate Wrath setting. These toggles enable supported selection through the existing rotation paths.
 - Required in-game checks: Variant action equipment/readiness, direct attacks with all four toggles off, each category switched independently, a per-class override, personal threshold retention, and no activity effect in PvP. Automated checks do not prove native combat behavior.
+
