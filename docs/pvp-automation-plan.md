@@ -135,5 +135,5 @@ User correction supersedes the old two-button compatibility default. Implement O
 
 - [x] Implementation and regression cases written.
 - [x] Client/engine builds passed; 257,470 assertions passed including all-job/all-toggle layouts, Bard first-four placement, custom mapping preservation and restart behavior. Three packaging tests and an actual staged archive check passed.
-- [ ] Publish client update and verify central feed. Wrath behavior is unchanged.
+- [x] Published Accord 0.2.15.12 (release run 41130566174); central feed refresh 41130937494 succeeded and advertises 0.2.15.12. Wrath remains 1.0.4.35.
 - [ ] Native in-game acceptance (user testing).

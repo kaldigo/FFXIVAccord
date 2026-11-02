@@ -61,9 +61,9 @@ internal static class VariantDefinitions
 {
     internal static readonly VariantDefinition[] All =
     [
-        new(VariantId.Burst, "Auto burst", "SwordUnsheathed", "Delegate burst initiation; ST/AoE carries out the accepted sequence."),
-        new(VariantId.Protection, "Auto protection", "Tank", "Use reviewed protection through rotation presses; retain deliberate defensive controls."),
-        new(VariantId.Support, "Auto support", "Healer", "Use reviewed allied support through appropriate intent paths."),
-        new(VariantId.ClassMechanics, "Auto class mechanics", "GoldStar", "Delegate job mechanics such as dances, cards and songs. Effects depend on the job."),
+        new(VariantId.Burst, "Auto burst", "SwordUnsheathed", "Delegate burst initiation; ST/AoE carries out the accepted sequence. Also enables supported activity damage buffs. Direct activity attacks remain included regardless of automation toggles."),
+        new(VariantId.Protection, "Auto protection", "Tank", "Use reviewed protection through rotation presses, including supported activity mitigation and enemy control."),
+        new(VariantId.Support, "Auto support", "Healer", "Use reviewed support, including supported activity healing, resurrection and recovery potions."),
+        new(VariantId.ClassMechanics, "Auto class mechanics", "GoldStar", "Delegate job mechanics such as dances, cards and songs, plus supported activity utility. Effects depend on the job and activity."),
     ];
 }

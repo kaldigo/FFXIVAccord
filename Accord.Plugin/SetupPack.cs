@@ -75,6 +75,14 @@ internal sealed class SetupPack
         bool protection = settings.Enabled(VariantId.Protection, job);
         bool support = settings.Enabled(VariantId.Support, job);
         bool mechanics = settings.Enabled(VariantId.ClassMechanics, job);
+        if (FeatureScope.Supports(job, Feature.ActivityAutomation))
+        {
+            flags[Feature.ActivityAutomation] = true;
+            flags[Feature.ActivityOffense] = settings.Enabled(VariantId.Burst, job);
+            flags[Feature.ActivityDefense] = protection;
+            flags[Feature.ActivityRecovery] = support;
+            flags[Feature.ActivityUtility] = mechanics;
+        }
         if (job is 20 or 22 or 30 or 34 or 39 or 41) flags[Feature.MeleeFeintOnAoe] = protection;
         if (job is 25 or 27 or 35 or 42) flags[Feature.CasterAddleOnAoe] = protection;
         if (job is 23 or 31 or 38)

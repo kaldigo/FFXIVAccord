@@ -40,7 +40,7 @@ internal static class EngineSchema
                     if (snapshot[map.Name]?[entry.Name] is null) unknown.Add(map.Name + ":" + entry.Name);
         if (unknown.Count > 0) throw new Exception("Unregistered settings: " + string.Join(", ", unknown));
         var names = new JObject(Enum.GetValues(assembly.GetType("WrathCombo.Combos.Preset")!).Cast<object>().Select(p => new JProperty(p.ToString()!, Convert.ToInt32(p))));
-        int count = 0;
+        int count = ActivityAutomationTests.Run(names);
         foreach (var job in pack.Data.Jobs)
             for (int mask = 0; mask < 16; mask++)
             {
@@ -49,6 +49,8 @@ internal static class EngineSchema
                 var changes = JObject.Parse(pack.Resolve(job, choices).Settings.ToJsonString());
                 count += ActionAccess.Verify(job.Job, changes, names);
                 changes["AutoActions"] = pack.AutoModes(job, choices, names);
+                if (FeatureScope.Supports(job.JobId, Feature.ActivityAutomation))
+                    changes["ForkFeatures"] = new JObject { [job.JobId.ToString()] = JObject.FromObject(SetupPack.EngineFeatures(job.JobId, choices)) };
                 var enable = changes["EnabledActionsV6"]!; changes.Remove("EnabledActionsV6");
                 var shared = JObject.Parse(pack.Data.SharedSettings.ToJsonString()); shared.Remove("EnabledActionsV6");
                 changes.Merge(shared, new Newtonsoft.Json.Linq.JsonMergeSettings { MergeArrayHandling = MergeArrayHandling.Replace });
