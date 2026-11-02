@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Accord;
 
@@ -22,13 +23,13 @@ public sealed class AccordSettings : Dalamud.Configuration.IPluginConfiguration
     public string LastHotbarBackup { get; set; } = "";
     public bool Enabled(VariantId id) => Variants.GetValueOrDefault(id);
     public bool Enabled(VariantId id, uint job) => Layouts.Classes.TryGetValue(job, out var over) && over.Automation.TryGetValue(id, out var value)
-        ? value : Enabled(id);
+        ? value : Layouts.Roles.TryGetValue(LayoutPreferences.Role(job), out var role) && role.Automation.TryGetValue(id, out var byRole) ? byRole : Enabled(id);
     public bool Enabled(VariantId id, uint job, bool pvp) => pvp ? Layouts.PvP.Enabled(id, job, Enabled(id, job)) : Enabled(id, job);
     public string AutomationTarget(VariantId id, uint job, bool pvp)
     {
         if (ActiveJobs?.Contains(job) != true) return "Global";
         if (pvp && Layouts.PvP.AutomationTarget(id, job) is { } target) return target.Name;
-        return Layouts.Classes.TryGetValue(job, out var over) && over.Automation.ContainsKey(id) ? "class override" : "Global";
+        return Layouts.Classes.TryGetValue(job, out var over) && over.Automation.ContainsKey(id) ? "class override" : Layouts.Roles.TryGetValue(LayoutPreferences.Role(job), out var role) && role.Automation.ContainsKey(id) ? "role override" : "Global";
     }
     public void SetAutomation(VariantId id, bool value, uint currentJob = 0, bool pvp = false)
     {
@@ -36,6 +37,8 @@ public sealed class AccordSettings : Dalamud.Configuration.IPluginConfiguration
             target.Value.Automation[id] = value;
         else if (ActiveJobs?.Contains(currentJob) == true && Layouts.Classes.TryGetValue(currentJob, out var over) && over.Automation.ContainsKey(id))
             over.Automation[id] = value;
+        else if (ActiveJobs?.Contains(currentJob) == true && Layouts.Roles.TryGetValue(LayoutPreferences.Role(currentJob), out var role) && role.Automation.ContainsKey(id))
+            role.Automation[id] = value;
         else Variants[id] = value;
     }
 
@@ -47,7 +50,8 @@ public sealed class AccordSettings : Dalamud.Configuration.IPluginConfiguration
         PvP.Overrides = Layouts.PvP;
         PvP.Layouts = Layouts;
         PvP.ClassAutomation = new();
-        foreach (var (job, over) in Layouts.Classes) PvP.ClassAutomation[job] = new(over.Automation);
+        foreach (var job in ActiveJobs ?? [])
+            PvP.ClassAutomation[job] = System.Enum.GetValues<VariantId>().ToDictionary(id => id, id => Enabled(id, job));
         PvP.LiveMode = LiveMode;
         PvP.ClearOtherActions = ClearOtherActions;
         PvP.PendingLayouts.IntersectWith(PvP.ActiveJobs);
@@ -62,8 +66,8 @@ internal static class VariantDefinitions
     internal static readonly VariantDefinition[] All =
     [
         new(VariantId.Burst, "Auto burst", "SwordUnsheathed", "Delegate burst initiation; ST/AoE carries out the accepted sequence. Also enables supported activity damage buffs. Direct activity attacks remain included regardless of automation toggles."),
-        new(VariantId.Protection, "Auto protection", "Tank", "Use reviewed protection through rotation presses, including supported activity mitigation and enemy control."),
-        new(VariantId.Support, "Auto support", "Healer", "Use reviewed support, including supported activity healing, resurrection and recovery potions."),
+        new(VariantId.Protection, "Auto protection", "Tank", "Use reviewed protection through rotation presses, including supported activity mitigation and enemy control. With Wrath auto-rotation enabled, also enables preventive healer shields and mitigation responses to raidwides/tankbusters."),
+        new(VariantId.Support, "Auto support", "Healer", "Use reviewed support, including supported activity healing, resurrection and recovery potions. With Wrath auto-rotation enabled, also enables raises, Esuna, Kardia management, pre-emptive healing and raidwide healing responses."),
         new(VariantId.ClassMechanics, "Auto class mechanics", "GoldStar", "Delegate job mechanics such as dances, cards and songs, plus supported activity utility. Effects depend on the job and activity."),
     ];
 }

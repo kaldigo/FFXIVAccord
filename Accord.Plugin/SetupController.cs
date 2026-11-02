@@ -10,6 +10,7 @@ using ECommons.GameHelpers;
 using HotbarTools;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using WrathFork.Contract;
 
 
 
@@ -404,6 +405,11 @@ internal sealed class SetupController : IDisposable
             ((JObject)changes["AutoActions"]!).Merge(Pack.AutoModes(job, desired, (JObject)snapshot["PresetIds"]!));
             if (changes["ForkFeatures"] is not JObject) changes["ForkFeatures"] = new JObject();
             changes["ForkFeatures"]![job.JobId.ToString()] = JObject.FromObject(SetupPack.EngineFeatures(job.JobId, desired));
+            if (FeatureScope.Supports(job.JobId, Feature.RunnerAutomation))
+            {
+                if (changes["RotationPreferences"] is not JObject) changes["RotationPreferences"] = new JObject();
+                changes["RotationPreferences"]![job.JobId.ToString()] = JObject.FromObject(desired.Layouts.Resolve(job.JobId).Rotation);
+            }
             if (job.JobId >= 19)
             {
                 if (changes["ActionRoutes"] is not JObject) changes["ActionRoutes"] = new JObject();

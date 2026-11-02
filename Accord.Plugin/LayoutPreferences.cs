@@ -97,6 +97,7 @@ public sealed class IntentMapping
 
 public sealed class LayoutValues
 {
+    public WrathFork.Contract.RotationPreferences Rotation { get; set; } = new();
     public IntentMapping Mapping { get; set; } = new();
     public bool KeepManual { get; set; }
     public bool SplitMechanics { get; set; }
@@ -108,6 +109,8 @@ public sealed class LayoutValues
 // displays effective inherited values without freezing them into the override.
 public sealed class LayoutOverride
 {
+    public WrathFork.Contract.RotationPreferences Rotation { get; set; } = new();
+    public bool ShouldSerializeRotation() => !Rotation.Empty;
     // Presence is Apply; false is an explicit manual choice, not inheritance.
     public Dictionary<VariantId, bool> Automation { get; set; } = new();
     public bool ShouldSerializeAutomation() => Automation.Count > 0;
@@ -124,6 +127,7 @@ public sealed class LayoutOverride
 
     internal LayoutValues Over(LayoutValues parent) => new()
     {
+        Rotation = Rotation.Over(parent.Rotation),
         Mapping = Mapping ?? parent.Mapping, KeepManual = KeepManual ?? parent.KeepManual,
         SplitMechanics = SplitMechanics ?? parent.SplitMechanics,
         RoleActions = RoleActions ?? parent.RoleActions, Exclusions = Exclusions ?? parent.Exclusions,
@@ -161,23 +165,28 @@ public sealed class LayoutPreferences
     internal void RebaseAutomation(LayoutPreferences baseline, LayoutPreferences latest)
     {
         PvP.RebaseAutomation(baseline.PvP, latest.PvP);
-        foreach (var (job, draft) in Classes)
+        Rebase(Classes, baseline.Classes, latest.Classes);
+        Rebase(Roles, baseline.Roles, latest.Roles);
+        static void Rebase<T>(Dictionary<T, LayoutOverride> drafts, Dictionary<T, LayoutOverride> old, Dictionary<T, LayoutOverride> currentValues) where T : notnull
         {
-            if (!baseline.Classes.TryGetValue(job, out var before) || !latest.Classes.TryGetValue(job, out var current)) continue;
-            foreach (var id in Enum.GetValues<VariantId>())
+            foreach (var (job, draft) in drafts)
             {
-                bool? oldValue = before.Automation.TryGetValue(id, out var old) ? old : null;
-                bool? draftValue = draft.Automation.TryGetValue(id, out var edited) ? edited : null;
-                if (oldValue != draftValue) continue; // Explicit unsaved changes still belong to the editor.
-                if (current.Automation.TryGetValue(id, out var value)) draft.Automation[id] = value;
-                else draft.Automation.Remove(id);
+                if (!old.TryGetValue(job, out var before) || !currentValues.TryGetValue(job, out var current)) continue;
+                foreach (var id in Enum.GetValues<VariantId>())
+                {
+                    bool? oldValue = before.Automation.TryGetValue(id, out var oldSetting) ? oldSetting : null;
+                    bool? draftValue = draft.Automation.TryGetValue(id, out var edited) ? edited : null;
+                    if (oldValue != draftValue) continue; // Explicit unsaved changes still belong to the editor.
+                    if (current.Automation.TryGetValue(id, out var value)) draft.Automation[id] = value;
+                    else draft.Automation.Remove(id);
+                }
             }
         }
     }
 
     internal void PruneUnusedOverrides()
     {
-        static bool Empty(LayoutOverride o) => o.Automation.Count == 0 && o.Mapping is null && o.KeepManual is null && o.SplitMechanics is null && o.RoleActions is null && o.Exclusions is null;
+        static bool Empty(LayoutOverride o) => o.Rotation.Empty && o.Automation.Count == 0 && o.Mapping is null && o.KeepManual is null && o.SplitMechanics is null && o.RoleActions is null && o.Exclusions is null;
         foreach (var role in Roles.Where(p => Empty(p.Value)).Select(p => p.Key).ToArray()) Roles.Remove(role);
         foreach (var job in Classes.Where(p => Empty(p.Value)).Select(p => p.Key).ToArray()) Classes.Remove(job);
         foreach (var role in PvP.Roles.Where(p => Empty(p.Value)).Select(p => p.Key).ToArray()) PvP.Roles.Remove(role);

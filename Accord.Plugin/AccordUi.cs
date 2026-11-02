@@ -11,11 +11,11 @@ namespace Accord;
 
 internal static class AccordUi
 {
-    internal enum Page { General, Automation, Classes, Hotbars, RoleActions, Exclusions, Groups, Overrides, PvPGlobal, PvPOverrides, Preview, Recovery }
+    internal enum Page { General, Automation, Classes, Hotbars, RoleActions, Exclusions, Groups, Overrides, PvPGlobal, PvPOverrides, Preview, Recovery, Rotation }
     private static Page page;
     private static string search = "";
-    private static readonly string[] titles = ["General", "Global automation", "Active classes", "Global mapping", "Global role actions", "Global exclusions", "Personal groups", "Mapping overrides", "PvP Global", "PvP overrides", "Preview", "Recovery & tools"];
-    private static readonly string[] keywords = ["live mode bars shared", "burst protection support mechanics", "jobs enable", "layout slots position manual defaults override", "important role", "exclude manual wrath", "potions roulette items extras", "role class overrides add edit inheritance", "pvp global automation mapping rotation one two", "pvp role class overrides", "preview class result inherited", "backup restore logout diagnostics"];
+    private static readonly string[] titles = ["General", "Global automation", "Active classes", "Global mapping", "Global role actions", "Global exclusions", "Personal groups", "Mapping overrides", "PvP Global", "PvP overrides", "Preview", "Recovery & tools", "Rotation behaviour"];
+    private static readonly string[] keywords = ["live mode bars shared", "burst protection support mechanics", "jobs enable", "layout slots position manual defaults override", "important role", "exclude manual wrath", "potions roulette items extras", "role class overrides add edit inheritance", "pvp global automation mapping rotation one two", "pvp role class overrides", "preview class result inherited", "backup restore logout diagnostics", "target enemy range aoe activities combat opener potions"];
 
     internal static void Draw()
     {
@@ -31,7 +31,7 @@ internal static class AccordUi
             ImGui.TextDisabled(SetupController.IsPvP ? "PvP" : setup.Live ? "Live hotbars" : "Static hotbars");
             ImGui.Spacing(); ImGui.SetNextItemWidth(-1);
             ImGui.InputTextWithHint("##find", "Find a setting...", ref search, 80);
-            foreach (var item in Enum.GetValues<Page>())
+            foreach (var item in new[] { Page.General, Page.Automation, Page.Rotation, Page.Classes, Page.Hotbars, Page.RoleActions, Page.Exclusions, Page.Groups, Page.Overrides, Page.PvPGlobal, Page.PvPOverrides, Page.Preview, Page.Recovery })
             {
                 int index = (int)item;
                 if (!(titles[index] + " " + keywords[index]).Contains(search, StringComparison.OrdinalIgnoreCase)) continue;

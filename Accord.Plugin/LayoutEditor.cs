@@ -12,7 +12,7 @@ using Sheets = Lumina.Excel.Sheets;
 
 namespace Accord;
 
-internal static class LayoutEditor
+internal static partial class LayoutEditor
 {
     private static LayoutPreferences draft = null!;
     private static string scope = "Global";
@@ -51,11 +51,11 @@ internal static class LayoutEditor
         bool dirty = JsonConvert.SerializeObject(draft) != JsonConvert.SerializeObject(setup.Settings.Layouts);
         if (!dirty) saved = JsonConvert.SerializeObject(draft);
         ImGui.BeginDisabled(!dirty);
-        if (ImGui.Button("Save layout changes")) setup.Run(() => setup.SaveLayouts(Copy(draft!)));
+        if (ImGui.Button("Save changes")) setup.Run(() => setup.SaveLayouts(Copy(draft!)));
         ImGui.SameLine();
         if (ImGui.Button("Discard changes")) { draft = Copy(setup.Settings.Layouts); saved = JsonConvert.SerializeObject(draft); }
         ImGui.EndDisabled(); ImGui.SameLine();
-        ImGui.TextDisabled(dirty ? "Unsaved layout changes" : string.IsNullOrWhiteSpace(setup.LayoutStatus) ? "Layout settings saved" : "Saved - review layout warnings");
+        ImGui.TextDisabled(dirty ? "Unsaved changes" : string.IsNullOrWhiteSpace(setup.LayoutStatus) ? "Settings saved" : "Saved - review layout warnings");
     }
     private static string Label(object value) => value is ControlIntent intent ? intent switch
     {
@@ -79,6 +79,7 @@ internal static class LayoutEditor
             (selectedOverride, selectedPvPOverride) = (selectedPvPOverride, selectedOverride);
             return;
         }
+        if (page == AccordUi.Page.Rotation) { DrawRotation(draft.Global.Rotation, new(), false); return; }
         if (page == AccordUi.Page.General) { Bars(setup); return; }
         if (page == AccordUi.Page.Groups) { Groups(setup, draft!); return; }
         if (page == AccordUi.Page.Preview) { DrawPreview(setup); return; }
@@ -89,11 +90,15 @@ internal static class LayoutEditor
 
     private static bool InheritedAutomation(SetupController setup, VariantId id, bool pvp, string selected)
     {
-        uint job = selected.StartsWith("Role: ") ? 0 : setup.Pack.Data.Jobs.First(j => j.Job == selected).JobId;
-        bool value = job == 0 ? setup.Settings.Enabled(id) : setup.Settings.Enabled(id, job);
-        if (!pvp) return setup.Settings.Enabled(id);
+        bool isRole = selected.StartsWith("Role: ");
+        uint job = isRole ? 0 : setup.Pack.Data.Jobs.First(j => j.Job == selected).JobId;
+        var roleKey = isRole ? Enum.Parse<JobRole>(selected[6..]) : LayoutPreferences.Role(job);
+        bool value = setup.Settings.Enabled(id);
+        if ((!isRole || pvp) && draft.Roles.TryGetValue(roleKey, out var normalRole) && normalRole.Automation.TryGetValue(id, out var roleValue)) value = roleValue;
+        if (!pvp) return value;
+        if (!isRole && draft.Classes.TryGetValue(job, out var normalClass) && normalClass.Automation.TryGetValue(id, out var classValue)) value = classValue;
         if (draft.PvP.Global.Automation.TryGetValue(id, out var global)) value = global;
-        if (job != 0 && draft.PvP.Roles.TryGetValue(LayoutPreferences.Role(job), out var role) && role.Automation.TryGetValue(id, out var byRole)) value = byRole;
+        if (!isRole && draft.PvP.Roles.TryGetValue(roleKey, out var role) && role.Automation.TryGetValue(id, out var byRole)) value = byRole;
         return value;
     }
 
@@ -261,7 +266,7 @@ internal static class LayoutEditor
                 DrawSettings(setup, i == 0 ? AccordUi.Page.Hotbars : i == 1 ? AccordUi.Page.RoleActions : AccordUi.Page.Exclusions, over, parent);
                 ImGui.EndTabItem();
             }
-            if ((pvp || !scope.StartsWith("Role: ")) && ImGui.BeginTabItem("Automation"))
+            if (ImGui.BeginTabItem("Automation"))
             {
                 ImGui.TextWrapped("Apply replaces the inherited option. Server-status buttons change the highest applied layer for the active class and mode.");
                 foreach (var definition in VariantDefinitions.All)
@@ -272,6 +277,8 @@ internal static class LayoutEditor
                 }
                 ImGui.EndTabItem();
             }
+            if (!pvp && ImGui.BeginTabItem("Rotation behaviour"))
+            { DrawRotation(over.Rotation, parent.Rotation, true); ImGui.EndTabItem(); }
             ImGui.EndTabBar();
         }
         void Row(string key, string label, Action remove)

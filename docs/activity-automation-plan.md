@@ -1,6 +1,6 @@
 # Activity automation
 
-Requested 2026-11-02. Status: implemented locally; final verification below. Publication requested; release verification pending. Not tested in game.
+Requested 2026-11-02. Status: published as Accord 0.2.15.13 and WrathCombo 1.0.4.36 on 2026-11-02. Not tested in game.
 
 ## Contract
 
@@ -51,3 +51,5 @@ Saved optional policies remain untouched: Phantom damage-buff restriction, Slowg
 - Hands-free auto-rotation remains a separate Wrath setting. These toggles enable supported selection through the existing rotation paths.
 - Required in-game checks: Variant action equipment/readiness, direct attacks with all four toggles off, each category switched independently, a per-class override, personal threshold retention, and no activity effect in PvP. Automated checks do not prove native combat behavior.
 
+
+Publication verification: both GitHub release workflows succeeded (Accord run 41421128907; Wrath run 41421119293). Each release contains the plugin ZIP, source feed and SHA256SUMS.txt. Central feed refresh run 41421690224 succeeded; both central entries verified at the published versions and matching download URLs.

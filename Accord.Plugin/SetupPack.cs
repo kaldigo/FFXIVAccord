@@ -77,6 +77,9 @@ internal sealed class SetupPack
         bool mechanics = settings.Enabled(VariantId.ClassMechanics, job);
         if (FeatureScope.Supports(job, Feature.ActivityAutomation))
         {
+            flags[Feature.RunnerAutomation] = true;
+            flags[Feature.RunnerSupport] = support;
+            flags[Feature.RunnerProtection] = protection;
             flags[Feature.ActivityAutomation] = true;
             flags[Feature.ActivityOffense] = settings.Enabled(VariantId.Burst, job);
             flags[Feature.ActivityDefense] = protection;

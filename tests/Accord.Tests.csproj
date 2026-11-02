@@ -32,6 +32,7 @@
     <Compile Include="$(EngineSourceRoot)/WrathCombo/Engine/PvPRequestState.cs" Link="PvPRequestState.cs" />
     <Compile Include="$(EngineSourceRoot)/WrathCombo/Engine/PvPAreaChoice.cs" Link="PvPAreaChoice.cs" />
     <Compile Include="$(EngineSourceRoot)/WrathCombo/Engine/ActivityPresetPolicy.cs" Link="ActivityPresetPolicy.cs" />
+    <Compile Include="$(EngineSourceRoot)/WrathCombo/Engine/UntargetedAoePolicy.cs" Link="UntargetedAoePolicy.cs" />
     <Compile Include="$(EngineSourceRoot)/WrathCombo/Engine/BurstPolicy.cs" Link="BurstPolicy.cs" />
     <Compile Include="../Accord.Plugin/JobIntents.cs" Link="JobIntents.cs" />
     <Compile Include="../Accord.Plugin/HotbarTransaction.cs" Link="HotbarTransaction.cs" />

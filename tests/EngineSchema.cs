@@ -40,7 +40,7 @@ internal static class EngineSchema
                     if (snapshot[map.Name]?[entry.Name] is null) unknown.Add(map.Name + ":" + entry.Name);
         if (unknown.Count > 0) throw new Exception("Unregistered settings: " + string.Join(", ", unknown));
         var names = new JObject(Enum.GetValues(assembly.GetType("WrathCombo.Combos.Preset")!).Cast<object>().Select(p => new JProperty(p.ToString()!, Convert.ToInt32(p))));
-        int count = ActivityAutomationTests.Run(names);
+        int count = ActivityAutomationTests.Run(names) + RotationBehaviourTests.Run();
         foreach (var job in pack.Data.Jobs)
             for (int mask = 0; mask < 16; mask++)
             {
@@ -51,6 +51,8 @@ internal static class EngineSchema
                 changes["AutoActions"] = pack.AutoModes(job, choices, names);
                 if (FeatureScope.Supports(job.JobId, Feature.ActivityAutomation))
                     changes["ForkFeatures"] = new JObject { [job.JobId.ToString()] = JObject.FromObject(SetupPack.EngineFeatures(job.JobId, choices)) };
+                if (FeatureScope.Supports(job.JobId, Feature.RunnerAutomation))
+                    changes["RotationPreferences"] = new JObject { [job.JobId.ToString()] = JObject.FromObject(new RotationPreferences { Targeting = (EnemySelection)(mask % 3), TargetRange = mask + 1, AoeTargets = mask % 10 + 1, ActivityUntargetedAoe = (mask & 1) != 0, CombatOnly = (mask & 2) != 0, Openers = (mask & 4) != 0, OpenerPotions = (mask & 8) != 0 }) };
                 var enable = changes["EnabledActionsV6"]!; changes.Remove("EnabledActionsV6");
                 var shared = JObject.Parse(pack.Data.SharedSettings.ToJsonString()); shared.Remove("EnabledActionsV6");
                 changes.Merge(shared, new Newtonsoft.Json.Linq.JsonMergeSettings { MergeArrayHandling = MergeArrayHandling.Replace });
