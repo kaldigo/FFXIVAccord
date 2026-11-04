@@ -8,6 +8,7 @@
     <EngineSourceRoot Condition="'$(EngineSourceRoot)' == ''">$(MSBuildThisFileDirectory)../.engine</EngineSourceRoot>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(EngineSourceRoot)/WrathCombo/Engine/DecisionTrace.cs" Link="DecisionTrace.cs" />
     <Compile Include="../Accord.Plugin/LayoutPreferences.cs" Link="LayoutPreferences.cs" />
     <Compile Include="../Accord.Plugin/ConfiguredLayout.cs" Link="ConfiguredLayout.cs" />
     <Compile Include="../Accord.Plugin/CombinedUpdate.cs" Link="CombinedUpdate.cs" />
