@@ -12,6 +12,9 @@ internal static class DecisionReplay
             object? output = sample.Value<string>("Provider") switch
             {
                 "DRG.LifeSurge" => DrgPreparation.LifeSurge(input.ToObject<DrgPreparationInput>()!),
+                "MCH.Reassemble" => MchPreparation.Reassemble(input.ToObject<MchPreparationInput>()!),
+                "PLD.Burst" => PldBurst.Start(input.ToObject<PldBurstInput>()!),
+                "WAR.BurstDuration" => ResourceWindow.CanFinish(input.ToObject<BurstDurationInput>()!),
                 "Preparation" => PreparationPolicy.Select(input.ToObject<PreparationInput>()!),
                 "Target" => TargetSelection.Select(input.ToObject<TargetSelectionInput>()!),
                 var unknown => throw new InvalidDataException("Unknown decision provider: " + unknown),

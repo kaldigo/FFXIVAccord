@@ -16,6 +16,8 @@ internal static class RotationTestingPanel
     internal static void Draw()
     {
         Plugin.Instance.Automation.Draw();
+        RsrPermissionsPanel.Draw();
+        RsrSettingsPanel.Draw();
         ImGui.TextWrapped("Observe the existing Wrath rotation for up to 60 seconds. This does not run a second resolver or change your rotation settings. Start replaces the previous capture.");
         ImGui.BeginDisabled(pending);
         if (ImGui.Button("Start 60 second capture")) Request("start");
@@ -30,17 +32,30 @@ internal static class RotationTestingPanel
             ImGui.TextWrapped("Testing providers (session only; change outside combat). Reload restores the original providers. These options affect Wrath only.");
             ImGui.BeginDisabled(pending);
             Toggle(options, "Drg", "DRG: prepare Life Surge for the planned hit");
+            Toggle(options, "Machinist", "MCH: match Reassemble to the selected weaponskill");
+            Toggle(options, "Paladin", "PLD: coordinate burst with the planned GCD and active buffs");
+            Toggle(options, "Warrior", "WAR: check buff duration and downtime before burst");
+            Toggle(options, "Gunbreaker", "GNB: use observed No Mercy state and downtime checks");
+            Toggle(options, "DarkKnight", "DRK: reserve shield mana for observed incoming damage");
             Toggle(options, "CompareDrg", "DRG: capture planned-hit comparisons with the original provider");
             Toggle(options, "Sage", "SGE: retain prepared spell and recipient");
+            Toggle(options, "Scholar", "SCH: shared healing and retained Deployment recipient");
+            Toggle(options, "Astrologian", "AST: shared healing and prepared spell");
+            Toggle(options, "WhiteMage", "WHM: shared healing and preparation");
             Toggle(options, "Forecasts", "Read BossMod encounter forecasts");
-            Toggle(options, "IncludeHealing", "SGE: include healing abilities in damage buttons");
-            Toggle(options, "HealingGcds", "SGE: also allow healing spells to replace damage casts");
+            Toggle(options, "IncludeHealing", "Healers: include healing abilities in damage buttons");
+            Toggle(options, "HealingGcds", "Healers: also allow healing spells to replace damage casts");
             Toggle(options, "PartyMouseover", "Healing override: party-list mouseover");
             Toggle(options, "WorldMouseover", "Healing override: world mouseover");
             Toggle(options, "Focus", "Healing override: focus target");
             Toggle(options, "Fallback", "Fall back when a deliberate target is invalid");
             Toggle(options, "AutomaticAllies", "Select an eligible ally automatically when no override exists");
-            Toggle(options, "AutomaticEnemies", "DRG: choose an eligible enemy using action coverage");
+            Toggle(options, "EnemyTargeting", "Use action coverage and target validation across PvE damage buttons");
+            Toggle(options, "AcquireEnemy", "Acquire an engaged enemy when none is selected");
+            Toggle(options, "EnemyMouseover", "Damage override: world mouseover");
+            Toggle(options, "EnemyFocus", "Damage override: focus target");
+            Toggle(options, "AutomaticEnemies", "Allow automatic enemy switching for action coverage");
+            Toggle(options, "OverridesInAutomation", "Apply mouseover overrides to automatic actions too");
             ImGui.EndDisabled();
             if (report["Encounter"] is JObject encounter) ImGui.TextWrapped("Encounter guidance: " + encounter.Value<string>("Module"));
             else ImGui.TextDisabled("No current encounter forecast available.");

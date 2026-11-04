@@ -136,6 +136,9 @@ internal static partial class LayoutEditor
             v => { if (over is null) draft.Global.KeepManual = v!.Value; else over.KeepManual = v; });
         if (!editingPvP)
         {
+            Bool("Join PvE damage controls", effective.JoinedDamage, over?.JoinedDamage, over is not null,
+                v => { if (over is null) draft.Global.JoinedDamage = v!.Value; else over.JoinedDamage = v; });
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip("Use one adaptive damage button for standard jobs. It uses your AoE target threshold and preserves separate ST/AoE exclusions. Limited jobs retain their dedicated controls.");
             Bool("Split class mechanic controls", effective.SplitMechanics, over?.SplitMechanics, over is not null,
                 v => { if (over is null) draft.Global.SplitMechanics = v!.Value; else over.SplitMechanics = v; });
             if (ImGui.IsItemHovered()) ImGui.SetTooltip("Separate Bard songs, Dancer dances and Astrologian draw/play controls. Other existing mechanic controls already remain separate.");

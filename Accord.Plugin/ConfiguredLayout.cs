@@ -147,6 +147,12 @@ internal sealed class ConfiguredLayout
             baseContents[(job.JobId, legacy)] = baselineContents = BuildContents(job, legacy);
         var content = baselineContents.ToDictionary(p => p.Key, p => p.Value.ToList());
         var values = settings.Layouts.Resolve(job.JobId);
+        if (values.JoinedDamage && SupportsJoinedDamage(job.JobId) && content[ControlIntent.SingleTarget].Count > 0)
+        {
+            content[ControlIntent.SingleTarget].Clear();
+            content[ControlIntent.SingleTarget].Add(new(new ActionChoice { Name = "Adaptive rotation", Id = 1000016, Selector = true }));
+            content[ControlIntent.AreaDamage].Clear();
+        }
         if (values.SplitMechanics && SplitActions.TryGetValue(job.JobId, out var split))
         {
             content[ControlIntent.Mechanics].Clear();
@@ -265,6 +271,7 @@ internal sealed class ConfiguredLayout
         var unsplit = Clone(settings);
         unsplit.Layouts.Classes.TryAdd(job.JobId, new());
         unsplit.Layouts.Classes[job.JobId].SplitMechanics = false;
+        unsplit.Layouts.Classes[job.JobId].JoinedDamage = false;
         var contents = Contents(job, unsplit);
         var routes = new Dictionary<uint, ActionRoutePolicy>();
         foreach (var exclusion in values.Exclusions)
@@ -298,4 +305,5 @@ internal sealed class ConfiguredLayout
     }
 
     internal static AccordSettings Clone(AccordSettings source) => JsonConvert.DeserializeObject<AccordSettings>(JsonConvert.SerializeObject(source))!;
+    internal static bool SupportsJoinedDamage(uint job) => job is 19 or 20 or 21 or 22 or 23 or 24 or 25 or 27 or 28 or 30 or 31 or 32 or 33 or 34 or 35 or 37 or 38 or 39 or 40 or 41 or 42;
 }

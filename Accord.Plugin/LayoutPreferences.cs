@@ -101,6 +101,7 @@ public sealed class LayoutValues
     public IntentMapping Mapping { get; set; } = new();
     public bool KeepManual { get; set; }
     public bool SplitMechanics { get; set; }
+    public bool JoinedDamage { get; set; }
     public RoleActionSelection RoleActions { get; set; } = new();
     public List<ActionExclusion> Exclusions { get; set; } = new();
 }
@@ -121,6 +122,8 @@ public sealed class LayoutOverride
     [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
     public bool? SplitMechanics { get; set; }
     [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+    public bool? JoinedDamage { get; set; }
+    [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
     public RoleActionSelection? RoleActions { get; set; }
     [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
     public List<ActionExclusion>? Exclusions { get; set; }
@@ -130,6 +133,7 @@ public sealed class LayoutOverride
         Rotation = Rotation.Over(parent.Rotation),
         Mapping = Mapping ?? parent.Mapping, KeepManual = KeepManual ?? parent.KeepManual,
         SplitMechanics = SplitMechanics ?? parent.SplitMechanics,
+        JoinedDamage = JoinedDamage ?? parent.JoinedDamage,
         RoleActions = RoleActions ?? parent.RoleActions, Exclusions = Exclusions ?? parent.Exclusions,
     };
 }
@@ -186,7 +190,7 @@ public sealed class LayoutPreferences
 
     internal void PruneUnusedOverrides()
     {
-        static bool Empty(LayoutOverride o) => o.Rotation.Empty && o.Automation.Count == 0 && o.Mapping is null && o.KeepManual is null && o.SplitMechanics is null && o.RoleActions is null && o.Exclusions is null;
+        static bool Empty(LayoutOverride o) => o.Rotation.Empty && o.Automation.Count == 0 && o.Mapping is null && o.KeepManual is null && o.SplitMechanics is null && o.JoinedDamage is null && o.RoleActions is null && o.Exclusions is null;
         foreach (var role in Roles.Where(p => Empty(p.Value)).Select(p => p.Key).ToArray()) Roles.Remove(role);
         foreach (var job in Classes.Where(p => Empty(p.Value)).Select(p => p.Key).ToArray()) Classes.Remove(job);
         foreach (var role in PvP.Roles.Where(p => Empty(p.Value)).Select(p => p.Key).ToArray()) PvP.Roles.Remove(role);

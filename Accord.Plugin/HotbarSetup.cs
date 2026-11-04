@@ -74,6 +74,9 @@ internal sealed class HotbarSetup
                 var slot = entry.Slot;
                 var value = slot is null ? default : slot.Action == "Sprint" ? new SlotValue(1,3) : actions.ResolveSlot(preset.Job, slot.Action);
                 var retired = string.IsNullOrEmpty(slot?.RetiredAction) ? default : actions.ResolveSlot(preset.Job, slot.RetiredAction);
+                var adaptive = PveLayoutPlan.DamageValue(preset, slot, value);
+                if (adaptive == default && value != default) retired = value;
+                value = adaptive;
                 if (configured is null) Add(entry.Regular, value, retired, true);
                 if (entry.Cross is { } cross) Add(cross, value, retired);
                 else if (value != default) Notice = " Some controls are keyboard-only because their controller slots are shared or unavailable. Shared bars were preserved.";

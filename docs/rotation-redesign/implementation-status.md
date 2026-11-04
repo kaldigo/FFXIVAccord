@@ -4,6 +4,25 @@
 
 ## Current checkpoint (supersedes the initial delivery notes below)
 
+### Continuing implementation, 4 November
+
+The work remains in progress against the **entire** roadmap. A successful build is not completion. Latest paired validation: 472,217 assertions; RSR Release build and settings/manual-permission checks also pass. Stable checkouts and feeds have not been changed.
+
+Implemented since the earlier checkpoint:
+
+- Shared opt-in WHM/SCH/AST advanced healing selection and damage-button healing inclusion, retained preparation recipients, and Recitation → Adloquium → Deployment progression from confirmed effects. Existing priority thresholds and Scholar resource restrictions are retained. Simple providers, complete prepull/ground coverage and cohealer mitigation spacing still require work.
+- Bounded, recipient-specific pending-health effects with deduplication, acknowledgement and expiry; actual raidwide cast timing and distinct tankbuster marker identity. Unknown timing stays unknown.
+- Opt-in MCH Reassemble eligibility uses the selected GCD branch with preparation disabled; excludes Full Metal Field, Bioblaster, Flamethrower and heat attacks. Does not execute a second rotation. PLD burst entry uses planned GCD/proc state and actual accepted buff continuation. WAR checks buff/known uptime duration; DRK adds an event-specific shield reserve without lowering configured reserves. These focused changes do not yet complete the offensive scheduling stage.
+- Opt-in GNB uses actual No Mercy status for burst membership, including its dedicated buff control. Remaining planned-GCD/phase scheduling work is not represented as complete by this change.
+- Action-specific enemy selection can be enabled across PvE damage providers, with separate mouseover/focus permissions, acquisition versus switching, and press-time recipient validation. Automatic selection still excludes unengaged collateral. This is a delivery/coverage extension; it does not yet replace every job's preliminary target eligibility checks.
+- RSR has explicit per-job/per-PvE/PvP manual-only action lists, checked at selection and execution. They apply to coordinated automation and do not intercept native manual buttons. Accord can edit these lists and verified RSR preferences independently of Wrath. RSR AutoHeal is labelled as automatic threshold calculation, not healing permission.
+
+All new policy code is locally authored. Behavioral references are the pinned RSR next-GCD preparation, PLD buff coordination, and action-specific targeting structure. No RSR rotation source has been copied into the BSD-licensed Wrath project. Deterministic captures can replay the MCH, PLD and WAR policy inputs as well as the earlier DRG/preparation/target inputs.
+
+Joined PvE controls now use a separate custom action (`1000016`), with Global → role → job inheritance and keyboard/controller layouts. One enabled provider is selected using the area action's coverage and the existing AoE threshold; the chosen path retains its own exclusions. Unavailable area actions fall back to ST. Accepted Ninja sequences retain their mode; icon previews cannot commit it. Limited jobs keep their dedicated controls. The paired suite passes 472,288 assertions including these layout and selection cases. Client packaging tests pass (11); engine Python regressions pass (30). Native action-cache and queue acceptance remains required.
+
+Still open: finish healer adapters and targeting preferences, complete Stage 3/4 job/limited-job adapters and replay coverage, PvP migrations, activity integration and testing publication. The older table below is the previous checkpoint, not evidence these open items are finished.
+
 The paired Release build passes with 472,127 assertions, including the new ownership and external-queue tests. The DRG/SGE pilot now includes pure decision snapshots, fixed recipients, confirmed preparation progression, actual-hit Life Surge selection, opt-in healing inclusion, action-specific target geometry, queue-recipient protection, and read-only BossMod forecasts. Captures include replayable policy inputs and outputs; `--replay-capture <report.json>` compares them without game execution. Experimental selection options are session-only and disabled by default. Opting into coordinated automation persists only a stopped-on-reload guard. These changes are not yet validated in game.
 
 RSR now also has an isolated `testing` worktree at base `156de237f5e4231d93558c8e6fba6ee337e7b902`. Its runtime identity remains unchanged. No plugin has been installed or published.

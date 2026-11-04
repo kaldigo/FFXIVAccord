@@ -9,6 +9,8 @@ namespace Accord;
 // Plan keyboard destinations independently of whether a controller mirror can be written.
 internal static class PveLayoutPlan
 {
+    internal static SlotValue DamageValue(JobPreset preset, PresetSlot? slot, SlotValue original) => !preset.JoinedDamage ? original :
+        slot?.LogicalSlot switch { 1 => new SlotValue(1, 1000016), 2 => default, _ => original };
     internal static bool IsGatherer(uint job) => job is 16 or 17 or 18;
     internal sealed record Entry(PresetSlot? Slot, SlotMap Map, Position Regular, Position? Cross, bool Registered);
 

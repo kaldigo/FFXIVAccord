@@ -105,6 +105,26 @@ internal static class LayoutPreferencesTests
         var pack = new SetupPack();
         var catalog = new ActionCatalog(null!, null!);
         var configured = new ConfiguredLayout(pack, (job, name) => catalog.ResolveSlot(job, name));
+        var joined = new AccordSettings();
+        joined.Layouts.Global.JoinedDamage = true;
+        joined.Layouts.Classes[31] = new() { JoinedDamage = false };
+        Check(joined.Layouts.Resolve(22).JoinedDamage && !joined.Layouts.Resolve(31).JoinedDamage, "joined damage inheritance and explicit split override");
+        joined.Layouts.PruneUnusedOverrides();
+        Check(joined.Layouts.Classes.ContainsKey(31), "explicit split override was pruned");
+        foreach (var job in pack.Data.Jobs.Where(j => ConfiguredLayout.SupportsJoinedDamage(j.JobId)))
+        {
+            var local = ConfiguredLayout.Clone(joined);
+            local.Layouts.Classes.Clear();
+            var content = configured.Contents(job, local);
+            Check(content[ControlIntent.SingleTarget].Single().Action.Id == 1000016 && content[ControlIntent.AreaDamage].Count == 0,
+                job.Job + " joined layout must have one adaptive control");
+            var resolved = pack.Resolve(job, local);
+            Check(PveLayoutPlan.DamageValue(resolved, new PresetSlot { LogicalSlot = 1 }, new(1, 123)).Id == 1000016 &&
+                PveLayoutPlan.DamageValue(resolved, new PresetSlot { LogicalSlot = 2 }, new(1, 456)) == default,
+                job.Job + " controller must use the same joined setting");
+            Check(PveLayoutPlan.DamageValue(resolved, new PresetSlot { LogicalSlot = 5 }, new(1, 789)).Id == 789,
+                "Joined damage must preserve manual defense controls");
+        }
         bool Available(JobPreset job, ActionChoice a) => a.Name switch
         {
             "Second Wind" => LayoutPreferences.Role(job.JobId) is JobRole.Melee or JobRole.PhysicalRanged,

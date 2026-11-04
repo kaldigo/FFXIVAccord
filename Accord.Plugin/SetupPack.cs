@@ -220,6 +220,7 @@ internal sealed class SetupPack
         }
         bool protection = settings.Enabled(VariantId.Protection, job.JobId);
         var layoutValues = settings.Layouts.Resolve(job.JobId);
+        result.JoinedDamage = layoutValues.JoinedDamage && ConfiguredLayout.SupportsJoinedDamage(job.JobId);
         bool keepProtection = layoutValues.KeepManual || layoutValues.Mapping.Areas.SelectMany(a => a.Entries)
             .Any(e => (e.Intent is ControlIntent.Protection or ControlIntent.HealingProtection) && e.KeepManual);
         foreach (int id in ManualProtectionPresets(job.JobId))

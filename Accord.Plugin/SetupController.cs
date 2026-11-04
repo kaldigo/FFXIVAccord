@@ -50,6 +50,7 @@ internal sealed class SetupController : IDisposable
 
     private bool ActionAvailable(JobPreset job, ActionChoice action)
     {
+        if (action.Type == 1 && action.Selector && action.Id == 1000016) return ConfiguredLayout.SupportsJoinedDamage(job.JobId);
         if (action.Type != 1) return true; // Inventory count never affects placement.
         var row = Svc.Data.GetExcelSheet<Lumina.Excel.Sheets.Action>().GetRowOrDefault(action.Id);
         if (row is null || !row.Value.IsPlayerAction || row.Value.IsPvP) return false;
