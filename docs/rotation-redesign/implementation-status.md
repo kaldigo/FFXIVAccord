@@ -1,8 +1,38 @@
-# Rotation redesign: first implementation delivery
+# Rotation redesign: implementation ledger
 
-4 November 2026. The user authorised the first implementation stage on separate Accord and Wrath branches. This supersedes the planning documents' earlier “implementation not authorised” notes for this stage only.
+4 November 2026. The user explicitly confirmed **the entire roadmap**, including all jobs, PvP and RSR automation handoff. This supersedes earlier first-stage-only authorization and planning-only notes. Implementation uses branches named `testing` in the original repositories; stable Accord remains untouched. Authorization to implement is not evidence of native gameplay acceptance.
 
-Both repositories use `codex/rotation-stage0`, in separate worktrees. Accord starts from `8eef51a29cee077edb52135125e8e54666e4debb`; Wrath starts from `761b51ff9fec11ee9f7c71dcd3ef6279dcb31bae`. Stable checkouts, identities, release workflows, feeds and version numbers are unchanged. No plugin has been installed or published. The separate empty FFXIVAccordTesting scaffold is not the implementation destination. Future installation should use Dalamud testing versions of Accord and WrathCombo; testing feed/version allocation is a separate release task before installation, not a second identity.
+## Current checkpoint (supersedes the initial delivery notes below)
+
+The paired Release build passes with 472,127 assertions, including the new ownership and external-queue tests. The DRG/SGE pilot now includes pure decision snapshots, fixed recipients, confirmed preparation progression, actual-hit Life Surge selection, opt-in healing inclusion, action-specific target geometry, queue-recipient protection, and read-only BossMod forecasts. Captures include replayable policy inputs and outputs; `--replay-capture <report.json>` compares them without game execution. Experimental selection options are session-only and disabled by default. Opting into coordinated automation persists only a stopped-on-reload guard. These changes are not yet validated in game.
+
+RSR now also has an isolated `testing` worktree at base `156de237f5e4231d93558c8e6fba6ee337e7b902`. Its runtime identity remains unchanged. No plugin has been installed or published.
+
+| Workstream | Current evidence | Remaining work |
+|---|---|---|
+| Baseline and replay | Bounded capture, setting/context snapshots, deterministic policy replay, paired build/tests | Matched native baseline captures and performance measurements |
+| DRG/SGE pilot | Opt-in runtime adapters and pure policy tests implemented | Native prepull/queue/target acceptance, review all simple/advanced paths |
+| Targeting | Ally overrides, native eligibility, per-action geometry, retained recipients in pilot | Other jobs, complete preference surface, ground targeting |
+| BossMod | Nullable, expiring independent forecasts; observed event windows; no invented buster victim | Broader healer integration, native module/context-change acceptance |
+| Healer coordination | SGE pilot with preparation and prevention window budget | WHM/SCH/AST, pending effects, cohealer overlap, full shared orchestration |
+| Other PvE jobs | Existing providers retained | Stages 3–4 adaptations, BLU/BST capability review |
+| RSR handoff | Runtime gates, action-hook isolation, coordinator, testing controls, external IPC and deterministic failure tests implemented | Native hook/queue ordering acceptance, permission mapping, automatic-state integration for activity plugins |
+| PvP | Prior comparison and existing compatibility suite | Planned selector changes, compact controls and manual escape routes |
+| Release/testing channel | Isolated `testing` branches | Testing publication workflow and package validation; no stable feed changes |
+
+### Handoff audit findings
+
+Wrath's master flag is insufficient: IPC leases can override it, and stance/partner retries execute separately from its main runner. RSR can auto-enable itself and also changes targets/cancels casts outside its central action call. The ownership boundary must cover these paths. A failed/expired controller must leave both runners stopped until an explicit restart.
+
+RSR `Service.GetAdjustedActionId` calls the native function hooked by Wrath. The integration must isolate RSR selection and execution from Wrath replacement/retarget hooks, while keeping ordinary manual Wrath button calls working. Blocking one automatic loop alone does not satisfy the handoff contract. Stop must clear plugin requests and recipient caches, then wait for already queued/casting native actions to settle before starting the next runner.
+
+Implemented handoff details and remaining acceptance checks are in [automation-handoff.md](automation-handoff.md). The RSR Release build and existing settings conversion checks pass. Its shared authority policy is identical to Wrath's locally authored policy. No upstream RSR rotation code has been transplanted by this handoff work.
+
+## Initial Stage 0 delivery record
+
+The remainder records the original instrumentation checkpoint. Its descriptions of unimplemented Stage 1 work are historical; use the table above for current status.
+
+Both repositories use `testing`, in separate worktrees. Accord starts from `8eef51a29cee077edb52135125e8e54666e4debb`; Wrath starts from `761b51ff9fec11ee9f7c71dcd3ef6279dcb31bae`. Stable checkouts, identities, release workflows, feeds and version numbers are unchanged. No plugin has been installed or published. The separate empty FFXIVAccordTesting scaffold is not the implementation destination. Future installation should use Dalamud testing versions of Accord and WrathCombo; testing feed/version allocation is a separate release task before installation, not a second identity.
 
 ## Implemented
 

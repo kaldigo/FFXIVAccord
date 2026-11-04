@@ -15,6 +15,7 @@ internal static class RotationTestingPanel
     private static JToken? defaultProfile;
     internal static void Draw()
     {
+        Plugin.Instance.Automation.Draw();
         ImGui.TextWrapped("Observe the existing Wrath rotation for up to 60 seconds. This does not run a second resolver or change your rotation settings. Start replaces the previous capture.");
         ImGui.BeginDisabled(pending);
         if (ImGui.Button("Start 60 second capture")) Request("start");
@@ -23,6 +24,27 @@ internal static class RotationTestingPanel
         ImGui.EndDisabled();
         ImGui.TextWrapped(status);
         if (report is null) return;
+        if (report["Experimental"] is JObject options)
+        {
+            ImGui.Separator();
+            ImGui.TextWrapped("Testing providers (session only; change outside combat). Reload restores the original providers. These options affect Wrath only.");
+            ImGui.BeginDisabled(pending);
+            Toggle(options, "Drg", "DRG: prepare Life Surge for the planned hit");
+            Toggle(options, "CompareDrg", "DRG: capture planned-hit comparisons with the original provider");
+            Toggle(options, "Sage", "SGE: retain prepared spell and recipient");
+            Toggle(options, "Forecasts", "Read BossMod encounter forecasts");
+            Toggle(options, "IncludeHealing", "SGE: include healing abilities in damage buttons");
+            Toggle(options, "HealingGcds", "SGE: also allow healing spells to replace damage casts");
+            Toggle(options, "PartyMouseover", "Healing override: party-list mouseover");
+            Toggle(options, "WorldMouseover", "Healing override: world mouseover");
+            Toggle(options, "Focus", "Healing override: focus target");
+            Toggle(options, "Fallback", "Fall back when a deliberate target is invalid");
+            Toggle(options, "AutomaticAllies", "Select an eligible ally automatically when no override exists");
+            Toggle(options, "AutomaticEnemies", "DRG: choose an eligible enemy using action coverage");
+            ImGui.EndDisabled();
+            if (report["Encounter"] is JObject encounter) ImGui.TextWrapped("Encounter guidance: " + encounter.Value<string>("Module"));
+            else ImGui.TextDisabled("No current encounter forecast available.");
+        }
         ImGui.TextWrapped($"Last refreshed status: {(report.Value<bool>("Active") ? "capturing" : report.Value<string>("StopReason"))}. Older observations discarded: {report["Dropped"]}.");
         if (ImGui.Button("Copy capture report")) ImGui.SetClipboardText(report.ToString(Formatting.Indented));
         ImGui.TextWrapped($"Unchanged selections omitted: {report["RepeatedSelections"]}. Selection means a normal uncached hotbar query, not a key press or successful execution. Send records the outgoing action and recipient; it does not prove server acceptance. Refresh before copying.");
@@ -58,5 +80,10 @@ internal static class RotationTestingPanel
             catch (Exception ex) { status = "Capture unavailable: " + ex.Message; }
             finally { pending = false; }
         });
+    }
+    private static void Toggle(JObject options, string key, string label)
+    {
+        bool value = options.Value<bool>(key);
+        if (ImGui.Checkbox(label, ref value)) Request("configure:" + new JObject { [key] = value }.ToString(Formatting.None));
     }
 }

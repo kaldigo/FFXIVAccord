@@ -7,7 +7,15 @@ using Newtonsoft.Json.Linq;
 using WrathFork.Contract;
 
 int checks = 0;
+if (args.Length == 2 && args[0] == "--replay-capture")
+{
+    Console.WriteLine($"Replayed {DecisionReplay.Run(JObject.Parse(File.ReadAllText(args[1])))} decision samples without game execution.");
+    return;
+}
 checks += DecisionTraceTests.Run();
+checks += SelectionPolicyTests.Run();
+checks += AutomationLeaseTests.Run();
+checks += AutomationHandoffTests.Run();
 checks += PvPOverrideTests.Run();
 void Check(bool condition, string message)
 {
