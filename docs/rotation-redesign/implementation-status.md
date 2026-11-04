@@ -6,6 +6,17 @@
 
 ### Continuing implementation, 4 November
 
+Additional local implementation after the checkpoint below (still not entire-roadmap completion):
+
+- Shared healer prepull on the explicit focus recipient; dead-recipient resurrection, confirmed Swiftcast/Thin Air follow-through, cohealer cast avoidance, configurable inclusion/hard-cast permission, and eligible-recipient cleansing. Sage's continuation now distinguishes resurrection from Eukrasia/Zoe.
+- PvP MCH Analysis follows the selected eligible tool. Shared opt-in PvP final targeting checks Guard per action, keeps reviewed bypass exceptions separate from invulnerability/Hardened Scales, and revalidates at press time. Native manual controls are not routed through this new target selector. Legacy job preliminary eligibility still needs migration.
+- BRD snapshot refresh considers existing DoTs, expiring observed buffs, the actual GCD delay and known downtime. Existing song/repertoire priorities remain. VPR applies duration/combo protection to both Reawaken paths; RPR checks phase duration/known downtime and basic-combo expiry before entry. These are entry changes, not replacements of accepted phase progression.
+- SMN binds Swiftcast to its enabled, available Ruby/Slipstream spell and recipient. Confirmed preparation survives previews, cancels on invalid phase/recipient or another consuming spell, and reserves a manually initiated resurrection. Native target validation is shared with the preparation boundary.
+- AutoDuty session following uses verified public status APIs and the handoff coordinator. Start/end/disconnect and manual override are covered; upstream route pause retains its navigation flag and is explicitly not detectable through those endpoints. See automation-handoff.md.
+- A separate central `testing` worktree contains a fresh-stable testing-feed composer, explicit three-plugin registrations, immutable candidate verification, atomic output and a testing-only refresh workflow. Candidate registrations remain empty; no public feed or release has been changed.
+
+Latest completed paired checks before the SMN adapter: 472,318 assertions, both Release builds pass. Native acceptance remains separate from code completion. Remaining stages below remain open; session toggles and broad compatibility counts do not establish all-job migration or rotation quality.
+
 The work remains in progress against the **entire** roadmap. A successful build is not completion. Latest paired validation: 472,217 assertions; RSR Release build and settings/manual-permission checks also pass. Stable checkouts and feeds have not been changed.
 
 Implemented since the earlier checkpoint:

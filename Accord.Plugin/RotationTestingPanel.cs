@@ -33,6 +33,12 @@ internal static class RotationTestingPanel
             ImGui.BeginDisabled(pending);
             Toggle(options, "Drg", "DRG: prepare Life Surge for the planned hit");
             Toggle(options, "Machinist", "MCH: match Reassemble to the selected weaponskill");
+            Toggle(options, "Bard", "BRD: refresh existing DoTs under an expiring buff");
+            Toggle(options, "Viper", "VPR: protect buff/combo duration before either Reawaken path");
+            Toggle(options, "Reaper", "RPR: protect combo and known uptime before Enshroud");
+            Toggle(options, "Summoner", "SMN: bind Swiftcast to its spell and resurrection recipient");
+            Toggle(options, "PvpMachinist", "PvP MCH: prepare the selected tool and preserve Drill through Guard");
+            Toggle(options, "PvpTargeting", "PvP: action-specific damage targets and Guard eligibility");
             Toggle(options, "Paladin", "PLD: coordinate burst with the planned GCD and active buffs");
             Toggle(options, "Warrior", "WAR: check buff duration and downtime before burst");
             Toggle(options, "Gunbreaker", "GNB: use observed No Mercy state and downtime checks");
@@ -44,6 +50,8 @@ internal static class RotationTestingPanel
             Toggle(options, "WhiteMage", "WHM: shared healing and preparation");
             Toggle(options, "Forecasts", "Read BossMod encounter forecasts");
             Toggle(options, "IncludeHealing", "Healers: include healing abilities in damage buttons");
+            Toggle(options, "IncludeRaise", "Healers: include resurrection in damage buttons");
+            Toggle(options, "HardCastRaise", "Healers: allow resurrection without an instant-cast effect");
             Toggle(options, "HealingGcds", "Healers: also allow healing spells to replace damage casts");
             Toggle(options, "PartyMouseover", "Healing override: party-list mouseover");
             Toggle(options, "WorldMouseover", "Healing override: world mouseover");

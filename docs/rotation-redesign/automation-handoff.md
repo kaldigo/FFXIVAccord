@@ -2,7 +2,11 @@
 
 Implementation checkpoint, 4 November 2026. This is opt-in work on the three `testing` branches. It has not been accepted in game or published.
 
-The Rotation testing page selects Wrath, RSR, Off, or release to native controls. `Accord.AutomationRunner.v1` accepts `wrath`, `rsr`, `off`, `release`, and `status` on the framework thread. It returns a human-readable status; this is a testing interface, not a promise of a stable external contract. AutoDuty/BossMod integrations still need to use the coordinator for owner changes. Their direct requests cannot enable the blocked runner.
+The Rotation testing page selects Wrath, RSR, Off, or release to native controls. `Accord.AutomationRunner.v1` accepts `wrath`, `rsr`, `off`, `release`, and `status` on the framework thread. It returns a human-readable status; this is a testing interface, not a promise of a stable external contract. Direct requests to the inactive engine cannot enable it.
+
+Session-only AutoDuty following observes `AutoDuty.IsStopped` and `AutoDuty.IsNavigating` every 500 ms. After observing a stopped state, the next navigation segment requests the selected runner through the complete handoff. Navigation ending, a stopped run or loss of the endpoint stops combat. Reconnecting during a run cannot restart it. A direct runner/stop/release command disables following, as does a failed handoff. No AutoDuty settings are written, and BossMod/AutoDuty continue to own movement.
+
+**Route pause is distinct:** upstream AutoDuty retains `PluginState.Navigating` in `Stage.Paused`; its public IPC does not expose that paused state. Accordingly route-pause detection is not claimed. Use Accord Stop to stop combat independently. Source reviewed: AutoDuty `IPCProvider.cs` blob `98c6741366b4957d01358ba4744a8ce74b978914` and `AutoDuty.cs` blob `4483804a68285fcae46417e7c0b8527b0180ffe1` from erdelf/AutoDuty. This adapter does not reproduce AutoDuty's private role-specific RSR targeting overrides; set the desired RSR settings separately.
 
 ## Transfer contract
 

@@ -19,6 +19,7 @@ internal sealed class AutomationHandoff(IRunnerEndpoint wrath, IRunnerEndpoint r
     private string wrathBuild = "", rsrBuild = "";
     private bool waiting;
     private bool active;
+    internal bool IsCoordinating => active;
     internal AutomaticRunner Requested { get; private set; }
     internal AutomaticRunner Owner { get; private set; }
     internal string Status { get; private set; } = "Not controlling automation.";

@@ -8,6 +8,20 @@ internal static class SelectionPolicyTests
     {
         int checks=0;
         void Check(bool value,string message) { checks++; if(!value)throw new Exception(message); }
+        var bardRefresh = new BardRefreshInput(24, 25, 3, 2.5f, .5f, 5, null);
+        Check(!PvpEligibility.CanDamage(true, false, 0, true, 0), "Guard bypass never bypasses invulnerability");
+        Check(!PvpEligibility.CanDamage(false, true, 0, true, 0), "Guard bypass does not bypass Hardened Scales");
+        Check(PvpEligibility.CanDamage(false, false, 4, true, 0), "Reviewed Guard bypass remains eligible");
+        Check(!PvpEligibility.CanDamage(false, false, 4, false, 0), "Ordinary instant damage waits for Guard");
+        Check(PvpEligibility.CanDamage(false, false, 1, false, 2), "Cast may finish after observed Guard expires");
+        Check(!PvpEligibility.CanDamage(false, false, 1, false, 1), "Do not assume simultaneous Guard expiry wins the race");
+        Check(!PvpEligibility.CanDamage(false, false, float.NaN, false, 2), "Unknown Guard duration does not invent an opening");
+        Check(BardRefresh.UnderExpiringBuff(bardRefresh), "Existing DoTs can be refreshed before an active buff expires");
+        Check(!BardRefresh.UnderExpiringBuff(bardRefresh with { FirstDot = 0 }), "Iron Jaws cannot create a missing DoT");
+        Check(!BardRefresh.UnderExpiringBuff(bardRefresh with { FirstDot = 44, SecondDot = 44 }), "Do not repeatedly refresh a newly snapshotted pair");
+        Check(!BardRefresh.UnderExpiringBuff(bardRefresh with { BuffRemaining = .2f }), "Buff must survive until the actual GCD");
+        Check(!BardRefresh.UnderExpiringBuff(bardRefresh with { Downtime = 2 }), "Avoid speculative snapshot refresh with no tick before known downtime");
+        Check(!BardRefresh.UnderExpiringBuff(bardRefresh with { BuffRemaining = 20 }), "Do not clip DoTs early in the buff window");
         var adaptive = new AdaptiveDamage();
         Check(!adaptive.Select(false, 8, 3, false), "Unavailable area provider falls back to single target");
         Check(adaptive.Select(true, 3, 3, false), "Area threshold selects area provider");
@@ -19,9 +33,17 @@ internal static class SelectionPolicyTests
         adaptive.Reset();
         Check(!adaptive.Select(true, 1, 3, true), "Context change clears the previous sequence choice");
         var mch = new MchPreparationInput(25788, true, true, true, false, false, true, true);
+        var pvpMch = new PvpMchPreparationInput(29405, true, false, false, false);
+        Check(PvpMchPreparation.Analysis(pvpMch), "PvP Analysis prepares selected Drill");
+        Check(!PvpMchPreparation.Analysis(pvpMch with { PlannedTool = 0 }), "A disabled/unavailable tool cannot consume Analysis");
+        Check(!PvpMchPreparation.Analysis(pvpMch with { PlannedTool = 29406 }), "Bioblaster must not consume the configured direct-tool preparation");
+        Check(PvpMchPreparation.Analysis(pvpMch with { PlannedTool = 29407, PreferAnchor = true }), "Alternate preparation preference follows selected Anchor");
+        Check(!PvpMchPreparation.Analysis(pvpMch with { Overheated = true }), "Overheated phase retains existing preparation restriction");
         var pld = new PldBurstInput(3539, true, false, false, false, true, true, true, true);
         var burst = new BurstDurationInput(30, true, 2.5f, 1, 3, false, null);
         Check(ResourceWindow.CanFinish(burst), "Unknown downtime does not invent a burst restriction");
+        Check(!ResourceWindow.CanFinish(burst with { Downtime = 7, FinalCast = 1.3f }), "Final cast must land before the known phase deadline");
+        Check(!ResourceWindow.CanFinish(burst with { GcdRemaining = float.NaN }), "Unknown queue timing cannot certify a phase fits");
         Check(!ResourceWindow.CanFinish(burst with { BuffRemaining = 5 }), "Refresh buff before a phase that outlasts it");
         Check(!ResourceWindow.CanFinish(burst with { Downtime = 4 }), "Do not start a phase that cannot finish before known downtime");
         Check(!ResourceWindow.CanFinish(burst with { ExistingPhase = true }), "Do not overwrite an accepted phase");

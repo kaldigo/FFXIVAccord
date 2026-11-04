@@ -9,6 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../Accord.Plugin/AutomationHandoff.cs" Link="AutomationHandoff.cs" />
+    <Compile Include="../Accord.Plugin/ActivityRunnerPolicy.cs" Link="ActivityRunnerPolicy.cs" />
     <Compile Include="$(EngineSourceRoot)/WrathCombo/Engine/DecisionTrace.cs" Link="DecisionTrace.cs" />
     <Compile Include="$(EngineSourceRoot)/WrathCombo/Engine/Selection/*.cs" Link="Selection/%(Filename)%(Extension)" />
     <Compile Include="../Accord.Plugin/LayoutPreferences.cs" Link="LayoutPreferences.cs" />
