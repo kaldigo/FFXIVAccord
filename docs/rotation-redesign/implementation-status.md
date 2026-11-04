@@ -18,7 +18,7 @@ RSR now also has an isolated `testing` worktree at base `156de237f5e4231d93558c8
 | Other PvE jobs | Existing providers retained | Stages 3–4 adaptations, BLU/BST capability review |
 | RSR handoff | Runtime gates, action-hook isolation, coordinator, testing controls, external IPC and deterministic failure tests implemented | Native hook/queue ordering acceptance, permission mapping, automatic-state integration for activity plugins |
 | PvP | Prior comparison and existing compatibility suite | Planned selector changes, compact controls and manual escape routes |
-| Release/testing channel | Isolated `testing` branches | Testing publication workflow and package validation; no stable feed changes |
+| Release/testing channel | Isolated `testing` branches; Accord/Wrath candidate workflows and stable-preserving package tests | Central feed composition, public testing publication, RSR candidate packaging and installation acceptance; no stable feed changes |
 
 ### Handoff audit findings
 
