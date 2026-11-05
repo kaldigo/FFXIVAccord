@@ -1,4 +1,5 @@
 using Accord;
+using Newtonsoft.Json.Linq;
 using RotationInterop;
 
 internal static class AutomationHandoffTests
@@ -7,11 +8,12 @@ internal static class AutomationHandoffTests
     {
         internal AutomationLease Lease = new();
         internal long Now;
-        internal bool Busy, Unavailable, RejectStart;
+        internal bool Busy, Unavailable, RejectStart, Absent;
         internal string Build = "initial";
         internal int Starts, Blocks;
         public RunnerStatus Send(string command, Guid token)
         {
+            if (Absent) return new(false, false, false, false, "", Absent: true);
             if (command == "block") Blocks++;
             if (Unavailable) throw new InvalidOperationException("Disconnected");
             bool success = command switch
@@ -32,6 +34,15 @@ internal static class AutomationHandoffTests
     {
         int checks = 0;
         void Check(bool value, string message) { checks++; if (!value) throw new Exception(message); }
+        var capability = JObject.Parse("{'Success':true,'Version':1,'Build':'build-id','Running':false,'Managed':false}");
+        Check(EngineAvailability.Compatible(true, capability), "Compatible idle fork should be selectable");
+        Check(!EngineAvailability.Compatible(false, capability), "Installed but disabled plugin should not be offered as usable");
+        Check(!EngineAvailability.Compatible(true, null), "Missing fork API should not be offered");
+        Check(!EngineAvailability.Compatible(true, JObject.Parse("{'InternalName':'WrathCombo','Name':'Wrath Combo'}")), "Upstream identity alone is not a compatible engine");
+        capability["Version"] = 2;
+        Check(!EngineAvailability.Compatible(true, capability), "Unknown ownership protocol must not be offered");
+        capability["Version"] = 1; capability.Remove("Running");
+        Check(!EngineAvailability.Compatible(true, capability), "Older API without actual runner-state reporting must not be offered");
         var w = new Endpoint(); var r = new Endpoint();
         var coordinator = new AutomationHandoff(w, r);
         void Tick(long now) { w.Now = r.Now = now; coordinator.Tick(now); }
@@ -68,6 +79,25 @@ internal static class AutomationHandoffTests
         w.Unavailable = false;
         coordinator.Release(22500);
         Check(!w.Lease.Managed && !r.Lease.Managed, "Explicit release did not restore native control.");
+        r.Absent = true;
+        coordinator.Request(AutomaticRunner.Wrath, 23000); Tick(23500);
+        Check(coordinator.Owner == AutomaticRunner.Wrath, "Wrath-only installation must run without RSR");
+        r.Absent = false; Tick(24000);
+        Check(coordinator.Owner == AutomaticRunner.Off, "A newly loaded peer must stop existing automation until coordinated");
+        w.Absent = true;
+        coordinator.Request(AutomaticRunner.Rsr, 24000); Tick(24500);
+        Check(coordinator.Owner == AutomaticRunner.Rsr, "RSR-only installation must run without Wrath");
+        r.Absent = true; Tick(25000);
+        Check(coordinator.Owner == AutomaticRunner.Off, "Unloading the active runner must stop coordination");
+        coordinator.Request(AutomaticRunner.Rsr, 25000); Tick(25500);
+        Check(!coordinator.IsCoordinating && coordinator.Owner == AutomaticRunner.Off, "Absent selected runner must never be considered started");
+        w.Absent = false; r.Absent = false; r.Unavailable = true;
+        coordinator.Request(AutomaticRunner.Wrath, 25500); Tick(26000);
+        Check(!coordinator.IsCoordinating && !w.Lease.Allowed(26000), "Loaded incompatible peer must not be treated as absent");
+        r.Unavailable = false; r.Absent = true;
+        coordinator.Request(AutomaticRunner.Wrath, 26000); Tick(26500);
+        coordinator.Release(26500);
+        Check(!w.Lease.Managed, "Single-engine release must release the present engine");
         return checks;
     }
 }

@@ -3,7 +3,7 @@ using System;
 namespace Accord;
 
 internal enum AutomaticRunner { Off, Wrath, Rsr }
-internal readonly record struct RunnerStatus(bool Success, bool Owned, bool Allowed, bool Busy, string Build);
+internal readonly record struct RunnerStatus(bool Success, bool Owned, bool Allowed, bool Busy, string Build, bool Absent = false);
 internal interface IRunnerEndpoint
 {
     RunnerStatus Send(string command, Guid token);
@@ -17,6 +17,7 @@ internal sealed class AutomationHandoff(IRunnerEndpoint wrath, IRunnerEndpoint r
     private long started;
     private long lastTick;
     private string wrathBuild = "", rsrBuild = "";
+    private bool wrathAbsent, rsrAbsent;
     private bool waiting;
     private bool active;
     internal bool IsCoordinating => active;
@@ -35,11 +36,13 @@ internal sealed class AutomationHandoff(IRunnerEndpoint wrath, IRunnerEndpoint r
         // Attempt both stops even if one peer is absent or throws.
         var first = TrySend(wrath, "block");
         var second = TrySend(rsr, "block");
-        if (!Stopped(first) || !Stopped(second))
+        if (!Stopped(first) || !Stopped(second) ||
+            runner == AutomaticRunner.Wrath && first.Absent || runner == AutomaticRunner.Rsr && second.Absent)
         {
-            Fail("Unable to confirm both runners stopped.");
+            Fail("Unable to confirm the selected engine is available and all loaded runners are stopped.");
             return;
         }
+        wrathAbsent = first.Absent; rsrAbsent = second.Absent;
         wrathBuild = first.Build;
         rsrBuild = second.Build;
         active = true;
@@ -59,7 +62,7 @@ internal sealed class AutomationHandoff(IRunnerEndpoint wrath, IRunnerEndpoint r
         lastTick = now;
         var first = TrySend(wrath, "renew");
         var second = TrySend(rsr, "renew");
-        if (!Valid(first) || !Valid(second) || first.Build != wrathBuild || second.Build != rsrBuild)
+        if (!Valid(first) || !Valid(second) || first.Build != wrathBuild || second.Build != rsrBuild || first.Absent != wrathAbsent || second.Absent != rsrAbsent)
         {
             Fail("Automation stopped because an engine disconnected or changed.");
             return;
@@ -82,7 +85,7 @@ internal sealed class AutomationHandoff(IRunnerEndpoint wrath, IRunnerEndpoint r
         }
         if (first.Busy || second.Busy) return;
         var result = TrySend(Requested == AutomaticRunner.Wrath ? wrath : rsr, "start");
-        if (!Valid(result) || !result.Allowed)
+        if (!Valid(result) || result.Absent || !result.Allowed)
         {
             Fail("The requested runner could not start; automation remains stopped.");
             return;
@@ -90,7 +93,7 @@ internal sealed class AutomationHandoff(IRunnerEndpoint wrath, IRunnerEndpoint r
         // Verify both sides after the mutation, including a peer which may have reloaded.
         first = TrySend(wrath, "status");
         second = TrySend(rsr, "status");
-        if (!Valid(first) || !Valid(second) || first.Build != wrathBuild || second.Build != rsrBuild ||
+        if (!Valid(first) || !Valid(second) || first.Build != wrathBuild || second.Build != rsrBuild || first.Absent != wrathAbsent || second.Absent != rsrAbsent ||
             first.Allowed != (Requested == AutomaticRunner.Wrath) || second.Allowed != (Requested == AutomaticRunner.Rsr))
         {
             Fail("The handoff could not be verified; automation remains stopped.");
@@ -108,7 +111,7 @@ internal sealed class AutomationHandoff(IRunnerEndpoint wrath, IRunnerEndpoint r
         if (!active) return;
         var first = TrySend(wrath, "release");
         var second = TrySend(rsr, "release");
-        if (!first.Success || !second.Success)
+        if ((!first.Absent && !first.Success) || (!second.Absent && !second.Success))
         {
             Fail("Unable to release both engines; coordination remains stopped.");
             return;
@@ -116,7 +119,7 @@ internal sealed class AutomationHandoff(IRunnerEndpoint wrath, IRunnerEndpoint r
         active = false;
         Status = "Coordination disabled. Each engine now uses its own controls.";
     }
-    private static bool Valid(RunnerStatus value) => value.Success && value.Owned && !string.IsNullOrEmpty(value.Build);
+    private static bool Valid(RunnerStatus value) => value.Absent || value.Success && value.Owned && !string.IsNullOrEmpty(value.Build);
     private static bool Stopped(RunnerStatus value) => Valid(value) && !value.Allowed;
     private RunnerStatus TrySend(IRunnerEndpoint endpoint, string command)
     {

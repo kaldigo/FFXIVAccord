@@ -3,10 +3,13 @@ using System.Linq;
 
 namespace Accord;
 
+public enum AutomationEngine { Wrath, Rsr }
+
 public enum VariantId { Burst, Protection, Support, ClassMechanics }
 
 public sealed class AccordSettings : Dalamud.Configuration.IPluginConfiguration
 {
+    public AutomationEngine AutomaticEngine { get; set; } = AutomationEngine.Rsr;
     public Dictionary<string, bool> RsrPreferences { get; set; } = new();
     public LayoutPreferences Layouts { get; set; } = new();
     public PvPSettings PvP { get; set; } = new();
