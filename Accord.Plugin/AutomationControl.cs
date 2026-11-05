@@ -56,13 +56,18 @@ internal sealed class AutomationControl : IDisposable
     private bool initialized;
     private long nextInitialization;
     private readonly ActivityRunnerPolicy activity = new();
-    private bool followAutoDuty;
+    private bool followAutoDuty
+    {
+        get => Plugin.Instance.Settings.FollowAutoDuty;
+        set { Plugin.Instance.Settings.FollowAutoDuty = value; Svc.PluginInterface.SavePluginConfig(Plugin.Instance.Settings); }
+    }
     private bool activityRequested;
     private long nextActivityPoll;
     private string activityStatus = "AutoDuty following is off.";
     internal AutomationControl()
     {
         handoff = new(wrath, rsr);
+        if (followAutoDuty) activityStatus = "Waiting for AutoDuty to be stopped before following its next run.";
         api.RegisterFunc(Request);
         entry.Shown = true;
         entry.Text = new SeStringBuilder().AddIcon(BitmapFontIcon.ElementLightning).AddText(" M").Build();
@@ -78,7 +83,11 @@ internal sealed class AutomationControl : IDisposable
         {
             Discover();
             if (!SelectedAvailable) throw new InvalidOperationException("The selected Accord-compatible engine is not loaded or its API is unavailable.");
-            if (wrathAvailable) SetupController.Instance!.ApplyAutomationSettings();
+            if (wrathAvailable)
+            {
+                SetupController.Instance!.ApplyAutomationSettings();
+                WrathSettingsPanel.ApplyVerified();
+            }
             if (Selected == AutomaticRunner.Rsr) RsrSettingsPanel.ApplyVerified();
             settingsError = "";
             handoff.Request(Selected, Environment.TickCount64);
@@ -103,6 +112,11 @@ internal sealed class AutomationControl : IDisposable
                 handoff.Request(AutomaticRunner.Off, now);
                 initialized = handoff.IsCoordinating;
             }
+        }
+        if (wrathAvailable && !WrathSettingsPanel.Tick() && handoff.Requested != AutomaticRunner.Off && handoff.IsCoordinating)
+        {
+            handoff.Stop();
+            settingsError = "Automation stopped because Accord could not verify Wrath rotation settings. Saved changes retry automatically; enable auto rotation after verification.";
         }
         if (rsrAvailable && !RsrSettingsPanel.Tick() && handoff.Requested == AutomaticRunner.Rsr && handoff.IsCoordinating)
         {
@@ -177,7 +191,7 @@ internal sealed class AutomationControl : IDisposable
         if (settingsError.Length > 0) ImGui.TextWrapped(settingsError);
         ImGui.TextWrapped(handoff.Status);
         bool follow = followAutoDuty;
-        if (ImGui.Checkbox("Follow AutoDuty navigation (this session)", ref follow))
+        if (ImGui.Checkbox("Follow AutoDuty navigation", ref follow))
         {
             bool enable = follow;
             _ = Svc.Framework.RunOnTick(() =>

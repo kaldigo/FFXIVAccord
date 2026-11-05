@@ -1,12 +1,12 @@
 # Testing installation and session diagnostics
 
-Installation repository: `https://raw.githubusercontent.com/kaldigo/DalamudPlugins/testing/testing-pluginmaster.json`.
+Installation repository: `https://raw.githubusercontent.com/kaldigo/DalamudPlugins/main/pluginmaster.json`.
 
 The feed follows current stable feeds and overlays opt-in testing downloads for the unchanged Accord, WrathCombo and RotationSolver identities. Its default-branch refresh workflow updates only the testing feed hourly. A stable release that catches or exceeds a test supersedes that candidate. Stable plugin sources and release feeds are unchanged.
 
 ## Capture while playing
 
-Open `/accord`, choose **Rotation testing**, and enable **Temporary detailed logging**. Confirm that all three components say **recording**. Missing/old plugins are explicitly shown as unavailable. Logging does not enable automation or experimental providers: configure the behaviors to exercise separately. Experimental providers remain session-only and are changed outside combat.
+Open `/accord`, choose **Rotation testing**, and enable **Temporary detailed logging**. Confirm that all three components say **recording**. Missing/old plugins are explicitly shown as unavailable. Logging observes the saved gameplay configuration; it does not enable automation. Accord automatically enables, applies and verifies its default rotation improvements. Saved overrides are under Global automation, and changes made during combat wait until actions and combat finish. The verification status and Settings.WrathSelectionVerified records identify the configuration actually applied.
 
 Use **Mark this moment** to describe an expected action or unexpected result. The session continues across job and territory changes; it does not use the old 60-second capture. Stop logging, wait for files to finish writing, then **Export diagnostic ZIP**. The UI shows the saved path and can copy the session folder. Nothing uploads automatically.
 

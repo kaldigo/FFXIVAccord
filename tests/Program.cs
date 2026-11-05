@@ -16,6 +16,7 @@ checks += DecisionTraceTests.Run();
 checks += SelectionPolicyTests.Run();
 checks += AutomationLeaseTests.Run();
 checks += AutomationHandoffTests.Run();
+checks += PersistentRotationTests.Run();
 checks += ActivityRunnerTests.Run();
 checks += PvPOverrideTests.Run();
 void Check(bool condition, string message)

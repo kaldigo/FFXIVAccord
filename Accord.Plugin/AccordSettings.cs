@@ -9,6 +9,8 @@ public enum VariantId { Burst, Protection, Support, ClassMechanics }
 
 public sealed class AccordSettings : Dalamud.Configuration.IPluginConfiguration
 {
+    public bool FollowAutoDuty { get; set; }
+    public Newtonsoft.Json.Linq.JObject WrathPreferences { get; set; } = global::Accord.WrathPreferences.Resolve(new());
     public AutomationEngine AutomaticEngine { get; set; } = AutomationEngine.Rsr;
     public Dictionary<string, bool> RsrPreferences { get; set; } = new();
     public LayoutPreferences Layouts { get; set; } = new();

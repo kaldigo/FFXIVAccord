@@ -66,6 +66,7 @@ internal static class AccordUi
     {
         Plugin.Instance.Automation.Draw();
         RsrSettingsPanel.Draw();
+        WrathSettingsPanel.Draw();
         ImGui.Separator();
         ImGui.TextWrapped("Choose the global automation defaults. Class overrides can replace individual options; server-status buttons update an applied override for the active class.");
         var job = Player.Available ? setup.Pack.Find((uint)Player.Job) : null;
