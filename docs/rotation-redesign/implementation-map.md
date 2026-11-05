@@ -61,7 +61,7 @@ These are focused replacements and shared foundations. They do not assert that e
 
 ## PvP disposition
 
-All 21 standard jobs retain existing tactical permissions and use the shared opt-in target/eligibility boundary. The compact layout preserves native Recuperate, Guard, Purify, Sprint, role action and LB access, including both SMN summons. It is an explicit draft preset. Native manual controls remain available independently of automation.
+All 21 standard jobs retain existing tactical permissions and use the shared opt-in target/eligibility boundary. RDM/SMN scheduling and accepted combined releases have their own session-only `PvpScheduling` switch; MCH Analysis uses `PvpMachinist`. The compact layout preserves native Recuperate, Guard, Purify, Sprint, role action and LB access, including both SMN summons. It is an explicit draft preset. Native manual controls remain available independently of automation.
 
 | Jobs | Specific disposition beyond shared targeting and compact layouts |
 |---|---|
