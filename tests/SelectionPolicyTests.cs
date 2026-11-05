@@ -9,6 +9,25 @@ internal static class SelectionPolicyTests
         int checks=0;
         void Check(bool value,string message) { checks++; if(!value)throw new Exception(message); }
         var bardRefresh = new BardRefreshInput(24, 25, 3, 2.5f, .5f, 5, null);
+        var groundPrevention = new SelectionDecision(10, 10, 1, 0, "Prevent raidwide", 100, 4, PreventionEvent: 77);
+        var placedPrevention = groundPrevention.PlaceGround(2, new(3, 0, 4), 150, "Place on party");
+        Check(placedPrevention.PreventionEvent == 77 && placedPrevention.Generation == 4 && placedPrevention.PlannedGcd == 10,
+            "Ground placement retains the prevention event and action plan");
+        var groundBudget = new PreventionBudget();
+        groundBudget.Observe("raidwide", true, 100, 4, 0, 3);
+        var eventProposal = groundPrevention with { PreventionEvent = groundBudget.Available("raidwide")!.Id };
+        groundBudget.Confirm(eventProposal.PlaceGround(2, new(3, 0, 4), 150, "Place").PreventionEvent);
+        Check(groundBudget.Available("raidwide") is null, "Confirmed ground mitigation cannot leave its event budget available for another mitigation");
+        Check(RetargetDelivery.Validate(1, 2, false, true) is null, "Lost bound recipient rejects delivery instead of reverting to the selected enemy");
+        Check(RetargetDelivery.Validate(1, 2, false, false) == 1, "Legacy delivery retains its original fallback");
+        Check(RetargetDelivery.Validate(1, 2, true, true) == 2, "Valid bound recipient is delivered unchanged");
+        Check(RetargetDelivery.ConflictsWithBoundRecipient(1, 2, false), "A protected queue cannot lend another recipient to a newly prepared action");
+        Check(!RetargetDelivery.ConflictsWithBoundRecipient(1, 2, true), "Explicit queue overwrite can accept the new bound recipient");
+        var rejectedPreparation = new PreparationSequence();
+        rejectedPreparation.Press(new(20, 10, 2, 20, "Prepare", 100, 4));
+        rejectedPreparation.CancelPress();
+        rejectedPreparation.Confirm(20, 200, 4, false);
+        Check(rejectedPreparation.Current(201, 4) is null, "A rejected submission cannot bind a later manual preparation to its old recipient");
         var release = new AcceptedRelease();
         Check(!release.Valid(10, 100, 1, true, true), "A transformed icon without an accepted initiation cannot claim a release");
         release.Confirm(10, 42, 100, 1);

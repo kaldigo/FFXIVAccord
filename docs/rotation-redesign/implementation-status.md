@@ -1,5 +1,10 @@
 # Rotation redesign: implementation ledger
 
+## Pre-game code review — 5 November 2026
+
+The follow-up [integration review](pre-game-code-review.md) found and corrected source defects in strict target delivery, automatic healer proposal execution, ground prevention tracking, DRK/BLU target context and RSR ownership cleanup. Earlier build completion did not establish these behaviors were correct. The review adds focused regression coverage before native acceptance; no stable source or feed changes are included.
+
+
 4 November 2026. The user explicitly confirmed **the entire roadmap**, including all jobs, PvP and RSR automation handoff. This supersedes earlier first-stage-only authorization and planning-only notes. Implementation uses branches named `testing` in the original repositories; stable Accord remains untouched. Authorization to implement is not evidence of native gameplay acceptance.
 
 ## Current checkpoint (supersedes the initial delivery notes below)
