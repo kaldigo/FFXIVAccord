@@ -11,3 +11,7 @@ Healer rotation settings now contain saved options for healing abilities in dama
 RSR keeps its plugin identity and commands. Its installer icon matches the Accord family; automatic first-start tutorial and update popups are suppressed. Manual tutorial access remains. During Accord ownership, RSR does not acquire a second upstream Wrath control lease.
 
 Native verification: confirm the installed versions and enable diagnostic capture; exercise automatic RSR versus manual Wrath buttons, stop/start, reload, class changes, support disabled/enabled, ability-only healing and GCD healing. Ownership, settings verification and isolation failures are recorded. Build and mock tests cannot establish that an in-game action was executed successfully.
+
+## Server-bar symbols
+
+Auto rotation uses one native lightning icon (`ElementLightning`) followed by A for active automation or M for manual/button-driven play, matching the other Accord entries. An ellipsis means the handoff is still starting; details and errors remain in the tooltip. Do not replace the icon with a second off-state symbol. The native sprout (`NewAdventurer`) is reserved for future teaching mode; this change does not implement or enable teaching mode.

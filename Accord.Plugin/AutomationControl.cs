@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using Dalamud.Game.Gui.Dtr;
+using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Plugin.Ipc;
 using ECommons.DalamudServices;
 using Newtonsoft.Json.Linq;
@@ -39,7 +40,7 @@ internal sealed class AutomationControl : IDisposable
     {
         api.RegisterFunc(Request);
         entry.Shown = true;
-        entry.Text = "Accord auto: Off";
+        entry.Text = new SeStringBuilder().AddIcon(BitmapFontIcon.ElementLightning).AddText(" M").Build();
         entry.OnClick = _ => Queue(handoff.IsCoordinating && handoff.Requested != AutomaticRunner.Off
             ? "off" : "on");
     }
@@ -82,9 +83,10 @@ internal sealed class AutomationControl : IDisposable
             settingsError = "Automation stopped because Accord could not verify RSR settings. Settings will retry automatically; enable auto rotation again after recovery.";
         }
         handoff.Tick(now);
-        entry.Text = "Accord auto: " + (handoff.Owner != AutomaticRunner.Off ? handoff.Owner.ToString()
-            : handoff.IsCoordinating && handoff.Requested != AutomaticRunner.Off ? "Starting" : "Off");
-        entry.Tooltip = (settingsError.Length > 0 ? settingsError : handoff.Status) + "\nClick to toggle auto rotation. Wrath handles buttons; RSR handles automatic execution.";
+        entry.Text = new SeStringBuilder().AddIcon(BitmapFontIcon.ElementLightning)
+            .AddText(handoff.Owner == AutomaticRunner.Rsr ? " A"
+                : handoff.IsCoordinating && handoff.Requested == AutomaticRunner.Rsr ? " …" : " M").Build();
+        entry.Tooltip = (settingsError.Length > 0 ? settingsError : handoff.Status) + "\nA: automatic rotation. M: manual buttons. Click to toggle. Wrath handles buttons; RSR handles automatic execution.";
         if (followAutoDuty && activityRequested && !handoff.IsCoordinating)
         {
             followAutoDuty = false;
