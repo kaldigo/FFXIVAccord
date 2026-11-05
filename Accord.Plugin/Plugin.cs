@@ -63,6 +63,7 @@ public sealed class Plugin : IDalamudPlugin
         }
         setup = new SetupController();
         Automation = new AutomationControl();
+        DiagnosticCapturePanel.Init();
         Svc.Commands.AddHandler("/accord", new Dalamud.Game.Command.CommandInfo((_, args) => setup.Run(() => AccordUi.Command(args))) { HelpMessage = "Open Accord setup and hotbar controls." });
         pluginInterface.UiBuilder.Draw += Draw;
         pluginInterface.UiBuilder.OpenConfigUi += Open;
@@ -73,6 +74,7 @@ public sealed class Plugin : IDalamudPlugin
     private void Open() => IsOpen = true;
     private void Update(IFramework _)
     {
+        DiagnosticCapturePanel.Tick();
         Automation.Tick();
         setup.Run(setup.Tick);
     }
@@ -105,6 +107,7 @@ public sealed class Plugin : IDalamudPlugin
     public void Dispose()
     {
         Svc.Framework.Update -= Update;
+        DiagnosticCapturePanel.Dispose();
         Automation.Dispose();
         Svc.PluginInterface.UiBuilder.Draw -= Draw;
         Svc.PluginInterface.UiBuilder.OpenConfigUi -= Open;

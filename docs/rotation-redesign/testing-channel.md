@@ -15,3 +15,7 @@ Draft publication is recoverable; published retries must have identical assets a
 On 5 November the source and flows were published to `testing` in `kaldigo/FFXIVAccord`, `kaldigo/WrathCombo`, `kaldigo/RotationSolverReborn` and `kaldigo/DalamudPlugins`. The central push-triggered composer succeeded and created its testing-only feed. Candidate registrations are still empty, so that file does not yet advertise the local experimental packages. Its hourly schedule still requires default-branch workflow registration before it can be advertised as a maintained installation feed.
 
 Local candidate versions checked against the current stable feeds are Accord `0.2.15.15`, Wrath `1.0.4.38` and RSR `7.5.7.16`; stable was respectively `0.2.15.14`, `1.0.4.37` and `7.5.7.15`. ZIPs, checksums and source receipts are under each testing worktree's ignored `artifacts/testing` directory. No release tag, immutable public release, candidate registration or native installation has been created. A later release must recheck the current stable versions; these reserved local version numbers are not permission to overwrite a release or downgrade stable.
+
+## Installable diagnostic candidates
+
+The testing candidates include [full session diagnostics](session-diagnostics.md). The central default branch registers the hourly testing-feed refresh; it checks out and updates only testing. Immutable release assets and candidate registrations are verified before installation.

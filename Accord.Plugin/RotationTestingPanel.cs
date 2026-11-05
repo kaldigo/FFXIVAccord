@@ -15,6 +15,7 @@ internal static class RotationTestingPanel
     private static JToken? defaultProfile;
     internal static void Draw()
     {
+        DiagnosticCapturePanel.Draw();
         Plugin.Instance.Automation.Draw();
         RsrPermissionsPanel.Draw();
         RsrSettingsPanel.Draw();

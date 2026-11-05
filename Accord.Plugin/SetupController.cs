@@ -197,6 +197,7 @@ internal sealed class SetupController : IDisposable
         try { operation(); }
         catch (Exception ex)
         {
+            AccordDiagnostics.DiagnosticLog.Event("Error.Setup", () => new { Error = ex.ToString() });
             if (Status != ex.Message) Svc.Log.Error(ex, "Accord setup operation failed");
             Status = ex.Message;
         }

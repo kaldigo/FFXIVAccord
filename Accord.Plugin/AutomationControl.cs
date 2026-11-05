@@ -12,7 +12,9 @@ internal sealed class AutomationControl : IDisposable
         public RunnerStatus Send(string command, Guid token)
         {
             var request = new JObject { ["Command"] = command, ["Token"] = token.ToString() };
+            AccordDiagnostics.DiagnosticLog.Event("Handoff.Request", () => new { Endpoint = name, Command = command, Token = token });
             var response = JObject.Parse(Svc.PluginInterface.GetIpcSubscriber<string, string>(name).InvokeFunc(request.ToString()));
+            AccordDiagnostics.DiagnosticLog.Event("Handoff.Response", () => new { Endpoint = name, Response = response });
             return new(response.Value<bool>("Success") && response.Value<int>("Version") == 1,
                 response.Value<bool>("Owned"), response.Value<bool>("Allowed"), response.Value<bool>("Busy"), response.Value<string>("Build") ?? "");
         }
@@ -58,6 +60,7 @@ internal sealed class AutomationControl : IDisposable
     }
     internal string Request(string command)
     {
+        AccordDiagnostics.DiagnosticLog.Event("Automation.Command", () => new { Command = command });
         if (!Svc.Framework.IsInFrameworkUpdateThread) return "Use the framework thread.";
         if (command.ToLowerInvariant() is "wrath" or "rsr" or "off" or "release")
         {
