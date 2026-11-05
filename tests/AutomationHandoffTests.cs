@@ -8,7 +8,7 @@ internal static class AutomationHandoffTests
     {
         internal AutomationLease Lease = new();
         internal long Now;
-        internal bool Busy, Unavailable, RejectStart, Absent;
+        internal bool Busy, Unavailable, RejectStart, Absent, RunnerStopped;
         internal string Build = "initial";
         internal int Starts, Blocks;
         public RunnerStatus Send(string command, Guid token)
@@ -25,7 +25,7 @@ internal static class AutomationHandoffTests
                 "status" => true,
                 _ => false,
             };
-            return new(success, Lease.OwnedBy(token, Now), Lease.Allowed(Now), Busy, Build);
+            return new(success, Lease.OwnedBy(token, Now), Lease.Allowed(Now), Busy, Build, Running: !RunnerStopped);
         }
         private bool Start(Guid token) { Starts++; return !RejectStart && Lease.Start(token, Now, Busy); }
     }
@@ -98,6 +98,12 @@ internal static class AutomationHandoffTests
         coordinator.Request(AutomaticRunner.Wrath, 26000); Tick(26500);
         coordinator.Release(26500);
         Check(!w.Lease.Managed, "Single-engine release must release the present engine");
+        coordinator.Request(AutomaticRunner.Wrath, 27000); Tick(27500);
+        w.RunnerStopped = true; Tick(28000);
+        Check(!coordinator.IsCoordinating && coordinator.Status.Contains("still connected"), "Runner stop was misreported as an engine disconnect");
+        w.RunnerStopped = false;
+        coordinator.Request(AutomaticRunner.Wrath, 28500); Tick(29000);
+        Check(coordinator.Owner == AutomaticRunner.Wrath, "Saved intent could not resume a stopped runner");
         return checks;
     }
 }

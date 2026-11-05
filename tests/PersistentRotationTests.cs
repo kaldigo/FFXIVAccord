@@ -14,8 +14,9 @@ internal static class PersistentRotationTests
         old.WrathPreferences["EnemyFocus"] = true;
         old.WrathPreferences["EnemyOverrideOrder"] = new JArray("Focus", "Selected", "WorldMouseover");
         old.FollowAutoDuty = true;
+        old.AutoRotationEnabled = true;
         var reload = JsonConvert.DeserializeObject<AccordSettings>(JsonConvert.SerializeObject(old))!;
-        Check(JToken.DeepEquals(old.WrathPreferences, reload.WrathPreferences) && reload.FollowAutoDuty, "Saved preferences did not survive reload");
+        Check(JToken.DeepEquals(old.WrathPreferences, reload.WrathPreferences) && reload.FollowAutoDuty && reload.AutoRotationEnabled, "Saved preferences did not survive reload");
         var desired = WrathPreferences.Resolve(reload.WrathPreferences);
         Check(!desired.Value<bool>("BlackMage") && desired.Value<bool>("EnemyFocus"), "Explicit choices overwritten by defaults");
         var engine = WrathPreferences.Resolve(new());
@@ -35,6 +36,10 @@ internal static class PersistentRotationTests
         engine = WrathPreferences.Resolve(new());
         WrathPreferences.Apply(desired, () => (JObject)engine.DeepClone(), Write);
         Check(JToken.DeepEquals(engine, desired), "Engine reload did not restore saved choices");
+        Check(AutomationPreference.Resolve(true, false, false, false, AutomaticRunner.Wrath) == AutomaticRunner.Wrath, "Saved on depended on AutoDuty or transient availability");
+        Check(AutomationPreference.Resolve(false, true, true, true, AutomaticRunner.Wrath) == AutomaticRunner.Off, "AutoDuty overrode explicit off");
+        Check(AutomationPreference.Resolve(true, true, true, true, AutomaticRunner.Rsr) == AutomaticRunner.Rsr, "Saved following did not resume an active duty");
+        Check(AutomationPreference.Resolve(true, true, true, false, AutomaticRunner.Wrath) == AutomaticRunner.Off && reload.AutoRotationEnabled, "Paused activity lost the saved choice");
         return checks;
     }
 }

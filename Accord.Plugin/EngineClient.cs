@@ -39,6 +39,16 @@ internal sealed class EngineClient : IDisposable
     {
         if (HasPending) throw new InvalidOperationException("A previous settings operation needs recovery before another update.");
         Validate(patch);
+        var current = (JObject)snapshot["Settings"]!;
+        var projected = SettingsPatch.Apply(current, patch, snapshot["KnownPresets"]!.Values<int>().ToHashSet());
+        if (SettingsTransaction.Hash(current) == SettingsTransaction.Hash(projected))
+        {
+            desired.EngineConfigurationId = snapshot.Value<string>("ConfigurationId")!;
+            desired.LastEngineRevision = snapshot.Value<string>("Revision")!;
+            Svc.PluginInterface.SavePluginConfig(desired);
+            Plugin.Instance.Settings = desired;
+            return;
+        }
         var request = new JObject { ["Instance"] = snapshot["Instance"]!.DeepClone(),
             ["ConfigurationId"] = snapshot["ConfigurationId"]!.DeepClone(), ["OperationId"] = Guid.NewGuid().ToString(),
             ["ExpectedRevision"] = snapshot["Revision"]!.DeepClone(), ["ExpectedSequence"] = snapshot["OperationSequence"]!.DeepClone(), ["Patch"] = patch.DeepClone() };
@@ -66,6 +76,13 @@ internal sealed class EngineClient : IDisposable
         var result = Decode(Svc.PluginInterface.GetIpcSubscriber<string, string>("WrathFork.Settings.Apply.v2")
             .InvokeFunc(journal["Request"]!.ToString(Formatting.None)));
         var desired = journal["Desired"]!.ToObject<AccordSettings>()!;
+        // Recovery acknowledges the old engine transaction, not newer independent UI choices.
+        var latest = Plugin.Instance.Settings;
+        desired.AutoRotationEnabled = latest.AutoRotationEnabled;
+        desired.AutomaticEngine = latest.AutomaticEngine;
+        desired.FollowAutoDuty = latest.FollowAutoDuty;
+        desired.WrathPreferences = (JObject)latest.WrathPreferences.DeepClone();
+        desired.RsrPreferences = new(latest.RsrPreferences);
         desired.EngineConfigurationId = result.Value<string>("ConfigurationId")!;
         desired.LastEngineRevision = result["Receipt"]!.Value<string>("CommittedRevision")!;
         // Persist acknowledgement before removing the replay record. If saving fails, retry the same operation ID.

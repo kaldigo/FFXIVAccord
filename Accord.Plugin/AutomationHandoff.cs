@@ -3,7 +3,7 @@ using System;
 namespace Accord;
 
 internal enum AutomaticRunner { Off, Wrath, Rsr }
-internal readonly record struct RunnerStatus(bool Success, bool Owned, bool Allowed, bool Busy, string Build, bool Absent = false);
+internal readonly record struct RunnerStatus(bool Success, bool Owned, bool Allowed, bool Busy, string Build, bool Absent = false, bool Running = true);
 internal interface IRunnerEndpoint
 {
     RunnerStatus Send(string command, Guid token);
@@ -69,6 +69,11 @@ internal sealed class AutomationHandoff(IRunnerEndpoint wrath, IRunnerEndpoint r
         }
         if (!waiting)
         {
+            if (Owner != AutomaticRunner.Off && !(Owner == AutomaticRunner.Wrath ? first.Running : second.Running))
+            {
+                Fail("Automation paused: the selected engine stopped its runner while still connected.");
+                return;
+            }
             if (first.Allowed != (Owner == AutomaticRunner.Wrath) || second.Allowed != (Owner == AutomaticRunner.Rsr))
                 Fail("Automation stopped because runner ownership changed unexpectedly.");
             return;
@@ -85,7 +90,7 @@ internal sealed class AutomationHandoff(IRunnerEndpoint wrath, IRunnerEndpoint r
         }
         if (first.Busy || second.Busy) return;
         var result = TrySend(Requested == AutomaticRunner.Wrath ? wrath : rsr, "start");
-        if (!Valid(result) || result.Absent || !result.Allowed)
+        if (!Valid(result) || result.Absent || !result.Allowed || !result.Running)
         {
             Fail("The requested runner could not start; automation remains stopped.");
             return;
@@ -94,6 +99,7 @@ internal sealed class AutomationHandoff(IRunnerEndpoint wrath, IRunnerEndpoint r
         first = TrySend(wrath, "status");
         second = TrySend(rsr, "status");
         if (!Valid(first) || !Valid(second) || first.Build != wrathBuild || second.Build != rsrBuild || first.Absent != wrathAbsent || second.Absent != rsrAbsent ||
+            (Requested == AutomaticRunner.Wrath && !first.Running || Requested == AutomaticRunner.Rsr && !second.Running) ||
             first.Allowed != (Requested == AutomaticRunner.Wrath) || second.Allowed != (Requested == AutomaticRunner.Rsr))
         {
             Fail("The handoff could not be verified; automation remains stopped.");

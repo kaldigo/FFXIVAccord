@@ -344,6 +344,7 @@ internal sealed class SetupController : IDisposable
 
     internal void ApplyAutomationSettings()
     {
+        if (engine.HasPending) engine.Recover();
         if (!Player.Available || !Pack.IsActive((uint)Player.Job, Settings))
             throw new InvalidOperationException("Select the current class in Accord before enabling automation.");
         var job = Pack.Find((uint)Player.Job)!;
