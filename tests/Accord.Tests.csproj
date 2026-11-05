@@ -8,6 +8,7 @@
     <EngineSourceRoot Condition="'$(EngineSourceRoot)' == ''">$(MSBuildThisFileDirectory)../.engine</EngineSourceRoot>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Accord.Plugin/VerifiedSettings.cs" Link="VerifiedSettings.cs" />
     <Compile Include="../Accord.Plugin/AutomationHandoff.cs" Link="AutomationHandoff.cs" />
     <Compile Include="../Accord.Plugin/ActivityRunnerPolicy.cs" Link="ActivityRunnerPolicy.cs" />
     <Compile Include="$(EngineSourceRoot)/WrathCombo/Engine/DecisionTrace.cs" Link="DecisionTrace.cs" />

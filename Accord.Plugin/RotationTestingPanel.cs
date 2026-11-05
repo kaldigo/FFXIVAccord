@@ -16,9 +16,7 @@ internal static class RotationTestingPanel
     internal static void Draw()
     {
         DiagnosticCapturePanel.Draw();
-        Plugin.Instance.Automation.Draw();
         RsrPermissionsPanel.Draw();
-        RsrSettingsPanel.Draw();
         ImGui.TextWrapped("Observe the existing Wrath rotation for up to 60 seconds. This does not run a second resolver or change your rotation settings. Start replaces the previous capture.");
         ImGui.BeginDisabled(pending);
         if (ImGui.Button("Start 60 second capture")) Request("start");
@@ -62,12 +60,10 @@ internal static class RotationTestingPanel
             Toggle(options, "Astrologian", "AST: shared healing and prepared spell");
             Toggle(options, "WhiteMage", "WHM: shared healing and preparation");
             Toggle(options, "Forecasts", "Read BossMod encounter forecasts");
-            Toggle(options, "IncludeHealing", "Healers: include healing abilities in damage buttons");
             Toggle(options, "IncludeRaise", "Healers: include resurrection in damage buttons");
             Toggle(options, "IncludeCleanse", "Healers: include cleansing in damage buttons");
             Toggle(options, "PreventiveHealing", "Healers: allow preparation and protection before incoming damage");
             Toggle(options, "HardCastRaise", "Resurrection: allow casting without an instant-cast effect");
-            Toggle(options, "HealingGcds", "Healers: also allow healing spells to replace damage casts");
             Toggle(options, "PartyMouseover", "Healing override: party-list mouseover");
             Toggle(options, "WorldMouseover", "Healing override: world mouseover");
             Toggle(options, "Focus", "Healing override: focus target");

@@ -7,6 +7,7 @@ public enum VariantId { Burst, Protection, Support, ClassMechanics }
 
 public sealed class AccordSettings : Dalamud.Configuration.IPluginConfiguration
 {
+    public Dictionary<string, bool> RsrPreferences { get; set; } = new();
     public LayoutPreferences Layouts { get; set; } = new();
     public PvPSettings PvP { get; set; } = new();
     public int Version { get; set; } = 1;

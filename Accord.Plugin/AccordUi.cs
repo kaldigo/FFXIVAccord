@@ -15,7 +15,7 @@ internal static class AccordUi
     private static Page page;
     private static string search = "";
     private static readonly string[] titles = ["General", "Global automation", "Active classes", "Global mapping", "Global role actions", "Global exclusions", "Personal groups", "Mapping overrides", "PvP Global", "PvP overrides", "Preview", "Recovery & tools", "Rotation behaviour", "Rotation testing"];
-    private static readonly string[] keywords = ["live mode bars shared", "burst protection support mechanics", "jobs enable", "layout slots position manual defaults override", "important role", "exclude manual wrath", "potions roulette items extras", "role class overrides add edit inheritance", "pvp global automation mapping rotation one two", "pvp role class overrides", "preview class result inherited", "backup restore logout diagnostics", "target enemy range aoe activities combat opener potions", "testing trace capture baseline"];
+    private static readonly string[] keywords = ["live mode bars shared", "burst protection support mechanics auto rotation rsr", "jobs enable", "layout slots position manual defaults override", "important role", "exclude manual wrath", "potions roulette items extras", "role class overrides add edit inheritance", "pvp global automation mapping rotation one two", "pvp role class overrides", "preview class result inherited", "backup restore logout diagnostics", "target enemy range aoe activities combat opener potions healer healing weave gcd", "testing trace capture baseline"];
 
     internal static void Draw()
     {
@@ -64,6 +64,9 @@ internal static class AccordUi
 
     private static void DrawAutomation(SetupController setup)
     {
+        Plugin.Instance.Automation.Draw();
+        RsrSettingsPanel.Draw();
+        ImGui.Separator();
         ImGui.TextWrapped("Choose the global automation defaults. Class overrides can replace individual options; server-status buttons update an applied override for the active class.");
         var job = Player.Available ? setup.Pack.Find((uint)Player.Job) : null;
         if (job is null) ImGui.TextWrapped("Switch to a supported class to see what each variant controls for that class.");

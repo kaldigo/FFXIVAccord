@@ -152,7 +152,7 @@ public sealed class LayoutPreferences
     public IEnumerable<int> ManagedBars => new[] { 1, 2, 3 }.Concat(AdditionalBars).Distinct().Order();
     public LayoutValues Resolve(uint job)
     {
-        var result = Global;
+        var result = new LayoutOverride { Rotation = Global.Rotation.Over(WrathFork.Contract.RotationPreferences.Defaults()) }.Over(Global);
         if (Roles.TryGetValue(Role(job), out var role)) result = role.Over(result);
         if (Classes.TryGetValue(job, out var cls)) result = cls.Over(result);
         return result;

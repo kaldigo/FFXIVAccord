@@ -342,6 +342,24 @@ internal sealed class SetupController : IDisposable
         UpdateEntries();
     }
 
+    internal void ApplyAutomationSettings()
+    {
+        if (!Player.Available || !Pack.IsActive((uint)Player.Job, Settings))
+            throw new InvalidOperationException("Select the current class in Accord before enabling automation.");
+        var job = Pack.Find((uint)Player.Job)!;
+        if (!IsPvP && !LayoutPlan(job, Settings, true).Valid)
+            throw new InvalidOperationException("Resolve the current class's layout issues before enabling automation.");
+        ApplySettings(Pack.SelectedJobs(Settings), CloneSettings());
+        if (!IsPvP)
+        {
+            var expected = JObject.FromObject(Settings.Layouts.Resolve(job.JobId).Rotation);
+            var actual = engine.Read()["Settings"]?["RotationPreferences"]?[job.JobId.ToString()];
+            if (!JToken.DeepEquals(expected, actual))
+                throw new InvalidOperationException("Wrath's rotation preferences did not match Accord after applying settings.");
+            AccordDiagnostics.DiagnosticLog.Event("Settings.WrathVerified", () => new { Job = job.JobId, Preferences = actual });
+        }
+    }
+
     private void Prepare(IEnumerable<JobPreset> jobs, bool reset = false) => ApplySettings(jobs, CloneSettings(), reset);
     private AccordSettings CloneSettings() => JsonConvert.DeserializeObject<AccordSettings>(JsonConvert.SerializeObject(Settings))!;
 

@@ -12,7 +12,11 @@ internal static class RotationBehaviourTests
         void Check(bool condition, string reason) { count++; if (!condition) throw new Exception("Rotation behaviour: " + reason); }
         T Clone<T>(T value) => JsonConvert.DeserializeObject<T>(JsonConvert.SerializeObject(value))!;
         var settings = new AccordSettings { ActiveJobs = [24, 28, 40, 37, 35] };
-        Check(settings.Layouts.Resolve(24).Rotation.Empty, "Existing configurations must preserve Wrath preferences");
+        Check(!settings.Layouts.Resolve(24).Rotation.Empty && settings.Layouts.Resolve(24).Rotation.Targeting == EnemySelection.PartyCombat, "Accord must supply defaults for old sparse configurations");
+        settings.Layouts.Roles[JobRole.Healer] = new() { Rotation = new() { IncludeHealing = true } };
+        Check(settings.Layouts.Resolve(24).Rotation.IncludeHealing == true && settings.Layouts.Resolve(24).Rotation.HealingGcds == false, "Healing weaving must inherit independently of GCD healing");
+        settings.Layouts.Classes[40] = new() { Rotation = new() { IncludeHealing = false } };
+        Check(Clone(settings).Layouts.Resolve(40).Rotation.IncludeHealing == false, "Explicit healing opt-out must survive serialization");
         settings.Layouts.Global.Rotation = new() { Targeting = EnemySelection.Manual, AoeTargets = 3, Openers = true, OpenerPotions = false };
         settings.Layouts.Roles[JobRole.Healer] = new() { Rotation = new() { Targeting = EnemySelection.PartyCombat } };
         settings.Layouts.Classes[40] = new() { Rotation = new() { AoeTargets = 2, Openers = false } };
@@ -79,6 +83,22 @@ internal static class RotationBehaviourTests
             catch (ArgumentException) { rejected = true; }
             Check(rejected, "Invalid transport preference accepted: " + invalid);
         }
+        var expectedSettings = JObject.Parse("{'Enabled':true,'Weaving':false}");
+        var engine = JObject.Parse("{'Enabled':false,'Weaving':false,'Other':true}");
+        int writes = 0;
+        VerifiedSettings.Apply(expectedSettings, () => (JObject)engine.DeepClone(), (key, value) => { writes++; engine[key] = value.DeepClone(); });
+        Check(writes == 1 && engine.Value<bool>("Other"), "Apply only changed owned settings and preserve unrelated engine settings");
+        VerifiedSettings.Apply(expectedSettings, () => (JObject)engine.DeepClone(), (_, _) => throw new Exception("Unnecessary write"));
+        engine["Enabled"] = false;
+        bool mismatch = false;
+        try { VerifiedSettings.Apply(expectedSettings, () => engine, (_, _) => { }); }
+        catch (InvalidOperationException) { mismatch = true; }
+        Check(mismatch, "A successful IPC response with no applied value must fail read-back");
+        engine.Remove("Weaving");
+        bool missing = false;
+        try { VerifiedSettings.Apply(expectedSettings, () => engine, (_, _) => throw new Exception("Mutated before schema validation")); }
+        catch (InvalidOperationException) { missing = true; }
+        Check(missing, "Missing capability must fail before any settings mutation");
         return count;
     }
 }

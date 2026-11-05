@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using WrathFork.Contract;
 
 namespace Accord;
@@ -8,7 +7,19 @@ internal static partial class LayoutEditor
 {
     private static void DrawRotation(RotationPreferences local, RotationPreferences parent, bool over)
     {
-        ImGui.TextWrapped("PvE preferences. Existing Wrath settings remain in use until you choose an option. Wrath's master auto-rotation switch is unchanged.");
+        parent = parent.Over(RotationPreferences.Defaults());
+        if (!over)
+        {
+            var resolved = local.Over(parent);
+            local.Targeting = resolved.Targeting; local.TargetRange = resolved.TargetRange;
+            local.AoeTargets = resolved.AoeTargets; local.ActivityUntargetedAoe = resolved.ActivityUntargetedAoe;
+            local.CombatOnly = resolved.CombatOnly; local.Openers = resolved.Openers; local.OpenerPotions = resolved.OpenerPotions;
+            local.IncludeHealing = resolved.IncludeHealing; local.HealingGcds = resolved.HealingGcds;
+        }
+        ImGui.TextWrapped("Accord owns these PvE preferences. Role and class overrides inherit from Accord's global settings.");
+        Switch("Weave healing into healer damage buttons", local.IncludeHealing, parent.IncludeHealing, v => local.IncludeHealing = v);
+        Switch("Also allow healing GCDs in healer damage buttons", local.HealingGcds, parent.HealingGcds, v => local.HealingGcds = v);
+        ImGui.TextWrapped("Requires Auto support. Healing abilities use available weave windows; healing GCDs may replace damage only when separately enabled. Dedicated healing buttons remain available. These settings control Wrath's buttons; RSR's automatic runner has its own healing permissions.");
         Choice("Enemy targeting", local.Targeting is { } t ? (int)t : null, parent.Targeting is { } pt ? (int)pt : null,
             ["Manual", "Enemies fighting your party", "Any eligible enemy"], v => local.Targeting = v.HasValue ? (EnemySelection)v.Value : null);
         Number("Target selection range", local.TargetRange, parent.TargetRange, 30, 1, 30, v => local.TargetRange = v);
@@ -32,16 +43,9 @@ internal static partial class LayoutEditor
                 if (ImGui.Checkbox("Apply", ref apply)) { value = apply ? inherited ?? 0 : null; set(value); }
                 ImGui.SameLine();
             }
-            if (over && !apply && inherited is null)
-            {
-                ImGui.TextDisabled(label + ": existing Wrath setting");
-                ImGui.PopID();
-                return;
-            }
-            var choices = over ? labels : new[] { "Use existing Wrath setting" }.Concat(labels).ToArray();
-            int selected = over ? value ?? inherited ?? 0 : value.HasValue ? value.Value + 1 : 0;
+            int selected = value ?? inherited ?? 0;
             ImGui.BeginDisabled(over && !apply);
-            if (ImGui.Combo(label, ref selected, choices, choices.Length)) set(over ? selected : selected == 0 ? null : selected - 1);
+            if (ImGui.Combo(label, ref selected, labels, labels.Length)) set(selected);
             ImGui.EndDisabled();
             ImGui.PopID();
         }
@@ -49,15 +53,13 @@ internal static partial class LayoutEditor
         {
             ImGui.PushID(label);
             bool apply = value.HasValue;
-            if (ImGui.Checkbox(over ? "Apply" : "Set", ref apply)) { value = apply ? inherited ?? fallback : null; set(value); }
-            ImGui.SameLine(); int current = value ?? inherited ?? fallback;
-            if (!apply && inherited is null)
+            if (over)
             {
-                ImGui.TextDisabled(label + ": existing Wrath setting");
-                ImGui.PopID();
-                return;
+                if (ImGui.Checkbox("Apply", ref apply)) { value = apply ? inherited ?? fallback : null; set(value); }
+                ImGui.SameLine();
             }
-            ImGui.BeginDisabled(!apply);
+            int current = value ?? inherited ?? fallback;
+            ImGui.BeginDisabled(over && !apply);
             if (ImGui.SliderInt(label, ref current, min, max)) set(current);
             ImGui.EndDisabled();
             ImGui.PopID();
