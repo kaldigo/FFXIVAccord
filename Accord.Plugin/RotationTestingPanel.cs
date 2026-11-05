@@ -37,6 +37,17 @@ internal static class RotationTestingPanel
             Toggle(options, "Viper", "VPR: protect buff/combo duration before either Reawaken path");
             Toggle(options, "Reaper", "RPR: protect combo and known uptime before Enshroud");
             Toggle(options, "Summoner", "SMN: bind Swiftcast to its spell and resurrection recipient");
+            Toggle(options, "RedMage", "RDM: reserve Swiftcast/Dualcast and mana for a requested resurrection");
+            Toggle(options, "Pictomancer", "PCT: fit motif preparation into known cast and downtime windows");
+            Toggle(options, "BlackMage", "BLM: use permitted instant options when a selected cast cannot fit the forecast");
+            Toggle(options, "Samurai", "SAM: retain Iaijutsu across ST/AoE changes and use equivalent available positionals");
+            Toggle(options, "Monk", "MNK: recover Perfect Balance using accepted chakra rather than press order");
+            Toggle(options, "Ninja", "NIN: commit mudra intent only after an accepted action");
+            Toggle(options, "Dancer", "DNC: finish accepted dances, protect expiring procs and budget new dances");
+            Toggle(options, "BlueMage", "BLU: bind Bristle to an equipped spell; validate Final Sting before preparation");
+            Toggle(options, "Beastmaster", "BST: bind finisher steps to the current pet and confirmed actions");
+            Toggle(options, "GroundTargets", "Healing ground actions: target overrides, coverage and retained placement");
+            Toggle(options, "SpaceMitigation", "Defer forecast party mitigation when an observed defense covers the hit");
             Toggle(options, "PvpMachinist", "PvP MCH: prepare the selected tool and preserve Drill through Guard");
             Toggle(options, "PvpTargeting", "PvP: action-specific damage targets and Guard eligibility");
             Toggle(options, "Paladin", "PLD: coordinate burst with the planned GCD and active buffs");
@@ -51,6 +62,8 @@ internal static class RotationTestingPanel
             Toggle(options, "Forecasts", "Read BossMod encounter forecasts");
             Toggle(options, "IncludeHealing", "Healers: include healing abilities in damage buttons");
             Toggle(options, "IncludeRaise", "Healers: include resurrection in damage buttons");
+            Toggle(options, "IncludeCleanse", "Healers: include cleansing in damage buttons");
+            Toggle(options, "PreventiveHealing", "Healers: allow preparation and protection before incoming damage");
             Toggle(options, "HardCastRaise", "Healers: allow resurrection without an instant-cast effect");
             Toggle(options, "HealingGcds", "Healers: also allow healing spells to replace damage casts");
             Toggle(options, "PartyMouseover", "Healing override: party-list mouseover");
@@ -64,6 +77,10 @@ internal static class RotationTestingPanel
             Toggle(options, "EnemyFocus", "Damage override: focus target");
             Toggle(options, "AutomaticEnemies", "Allow automatic enemy switching for action coverage");
             Toggle(options, "OverridesInAutomation", "Apply mouseover overrides to automatic actions too");
+            Toggle(options, "SwitchEnemyTarget", "Allow the Wrath runner to visibly select its enemy recipient");
+            Toggle(options, "SwitchAllyTarget", "Allow the Wrath runner to visibly select its ally recipient");
+            DrawOrder(options, "AllyOverrideOrder", "Ally override order");
+            DrawOrder(options, "EnemyOverrideOrder", "Enemy override order");
             ImGui.EndDisabled();
             if (report["Encounter"] is JObject encounter) ImGui.TextWrapped("Encounter guidance: " + encounter.Value<string>("Module"));
             else ImGui.TextDisabled("No current encounter forecast available.");
@@ -108,5 +125,27 @@ internal static class RotationTestingPanel
     {
         bool value = options.Value<bool>(key);
         if (ImGui.Checkbox(label, ref value)) Request("configure:" + new JObject { [key] = value }.ToString(Formatting.None));
+    }
+    private static void DrawOrder(JObject options, string key, string label)
+    {
+        if (options[key] is not JArray order || !ImGui.TreeNode(label)) return;
+        for (int i = 0; i < order.Count; i++)
+        {
+            ImGui.PushID(key + i);
+            ImGui.TextUnformatted(order[i].Value<string>() switch
+            { "PartyMouseover" => "Party-list mouseover", "WorldMouseover" => "World mouseover", "Selected" => "Selected target", "Focus" => "Focus target", _ => "Unknown" });
+            if (i > 0)
+            {
+                ImGui.SameLine();
+                if (ImGui.SmallButton("Move up"))
+                {
+                    var changed = (JArray)order.DeepClone();
+                    var before = changed[i - 1]!.DeepClone(); changed[i - 1] = changed[i]!.DeepClone(); changed[i] = before;
+                    Request("configure:" + new JObject { [key] = changed }.ToString(Formatting.None));
+                }
+            }
+            ImGui.PopID();
+        }
+        ImGui.TreePop();
     }
 }

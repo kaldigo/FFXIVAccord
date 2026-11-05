@@ -49,6 +49,15 @@ internal static class PvPTests
         foreach(var job in pack.Jobs)
         for(int mask=0;mask<16;mask++)
         {
+            var compactSettings = new PvPSettings();
+            compactSettings.Overrides.Global.Mapping = PvPConfiguredLayout.CompactMapping();
+            foreach (var variant in Enum.GetValues<VariantId>()) compactSettings.Variants[variant] = (mask & (1 << (int)variant)) != 0;
+            var compactPlan = PvPConfiguredLayout.Plan(job, compactSettings, snapshot, _ => false, _ => true);
+            Check(compactPlan.Valid, job.Job + " compact mapping does not fit: " + string.Join("; ", compactPlan.Issues));
+            foreach (var (slot, id) in new[] { (3, 29711u), (4, 29054u), (5, 29056u), (6, 29057u) })
+                Check(compactPlan.Controls.Any(c => c.Position.Bar == 0 && c.Position.Slot == slot && c.Action.Id == id), job.Job + " compact survival control moved with automation");
+            foreach (var lb in job.Controls.Where(c => c.Group == ControlIntent.LimitBreak))
+                Check(compactPlan.Controls.Any(c => c.Action.Id == lb.Binding.Id), job.Job + " compact mapping removed a limit break choice");
             var choices=new PvPSettings();
             foreach(var id in Enum.GetValues<VariantId>())choices.Variants[id]=(mask&(1<<(int)id))!=0;
             var patch=pack.Patch([job],choices,snapshot);

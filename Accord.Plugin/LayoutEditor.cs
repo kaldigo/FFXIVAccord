@@ -110,6 +110,12 @@ internal static partial class LayoutEditor
         if (ImGui.Combo("Rotation buttons", ref buttons, new[] { "One", "Two (ST / AoE)" }, 2))
             draft.PvP.RotationButtons = buttons == 0 ? PvPRotationButtons.One : PvPRotationButtons.Two;
         ImGui.TextWrapped("One uses the full supported rotation. Ninja selects ST or AoE by enemy count and keeps that choice during mudras.");
+        if (ImGui.Button("Use compact PvP layout"))
+        {
+            draft.PvP.Global.Mapping = PvPConfiguredLayout.CompactMapping();
+            draft.PvP.RotationButtons = PvPRotationButtons.One;
+        }
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Sets the draft mapping to one attack button, retained limit breaks and fixed Recuperate, Guard, Purify and Sprint positions. Job-specific tactical controls remain accessible. Review and apply the draft to update bars.");
         if (!ImGui.BeginTabBar("PvP Global settings")) return;
         if (ImGui.BeginTabItem("Automation"))
         {

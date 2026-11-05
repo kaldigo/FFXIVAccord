@@ -1,6 +1,6 @@
 # Wrath suggestion redesign and RSR automation handoff
 
-Implementation update: see [implementation status](implementation-status.md) for the authorised first delivery on testing branches. Earlier authorisation wording below is historical for Stage 0.
+Implementation update: the user authorised the **entire roadmap** on `testing` branches. See [implementation status](implementation-status.md) for completed code and remaining gates. Earlier proposal/approval wording below is historical and does not limit that authorisation.
 
 Planning proposal, 4 November 2026. No runtime implementation is authorised by this document. Evidence: [framework, healer and first job comparison](rotation-comparison.md) and [remaining jobs and final disposition](remaining-job-comparison.md).
 

@@ -4,6 +4,22 @@
 
 ## Current checkpoint (supersedes the initial delivery notes below)
 
+### Continuing implementation, 5 November
+
+The entire roadmap remains the scope. The following additions are implemented locally on `testing`; they are not a declaration of complete roadmap or native acceptance. Latest paired Release build: **474,406 assertions pass**, including compact PvP layouts for all 21 jobs and 16 automation combinations per job. No stable source, feed, installation or public release was changed.
+
+- WHM/SCH/AST simple healing adapters now use the shared recipient/preparation boundary. Added retained ground points for Asylum, Bell, Sacred Soil and Earthly Star; failed placement does not fall back to the player's feet. Observed party mitigation can defer another forecast mitigation when it lasts through the hit. Simple forecast actions share event accounting. Advanced WHM retains content-specific healing, binds Plenary to an eligible heal and avoids Thin Air for free lily spells; ST Neutral Sect prepares Aspected Benefic on the chosen ally. Cleanse inclusion and preventive healing are separately configurable.
+- RDM retains a manually requested raise through Swiftcast/Vercure preparation and checks combined Vercure/raise mana. BLM reviews actual adjusted cast time against fresh cast/uptime limits and uses only permitted instant alternatives. PCT motif entry uses cast/downtime budgets. BossMod exposes independent, expiring `Hints.MaxCastTime` and `Timeline.NextDowntimeEndIn` inputs.
+- SAM preserves accepted Iaijutsu repeats across ST/AoE changes and three-Sen spending through buff-loss recovery; equivalent Meikyo choices can prefer the available positional. No automatic Hagakure conversion was added. MNK's PB adapter derives the next form from accepted chakra types and Nadi, including manual reordering and synced forms. NIN previews restore the original mudra intention; only a matching accepted action commits the proposed intention across ST/AoE providers.
+- DNC finishes an observed dance independently of initiation toggles, protects eligible expiring continuations and checks new dance duration against known downtime. GNB computes one GCD plan before abilities for simple/advanced ST/AoE, prioritizing accepted chains and usable expiring procs. MCH retains Reassemble's selected tool/recipient and checks whether five heat shots fit known uptime before Hypercharge.
+- BLU binds Bristle to equipped/permitted Song of Torment and validates Final Sting before its explicit preparation control. BST's testing finisher is tied to pet capability, confirmed actions, permissions and a bounded lifetime; no capture, pet sacrifice or horn preference is enabled by this adapter.
+- PvP SCH/AST recovery uses eligible ally selection before thresholds, while Double Benefic retains its accepted recipient. Friendly Deployment cannot be overwritten by the hostile-target pass. The optional compact layout keeps native survival controls fixed and both SMN LB choices. It is a draft preset, not an automatic remapping.
+- Ally/enemy override sources can be reordered separately. Explicit recipients remain strict. Visible enemy/ally target switching has separate permissions; automatic ST/AoE delivery uses the resolved recipient for subsequent checks. New targeting options remain session-only during this test stage.
+
+Still requiring code work/audit: broad preliminary enemy eligibility and action-specific target consistency (the common final-delivery pass alone is insufficient), remaining PvP per-action Guard/permission and release adapters, complete capture/provenance/acceptance matrix, packaging checks of the final paired commits, and public testing activation if/when an installable candidate is released. Native queue/hook/geometry acceptance, matched rotation captures and performance measurements remain separate and cannot be inferred from builds. Retained job rules are not claimed to be translated RSR rotations.
+
+All new policy code is locally authored. Behavioral references remain the pinned comparison sources; no RSR rotation source was copied into the BSD Wrath repository. Job decisions explicitly retain Wrath's useful existing rotation priorities, resources, movement reserves and manual controls.
+
 ### Continuing implementation, 4 November
 
 Additional local implementation after the checkpoint below (still not entire-roadmap completion):
