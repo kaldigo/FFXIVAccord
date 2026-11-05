@@ -26,7 +26,6 @@ internal sealed class AutomationControl : IDisposable
     private readonly AutomationHandoff handoff = new(new Endpoint("WrathCombo.AutomationOwnership.v1"), new Endpoint("RotationSolverReborn.AccordAutomationOwnership"));
     private readonly ICallGateProvider<string, string> api = Svc.PluginInterface.GetIpcProvider<string, string>("Accord.AutomationRunner.v1");
     private readonly IDtrBarEntry entry = Svc.DtrBar.Get("Accord Auto rotation");
-    private long nextSettingsCheck;
     private string settingsError = "";
     private bool used;
     private bool initialized;
@@ -77,11 +76,10 @@ internal sealed class AutomationControl : IDisposable
                 initialized = handoff.IsCoordinating;
             }
         }
-        if (handoff.Owner == AutomaticRunner.Rsr && now >= nextSettingsCheck)
+        if (!RsrSettingsPanel.Tick() && handoff.Requested == AutomaticRunner.Rsr && handoff.IsCoordinating)
         {
-            nextSettingsCheck = now + 2000;
-            try { RsrSettingsPanel.ApplyVerified(); }
-            catch (Exception ex) { handoff.Stop(); settingsError = "Automation stopped: " + ex.Message; }
+            handoff.Stop();
+            settingsError = "Automation stopped because Accord could not verify RSR settings. Settings will retry automatically; enable auto rotation again after recovery.";
         }
         handoff.Tick(now);
         entry.Text = "Accord auto: " + (handoff.Owner != AutomaticRunner.Off ? handoff.Owner.ToString()
@@ -135,8 +133,8 @@ internal sealed class AutomationControl : IDisposable
     internal void Draw()
     {
         ImGui.TextWrapped("Wrath handles Accord's rotation buttons. Auto rotation hands automatic execution to RSR and stops Wrath's automatic runner. Turning it off returns to button-driven play. An engine reload or lost connection stops automation; enable it again explicitly to restart.");
-        if (ImGui.Button("Enable auto rotation")) Queue("on");
-        ImGui.SameLine(); if (ImGui.Button("Stop automation")) Queue("off");
+        bool enabled = handoff.IsCoordinating && handoff.Requested == AutomaticRunner.Rsr;
+        if (ImGui.Checkbox("Auto rotation", ref enabled)) Queue(enabled ? "on" : "off");
         if (settingsError.Length > 0) ImGui.TextWrapped(settingsError);
         ImGui.TextWrapped(handoff.Status);
         bool follow = followAutoDuty;
@@ -153,7 +151,7 @@ internal sealed class AutomationControl : IDisposable
             });
         }
         ImGui.TextWrapped(activityStatus);
-        ImGui.TextWrapped("Direct runner/stop commands disable following. AutoDuty's route pause does not clear its navigation status: use Stop automation to stop combat as well. AutoDuty and BossMod retain movement control.");
+        ImGui.TextWrapped("Direct runner/stop commands disable following. AutoDuty's route pause does not clear its navigation status: uncheck Auto rotation to stop combat as well. AutoDuty and BossMod retain movement control.");
         ImGui.Separator();
     }
     private void Queue(string command) => _ = Svc.Framework.RunOnTick(() => Request(command));

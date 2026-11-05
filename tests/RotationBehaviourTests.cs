@@ -94,6 +94,8 @@ internal static class RotationBehaviourTests
         try { VerifiedSettings.Apply(expectedSettings, () => engine, (_, _) => { }); }
         catch (InvalidOperationException) { mismatch = true; }
         Check(mismatch, "A successful IPC response with no applied value must fail read-back");
+        VerifiedSettings.Apply(expectedSettings, () => (JObject)engine.DeepClone(), (key, value) => { writes++; engine[key] = value.DeepClone(); });
+        Check(writes == 2 && engine.Value<bool>("Enabled"), "Rechecking must repair engine settings drift without a manual apply");
         engine.Remove("Weaving");
         bool missing = false;
         try { VerifiedSettings.Apply(expectedSettings, () => engine, (_, _) => throw new Exception("Mutated before schema validation")); }

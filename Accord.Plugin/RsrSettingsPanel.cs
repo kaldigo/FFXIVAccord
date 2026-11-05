@@ -1,5 +1,6 @@
 using System;
 using ECommons.DalamudServices;
+using ECommons.GameHelpers;
 using Newtonsoft.Json.Linq;
 
 namespace Accord;
@@ -9,7 +10,8 @@ namespace Accord;
 internal static class RsrSettingsPanel
 {
     private static JObject? settings;
-    private static bool pending;
+    private static long nextCheck;
+    private static uint lastJob;
     private static string status = "";
     private static readonly (string Key, string Label)[] options =
     [
@@ -49,10 +51,30 @@ internal static class RsrSettingsPanel
             throw new InvalidOperationException(response.Value<string>("Error") ?? "Unsupported RSR settings API.");
         return response["Settings"] as JObject ?? throw new InvalidOperationException("Missing RSR settings.");
     }
+    // Runs independently of auto rotation: Accord owns engine configuration even
+    // when the user is playing manually or RSR has just been reloaded.
+    internal static bool Tick()
+    {
+        if (!Player.Available) return true;
+        long now = Environment.TickCount64;
+        uint job = (uint)Player.Job;
+        if (now < nextCheck && job == lastJob) return true;
+        nextCheck = now + 2000;
+        lastJob = job;
+        try { ApplyVerified(); return true; }
+        catch (Exception ex)
+        {
+            string failure = "Waiting to apply Accord settings to RSR: " + ex.Message;
+            if (status != failure)
+                AccordDiagnostics.DiagnosticLog.Event("Error.RsrSettings", () => new { Error = ex.ToString(), Job = job });
+            status = failure;
+            return false;
+        }
+    }
     internal static void Draw()
     {
         if (!ImGui.CollapsingHeader("RSR automation preferences")) return;
-        ImGui.TextWrapped("These preferences are saved by Accord, applied to RSR and read back before RSR starts. They control RSR's automatic runner; Wrath's manual buttons use Accord's rotation and variant settings.");
+        ImGui.TextWrapped("Accord automatically saves, applies and verifies these settings, including while auto rotation is off. Unavailable engines are retried automatically. These control RSR's automatic runner; Wrath's buttons use Accord's rotation and variant settings.");
         foreach (var (key, label) in options)
         {
             bool value = Plugin.Instance.Settings.RsrPreferences.TryGetValue(key, out var saved) ? saved : Default(key);
@@ -60,20 +82,9 @@ internal static class RsrSettingsPanel
             {
                 Plugin.Instance.Settings.RsrPreferences[key] = value;
                 Svc.PluginInterface.SavePluginConfig(Plugin.Instance.Settings);
+                nextCheck = 0;
             }
         }
-        ImGui.BeginDisabled(pending);
-        if (ImGui.Button("Apply and verify RSR settings"))
-        {
-            pending = true;
-            _ = Svc.Framework.RunOnTick(() =>
-            {
-                try { ApplyVerified(); }
-                catch (Exception ex) { status = "RSR settings failed: " + ex.Message; }
-                finally { pending = false; }
-            });
-        }
-        ImGui.EndDisabled();
         ImGui.TextWrapped(status);
     }
 }
