@@ -9,6 +9,19 @@ internal static class SelectionPolicyTests
         int checks=0;
         void Check(bool value,string message) { checks++; if(!value)throw new Exception(message); }
         var bardRefresh = new BardRefreshInput(24, 25, 3, 2.5f, .5f, 5, null);
+        var release = new AcceptedRelease();
+        Check(!release.Valid(10, 100, 1, true, true), "A transformed icon without an accepted initiation cannot claim a release");
+        release.Confirm(10, 42, 100, 1);
+        Check(!release.Valid(10, 200, 1, true, false) && release.Recipient == 42, "Release waits briefly for the accepted status to propagate");
+        Check(release.Valid(10, 400, 1, true, true) && release.Recipient == 42, "Release retains its accepted enemy through preview target changes");
+        Check(!release.Valid(11, 400, 1, true, true) && release.Source == 10, "Another family cannot consume this release");
+        Check(!release.Valid(10, 500, 2, true, true) && release.Source == 0, "Context change cancels a stored release");
+        release.Confirm(10, 42, 100, 1);
+        Check(!release.Valid(10, 500, 1, false, true), "Enemy death cancels instead of releasing on a new enemy");
+        release.Confirm(10, 42, 100, 1);
+        Check(!release.Valid(10, 1100, 1, true, false) && release.Source == 0, "Removed status cancels after propagation grace");
+        release.Confirm(10, 42, 100, 1);
+        Check(!release.Valid(10, 20100, 1, true, true), "Stored release has a hard lifetime bound");
         Check(TargetOrder.Valid(["Focus", "Selected", "WorldMouseover", "PartyMouseover"], true), "Ally sources can be reordered independently");
         Check(!TargetOrder.Valid(["Focus", "Focus", "Selected"], false), "Duplicate override sources cannot hide a policy");
         Check(!TargetOrder.Valid(["Focus", "Selected", "PartyMouseover"], false), "Enemy override order rejects unsupported sources");
@@ -167,9 +180,24 @@ internal static class SelectionPolicyTests
         Check(Choose([]).Affected.SequenceEqual(new ulong[]{2}),"Single target must not affect colocated allies");
         var pack=party.SetItem(2,distant with{Position=new(0,0,7),MayAffect=false});
         Check(TargetSelection.Select(Vector3.Zero,1,new(30,5,EffectShape.Circle),policy with{AvoidUnengaged=true},pack,pack,[]).Recipient is null,"Coverage must reject collateral unengaged targets");
+        var selectedEnemy = new TargetActor(70, new(0, 0, 8), 1, true, false, .8f);
+        var nearbyEnemy = new TargetActor(71, new(0, 0, 2), 1, true, false, .2f);
+        var enemies = ImmutableArray.Create(selectedEnemy, nearbyEnemy);
+        var enemyPolicy = new TargetPolicy(true, true, false, false, true);
+        Check(TargetSelection.Select(Vector3.Zero, 1, new(30, 0), enemyPolicy, enemies, enemies,
+            [new(TargetSource.Explicit, 70)]).Recipient == 70, "A ranged follow-up keeps the enemy whose conditions were inspected");
+        Check(TargetSelection.Select(Vector3.Zero, 1, new(3, 0), enemyPolicy, enemies, enemies,
+            [new(TargetSource.Explicit, 70)]).Recipient is null, "A short-range follow-up cannot silently move to a closer enemy");
+        Check(TargetSelection.Select(Vector3.Zero, 1, new(30, 0), enemyPolicy,
+            [selectedEnemy with { Eligible = false }, nearbyEnemy], enemies,
+            [new(TargetSource.Explicit, 70)]).Recipient is null, "New Guard or death on the inspected enemy cannot redirect an accepted action");
         Check(TargetSelection.Covers(Vector3.Zero,new(0,0,10),new(25,25,EffectShape.Line),injured),"Line should include forward target");
         Check(!TargetSelection.Covers(Vector3.Zero,new(0,0,10),new(25,25,EffectShape.Line),injured with{Position=new(8,0,6)}),"Line width must be respected");
         Check(!TargetSelection.Covers(Vector3.Zero,new(0,0,10),new(25,25,EffectShape.Cone),injured with{Position=new(0,0,-6)}),"Cone must reject behind caster");
+        Check(TargetSelection.Covers(Vector3.Zero, new(0, 0, 10), new(25, 25, EffectShape.Cone, HalfAngle: MathF.PI / 3),
+            injured with { Position = new(8, 0, 6), Radius = 0 }), "Reviewed 120-degree cone includes a target beyond a 90-degree cone");
+        Check(!TargetSelection.Covers(Vector3.Zero, new(0, 0, 10), new(25, 25, EffectShape.Cone, HalfAngle: MathF.PI / 3),
+            injured with { Position = new(10, 0, 2), Radius = 0 }), "Reviewed cone still excludes targets beyond its edge");
         Check(!TargetSelection.Covers(Vector3.Zero,Vector3.Zero,new(0,20,EffectShape.Donut,InnerRadius:8),tank),"Donut hole must be respected");
         Check(!TargetSelection.Covers(Vector3.Zero,Vector3.Zero,new(0,20,EffectShape.Circle),tank with{Position=new(0,100,0)}),"Different floors must not inflate area coverage");
         Check(!TargetSelection.Covers(Vector3.Zero,Vector3.Zero,new(0,20,EffectShape.Circle),tank with{Position=new(float.NaN,0,0)}),"Invalid actor positions must not count as affected");

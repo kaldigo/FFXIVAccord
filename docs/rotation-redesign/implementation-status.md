@@ -4,6 +4,14 @@
 
 ## Current checkpoint (supersedes the initial delivery notes below)
 
+The current file-by-file/job-by-job disposition and explicit native acceptance record are in [implementation-map.md](implementation-map.md). This supersedes the older open-code lists below as those items are finished and verified.
+
+Latest paired Release validation: **474,419 assertions**, 512 PvE and 336 PvP configurations. Python regressions: Wrath 30, client 11, RSR 11, central feed/publisher 18. RSR Release and settings/manual-action checks pass. Native acceptance and matched performance/rotation captures remain unrun; there was no live game process available. The testing providers remain opt-in and session-only, with the new PvP scheduling option separate from target selection and MCH Analysis.
+
+The 5 November targeting/PvP audit adds a scoped preliminary enemy recipient, strict final action/recipient consistency, common automatic-runner acquisition, reviewed self-area coverage with press-time revalidation, native donut geometry and RSR's cone-angle convention. Joined PvE coverage uses the same policy. Provider-published healing/preparation/release decisions cannot be moved by a later generic target pass. Resurrection recipient eligibility now excludes another ally's observed raise before selection, including RDM/SMN and accepted continuations.
+
+PvP adds confirmed Analysis/tool binding, separately opt-in RDM planned-GCD Embolden and SMN summon-phase/Cyclone policy, plus own accepted Wildfire/Warrant/Honing release controls. Smite's reviewed Guard bypass no longer disappears behind the broad ordinary-damage guard in the migrated melee paths. Native manual release controls remain available. AST's retained healing recipient is invalidated by context changes. The capture baseline now includes the experimental settings and encounter snapshot at start.
+
 ### Continuing implementation, 5 November
 
 The entire roadmap remains the scope. The following additions are implemented locally on `testing`; they are not a declaration of complete roadmap or native acceptance. Latest paired Release build: **474,406 assertions pass**, including compact PvP layouts for all 21 jobs and 16 automation combinations per job. No stable source, feed, installation or public release was changed.

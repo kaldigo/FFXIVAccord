@@ -49,6 +49,7 @@ internal static class RotationTestingPanel
             Toggle(options, "GroundTargets", "Healing ground actions: target overrides, coverage and retained placement");
             Toggle(options, "SpaceMitigation", "Defer forecast party mitigation when an observed defense covers the hit");
             Toggle(options, "PvpMachinist", "PvP MCH: prepare the selected tool and preserve Drill through Guard");
+            Toggle(options, "PvpScheduling", "PvP: coordinated RDM/SMN burst and accepted Wildfire/Warrant/Honing releases");
             Toggle(options, "PvpTargeting", "PvP: action-specific damage targets and Guard eligibility");
             Toggle(options, "Paladin", "PLD: coordinate burst with the planned GCD and active buffs");
             Toggle(options, "Warrior", "WAR: check buff duration and downtime before burst");
@@ -64,7 +65,7 @@ internal static class RotationTestingPanel
             Toggle(options, "IncludeRaise", "Healers: include resurrection in damage buttons");
             Toggle(options, "IncludeCleanse", "Healers: include cleansing in damage buttons");
             Toggle(options, "PreventiveHealing", "Healers: allow preparation and protection before incoming damage");
-            Toggle(options, "HardCastRaise", "Healers: allow resurrection without an instant-cast effect");
+            Toggle(options, "HardCastRaise", "Resurrection: allow casting without an instant-cast effect");
             Toggle(options, "HealingGcds", "Healers: also allow healing spells to replace damage casts");
             Toggle(options, "PartyMouseover", "Healing override: party-list mouseover");
             Toggle(options, "WorldMouseover", "Healing override: world mouseover");
@@ -76,7 +77,7 @@ internal static class RotationTestingPanel
             Toggle(options, "EnemyMouseover", "Damage override: world mouseover");
             Toggle(options, "EnemyFocus", "Damage override: focus target");
             Toggle(options, "AutomaticEnemies", "Allow automatic enemy switching for action coverage");
-            Toggle(options, "OverridesInAutomation", "Apply mouseover overrides to automatic actions too");
+            Toggle(options, "OverridesInAutomation", "Apply mouseover and focus overrides to automatic actions too");
             Toggle(options, "SwitchEnemyTarget", "Allow the Wrath runner to visibly select its enemy recipient");
             Toggle(options, "SwitchAllyTarget", "Allow the Wrath runner to visibly select its ally recipient");
             DrawOrder(options, "AllyOverrideOrder", "Ally override order");
