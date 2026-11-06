@@ -48,12 +48,38 @@ internal sealed class AutomationControl : IDisposable
     private AccordSettings Settings => Plugin.Instance.Settings;
     private AutomaticRunner Selected => Settings.AutomaticEngine == AutomationEngine.Wrath ? AutomaticRunner.Wrath : AutomaticRunner.Rsr;
     private bool SelectedAvailable => Selected == AutomaticRunner.Wrath ? wrathAvailable : rsrAvailable;
-    private AutomaticRunner Desired => AutomationPreference.Resolve(Settings.AutoRotationEnabled, Settings.FollowAutoDuty, dutyAvailable, dutyRunning, Selected);
+    private AutomaticRunner Desired => Settings.EmergencyRotation ? AutomaticRunner.Off : AutomationPreference.Resolve(Settings.AutoRotationEnabled, Settings.FollowAutoDuty, dutyAvailable, dutyRunning, Selected);
     private void Discover() { wrathAvailable = wrath.Compatible(); rsrAvailable = rsr.Compatible(); }
+    private readonly IDtrBarEntry backup = Svc.DtrBar.Get("Accord Wrath backup");
+    private readonly IDtrBarEntry backupSt = Svc.DtrBar.Get("Accord backup ST");
+    private readonly IDtrBarEntry backupAoe = Svc.DtrBar.Get("Accord backup AoE");
+    private void BackupPress(bool area) => _ = Svc.Framework.RunOnTick(() =>
+    {
+        var button = area ? backupAoe : backupSt;
+        if (!Settings.EmergencyRotation || !handoff.IsCoordinating || handoff.Requested != AutomaticRunner.Off)
+        {
+            button.Tooltip = "Waiting to confirm the automatic engines are stopped.";
+            return;
+        }
+        try { button.Tooltip = Svc.PluginInterface.GetIpcSubscriber<bool, string>("WrathCombo.EmergencyDamage.v1").InvokeFunc(area); }
+        catch (Exception ex) { button.Tooltip = "Wrath backup unavailable: " + ex.Message; }
+    });
     internal AutomationControl()
     {
         handoff = new(wrath, rsr);
         api.RegisterFunc(Request);
+        backup.Tooltip = "Click to toggle manual Wrath backup. Click ST or AoE for each damage action.";
+        backupSt.Text = "ST"; backupAoe.Text = "AoE";
+        backupSt.Tooltip = "Press Wrath single-target damage"; backupAoe.Tooltip = "Press Wrath area damage";
+        backupSt.OnClick = _ => BackupPress(false); backupAoe.OnClick = _ => BackupPress(true);
+        backup.OnClick = args => _ = Svc.Framework.RunOnTick(() =>
+        {
+            Settings.EmergencyRotation = !Settings.EmergencyRotation;
+            Svc.PluginInterface.SavePluginConfig(Settings);
+            if (Settings.EmergencyRotation) { used = true; handoff.Request(AutomaticRunner.Off, Environment.TickCount64); }
+            nextAttempt = 0;
+            AccordDiagnostics.DiagnosticLog.Event("Emergency.Mode", () => new { Enabled = Settings.EmergencyRotation });
+        });
         entry.Shown = true;
         entry.Text = new SeStringBuilder().AddIcon(BitmapFontIcon.ElementLightning).AddText(" M").Build();
         entry.OnClick = _ => Queue(Settings.AutoRotationEnabled ? "off" : "on");
@@ -123,6 +149,9 @@ internal sealed class AutomationControl : IDisposable
             handoff.Stop();
             settingsError = "Auto rotation is enabled; waiting for saved engine settings to be applied and verified.";
         }
+        backup.Shown = wrathAvailable || Settings.EmergencyRotation;
+        backup.Text = Settings.EmergencyRotation ? "Exit backup" : "Wrath backup";
+        backupSt.Shown = backupAoe.Shown = Settings.EmergencyRotation && wrathAvailable;
         handoff.Tick(now);
         RecordStatus();
         // Saved intent is independent of temporary runner/IPC availability and diagnostic capture.
@@ -131,6 +160,11 @@ internal sealed class AutomationControl : IDisposable
         {
             if (handoff.IsCoordinating && handoff.Requested != AutomaticRunner.Off)
                 handoff.Request(AutomaticRunner.Off, now);
+            else if (Settings.EmergencyRotation && wrathAvailable && !handoff.IsCoordinating && now >= nextAttempt)
+            {
+                nextAttempt = now + 2000;
+                handoff.Request(AutomaticRunner.Off, now);
+            }
         }
         else if ((!handoff.IsCoordinating || handoff.Requested != desired) && now >= nextAttempt && ECommons.GameHelpers.Player.Available)
         {
@@ -141,7 +175,7 @@ internal sealed class AutomationControl : IDisposable
         string status = settingsError.Length > 0 ? settingsError : handoff.Status;
         entry.Text = new SeStringBuilder().AddIcon(BitmapFontIcon.ElementLightning)
             .AddText(handoff.Owner != AutomaticRunner.Off ? " A" : Settings.AutoRotationEnabled ? " \u2026" : " M").Build();
-        entry.Tooltip = status + "\nAuto rotation setting: " + (Settings.AutoRotationEnabled ? "on" : "off") + ". Selected engine: " + Selected + ". Click to change the saved choice.";
+        entry.Tooltip = (Settings.EmergencyRotation ? "Wrath backup active. Automatic execution is paused." : status) + "\nAuto rotation setting: " + (Settings.AutoRotationEnabled ? "on" : "off") + ". Selected engine: " + Selected + ". Click to change the saved choice.";
     }
     private void RecordStatus()
     {
@@ -207,6 +241,9 @@ internal sealed class AutomationControl : IDisposable
     public void Dispose()
     {
         if (used) handoff.Stop();
+        Svc.DtrBar.Remove("Accord Wrath backup");
+        Svc.DtrBar.Remove("Accord backup ST");
+        Svc.DtrBar.Remove("Accord backup AoE");
         api.UnregisterFunc();
         Svc.DtrBar.Remove("Accord Auto rotation");
     }

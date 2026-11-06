@@ -79,6 +79,8 @@ internal sealed class EngineClient : IDisposable
         // Recovery acknowledges the old engine transaction, not newer independent UI choices.
         var latest = Plugin.Instance.Settings;
         desired.AutoRotationEnabled = latest.AutoRotationEnabled;
+        desired.EmergencyRotation = latest.EmergencyRotation;
+        desired.ContinuousDiagnostics = latest.ContinuousDiagnostics;
         desired.AutomaticEngine = latest.AutomaticEngine;
         desired.FollowAutoDuty = latest.FollowAutoDuty;
         desired.WrathPreferences = (JObject)latest.WrathPreferences.DeepClone();

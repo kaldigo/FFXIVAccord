@@ -14,14 +14,42 @@ internal static class DiagnosticCapturePanel
     private static DiagnosticEndpoint? local;
     private static readonly string[] endpoints = ["Accord", "WrathCombo.Diagnostics.v1", "RotationSolverReborn.Diagnostics.v1"];
     private static readonly Dictionary<string, JObject> health = new();
-    private static string? session;
+    private static string? session, duty;
+    private static uint territory;
+    private static ulong character;
+    private static bool openDuty;
+    private static string Root => Path.Combine(DiagnosticLog.Root(Svc.PluginInterface.GetPluginConfigDirectory()), "LastDuty");
+    private static string Index => Path.Combine(Root, "current.json");
+    private static string DutyDirectory => Path.Combine(Root, duty!);
+    private static void SaveIndex()
+    {
+        Directory.CreateDirectory(Root);
+        File.WriteAllText(Index + ".tmp", new JObject { ["Duty"] = duty, ["Territory"] = territory, ["Character"] = character, ["Open"] = openDuty }.ToString());
+        File.Move(Index + ".tmp", Index, true);
+    }
+    private static void LoadIndex()
+    {
+        if (!File.Exists(Index)) return;
+        var index = JObject.Parse(File.ReadAllText(Index));
+        if (!Guid.TryParseExact(index.Value<string>("Duty"), "N", out _)) return;
+        duty = index.Value<string>("Duty");
+        territory = index.Value<uint>("Territory");
+        character = index.Value<ulong>("Character");
+        openDuty = index.Value<bool>("Open");
+    }
     private static bool enabled, busy, disposed;
-    private static long nextPoll;
+    private static long nextPoll, nextTrim;
+    private static bool trimPending;
+    private static Task? cleanup;
     private static string message = "Off. Detailed logs stay on this computer; nothing is uploaded.";
     private static string marker = "";
-    internal static void Init() => local = new("Accord", null,
+    internal static void Init()
+    {
+        try { LoadIndex(); } catch (Exception ex) { message = ex.Message; }
+        local = new("Accord", null,
         () => new { Automation = Plugin.Instance.Automation.Request("status"), SetupController.Instance!.Status, Hotbars = Hotbars() },
         () => new { Settings = Plugin.Instance.Settings, PvE = SetupController.Instance!.Pack, PvP = SetupController.Instance!.PvP.Pack });
+    }
     private static unsafe object? Hotbars()
     {
         var module = FFXIVClientStructs.FFXIV.Client.UI.Misc.RaptureHotbarModule.Instance();
@@ -43,7 +71,9 @@ internal static class DiagnosticCapturePanel
     {
         try
         {
-            string json = new JObject { ["Command"] = command, ["Session"] = session }.ToString(Formatting.None);
+            if (command == "start" && Send(endpoint, "status").Value<int>("DutyCaptureVersion") != 1)
+                return new JObject { ["Success"] = false, ["Error"] = "Duty capture unavailable. Check the installed testing version." };
+            string json = new JObject { ["Command"] = command, ["Session"] = session, ["Duty"] = duty }.ToString(Formatting.None);
             return JObject.Parse(endpoint == "Accord" ? local!.Handle(json) : Svc.PluginInterface.GetIpcSubscriber<string, string>(endpoint).InvokeFunc(json));
         }
         catch (Exception ex) { return new JObject { ["Success"] = false, ["Error"] = ex.Message }; }
@@ -52,10 +82,10 @@ internal static class DiagnosticCapturePanel
     {
         if (value)
         {
-            session = Guid.NewGuid().ToString("N"); health.Clear(); enabled = true;
+            session = Guid.CreateVersion7().ToString("N"); health.Clear(); enabled = true;
             foreach (string endpoint in endpoints) health[endpoint] = Send(endpoint, "start");
             DiagnosticLog.Event("Controller.Start", () => new { Endpoints = health });
-            message = "Logging until switched off. Job and territory changes remain in this session. Check all three component statuses below.";
+            message = "Recording this duty. The next duty replaces this capture.";
         }
         else
         {
@@ -66,23 +96,94 @@ internal static class DiagnosticCapturePanel
     }
     internal static void Tick()
     {
-        if (session == null || Environment.TickCount64 < nextPoll) return;
-        nextPoll = Environment.TickCount64 + 1000;
-        foreach (string endpoint in endpoints) health[endpoint] = Send(endpoint, enabled ? "heartbeat" : "status");
+        if (Environment.TickCount64 < nextPoll || busy) return;
+        nextPoll = Environment.TickCount64 + 500;
+        if (cleanup?.IsFaulted == true)
+        {
+            message = "Previous capture cleanup will retry: " + cleanup.Exception!.GetBaseException().Message;
+            cleanup = null;
+            trimPending = true;
+        }
+        bool bound = Svc.ClientState.IsLoggedIn && (Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BoundByDuty]
+            || Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BoundByDuty56]);
+        bool loading = Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas] || Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas51];
+        try
+        {
+            if (Plugin.Instance.Settings.ContinuousDiagnostics && bound && !loading && Svc.PlayerState.ContentId != 0)
+            {
+                if (!openDuty || territory != Svc.ClientState.TerritoryType || character != Svc.PlayerState.ContentId)
+                {
+                    if (enabled) SetEnabled(false);
+                    duty = Guid.CreateVersion7().ToString("N"); territory = Svc.ClientState.TerritoryType; character = Svc.PlayerState.ContentId;
+                    Directory.CreateDirectory(DutyDirectory);
+                    File.WriteAllText(Path.Combine(DutyDirectory, "managed-duty"), duty);
+                    openDuty = true;
+                    SaveIndex();
+                    trimPending = true;
+                }
+                if (!enabled) SetEnabled(true);
+                if (trimPending && health.TryGetValue("Accord", out var localHealth) && localHealth.Value<bool>("Success") && Environment.TickCount64 >= nextTrim)
+                {
+                    nextTrim = Environment.TickCount64 + 5000;
+                    if (cleanup == null || cleanup.IsCompleted)
+                    {
+                        var root = Root;
+                        var keep = duty!;
+                        var candidates = new DirectoryInfo(root).GetDirectories();
+                        cleanup = Task.Run(() =>
+                        {
+                            DutyLogRetention.Trim(root, keep, candidates);
+                            DutyLogRetention.TrimLegacy(Directory.GetParent(root)!.FullName);
+                        });
+                        trimPending = false;
+                    }
+                }
+            }
+            else if (!loading && (!bound || !Plugin.Instance.Settings.ContinuousDiagnostics))
+            {
+                if (enabled) SetEnabled(false);
+                if (!bound && openDuty) { openDuty = false; SaveIndex(); }
+            }
+        }
+        catch (Exception ex) { message = "Duty capture: " + ex.Message; }
+        if (session == null) return;
+        foreach (string endpoint in endpoints)
+        {
+            var response = Send(endpoint, enabled ? "heartbeat" : "status");
+            if (enabled && response.Value<bool>("Success") != true && response["Status"]?["Session"]?.Type == JTokenType.Null)
+            {
+                string component = endpoint == "WrathCombo.Diagnostics.v1" ? "WrathCombo" : "RotationSolver";
+                if (Directory.Exists(Path.Combine(DutyDirectory, session, component)))
+                {
+                    // An engine reloaded during recording. Preserve its closed files and continue in a new directory.
+                    SetEnabled(false);
+                    SetEnabled(true);
+                    break;
+                }
+                response = Send(endpoint, "start");
+            }
+            health[endpoint] = response;
+        }
         DiagnosticLog.Event("Controller.Health", () => new { Endpoints = health });
     }
+    private static bool BoundForDisplay() => Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BoundByDuty] || Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BoundByDuty56];
     internal static void Draw()
     {
-        ImGui.TextWrapped("Full session diagnostics: selections and rejection reasons, button presses, targets, queues, action effects, settings, forecasts and automation ownership. Logs include local settings and nearby actor IDs/statuses; no chat or character names are collected by the world sampler.");
-        bool value = enabled;
+        ImGui.TextWrapped("Records while inside a duty. The next duty replaces this one. Each plugin uses up to about 32 MiB of compressed storage. Starting a new capture also retires completed older diagnostic recordings. Exported ZIPs are kept. Background checks are sampled and counted; individual presses, sends and confirmations are recorded. Capture includes selections and rejection reasons, button presses, targets, queues, action effects, settings, forecasts and automation ownership. Logs include local settings and nearby actor IDs/statuses; no chat or character names are collected by the world sampler.");
+        bool value = Plugin.Instance.Settings.ContinuousDiagnostics;
         ImGui.BeginDisabled(busy);
-        if (ImGui.Checkbox("Temporary detailed logging", ref value))
+        if (ImGui.Checkbox("Keep advanced log of latest duty", ref value))
         {
             bool requested = value;
-            _ = Svc.Framework.RunOnTick(() => SetEnabled(requested));
+            _ = Svc.Framework.RunOnTick(() =>
+            {
+                Plugin.Instance.Settings.ContinuousDiagnostics = requested;
+                Svc.PluginInterface.SavePluginConfig(Plugin.Instance.Settings);
+                nextPoll = 0;
+            });
         }
         ImGui.EndDisabled();
-        ImGui.TextWrapped(message);
+        ImGui.TextWrapped(value && !enabled && !BoundForDisplay() ? "Armed for duty entry. The most recent duty stays available." : message);
         foreach (var item in health)
         {
             var state = item.Value["Status"] as JObject;
@@ -99,14 +200,14 @@ internal static class DiagnosticCapturePanel
                 _ = Svc.Framework.RunOnTick(() => DiagnosticLog.Event("User.Marker", () => new { Note = note }));
             }
         }
-        if (session != null)
+        if (duty != null)
         {
-            string directory = Path.Combine(DiagnosticLog.Root(Svc.PluginInterface.GetPluginConfigDirectory()), session);
+            string directory = DutyDirectory;
             ImGui.TextWrapped("Session folder: " + directory);
             if (ImGui.Button("Copy session folder")) ImGui.SetClipboardText(directory);
             bool flushing = health.Values.Any(x => x["Status"]?.Value<bool>("Flushing") == true);
             ImGui.BeginDisabled(enabled || flushing || busy);
-            if (ImGui.Button("Export diagnostic ZIP")) Export(directory);
+            if (ImGui.Button("Export duty ZIP")) Export(directory);
             ImGui.EndDisabled();
         }
         ImGui.Separator();

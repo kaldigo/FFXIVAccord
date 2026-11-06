@@ -3,6 +3,7 @@ Findings are leads for review, not proof that an unused ability should have fire
 """
 import argparse
 from collections import Counter, defaultdict
+import gzip
 import json
 from pathlib import Path
 import zipfile
@@ -41,10 +42,11 @@ def analyze(files):
             at = event['MonotonicMs']
             end = max(end, at)
             seq = event['Sequence']
-            previous = sequence.get(component, 0)
+            stream_id = (component, event.get('Session'))
+            previous = sequence.get(stream_id, 0)
             if seq != previous + 1:
                 warnings.append(f'{component}: event sequence gap {previous} -> {seq}')
-            sequence[component] = seq
+            sequence[stream_id] = seq
             counts[component][kind] += 1
             if kind == 'Session.Start': builds[component] = data
             if kind == 'User.Marker': markers.append(dict(Time=at, **data))
@@ -68,6 +70,8 @@ def analyze(files):
         if component not in builds: warnings.append(f'{component}: no session-start/build record; component coverage missing')
         if component not in summaries: warnings.append(f'{component}: no final summary; session may still be recording or ended unexpectedly')
         summary = summaries.get(component, {})
+        if summary.get('ExpiredParts'):
+            warnings.append(f"{component}: rolling retention expired {summary['ExpiredParts']} old parts; only the beginning and recent history remain")
         if summary.get('Dropped') or summary.get('Error'):
             warnings.append(f'{component}: incomplete capture: lost={summary.get("Dropped", 0)} error={summary.get("Error", "")}')
     never_reached = [name for name in sorted(enabled) if name in JOBS and JOBS[name] in jobs
@@ -89,13 +93,18 @@ def analyze(files):
 def read(path):
     if path.is_dir():
         for file in sorted(path.rglob('*')):
-            if file.is_file() and (file.suffix == '.jsonl' or file.name == 'summary.json'):
+            if file.name.endswith('.jsonl.gz'):
+                with gzip.open(file, 'rt', encoding='utf-8-sig') as stream: yield str(file.relative_to(path))[:-3], stream
+            elif file.is_file() and (file.suffix == '.jsonl' or file.name == 'summary.json'):
                 with file.open(encoding='utf-8-sig') as stream: yield str(file.relative_to(path)), stream
     else:
         import io
         with zipfile.ZipFile(path) as archive:
             for name in sorted(archive.namelist()):
-                if name.endswith('.jsonl') or name.endswith('/summary.json'):
+                if name.endswith('.jsonl.gz'):
+                    with archive.open(name) as raw, gzip.open(raw, 'rt', encoding='utf-8-sig') as stream:
+                        yield name[:-3], stream
+                elif name.endswith('.jsonl') or name.endswith('/summary.json'):
                     with archive.open(name) as stream:
                         yield name, io.TextIOWrapper(stream, encoding='utf-8-sig')
 
