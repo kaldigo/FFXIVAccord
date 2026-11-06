@@ -51,32 +51,28 @@ internal sealed class AutomationControl : IDisposable
     private AutomaticRunner Desired => Settings.EmergencyRotation ? AutomaticRunner.Off : AutomationPreference.Resolve(Settings.AutoRotationEnabled, Settings.FollowAutoDuty, dutyAvailable, dutyRunning, Selected);
     private void Discover() { wrathAvailable = wrath.Compatible(); rsrAvailable = rsr.Compatible(); }
     private readonly IDtrBarEntry backup = Svc.DtrBar.Get("Accord Wrath backup");
-    private readonly IDtrBarEntry backupSt = Svc.DtrBar.Get("Accord backup ST");
-    private readonly IDtrBarEntry backupAoe = Svc.DtrBar.Get("Accord backup AoE");
-    private void BackupPress(bool area) => _ = Svc.Framework.RunOnTick(() =>
-    {
-        var button = area ? backupAoe : backupSt;
-        if (!Settings.EmergencyRotation || !handoff.IsCoordinating || handoff.Requested != AutomaticRunner.Off)
-        {
-            button.Tooltip = "Waiting to confirm the automatic engines are stopped.";
-            return;
-        }
-        try { button.Tooltip = Svc.PluginInterface.GetIpcSubscriber<bool, string>("WrathCombo.EmergencyDamage.v1").InvokeFunc(area); }
-        catch (Exception ex) { button.Tooltip = "Wrath backup unavailable: " + ex.Message; }
-    });
+    private readonly ICallGateProvider<bool> backupArmed = Svc.PluginInterface.GetIpcProvider<bool>("Accord.EmergencyHotbarsArmed.v1");
     internal AutomationControl()
     {
         handoff = new(wrath, rsr);
         api.RegisterFunc(Request);
-        backup.Tooltip = "Click to toggle manual Wrath backup. Click ST or AoE for each damage action.";
-        backupSt.Text = "ST"; backupAoe.Text = "AoE";
-        backupSt.Tooltip = "Press Wrath single-target damage"; backupAoe.Tooltip = "Press Wrath area damage";
-        backupSt.OnClick = _ => BackupPress(false); backupAoe.OnClick = _ => BackupPress(true);
+        backupArmed.RegisterFunc(() => Svc.Framework.IsInFrameworkUpdateThread && Settings.EmergencyRotation &&
+            handoff.IsCoordinating && handoff.Requested == AutomaticRunner.Off && handoff.Owner == AutomaticRunner.Off);
+        backup.Tooltip = "Toggle Wrath backup on your PvE rotation hotbar.";
         backup.OnClick = args => _ = Svc.Framework.RunOnTick(() =>
         {
+            if (!Settings.EmergencyRotation)
+            {
+                try
+                {
+                    SetupController.Instance!.CheckEmergencyPlacement();
+                }
+                catch (Exception ex) { Svc.Chat.PrintError("Wrath backup unavailable. Check the Wrath testing version and your PvE rotation slots. " + ex.Message); return; }
+            }
             Settings.EmergencyRotation = !Settings.EmergencyRotation;
             Svc.PluginInterface.SavePluginConfig(Settings);
             if (Settings.EmergencyRotation) { used = true; handoff.Request(AutomaticRunner.Off, Environment.TickCount64); }
+            SetupController.Instance!.Run(() => SetupController.Instance.SyncEmergencyPlacement());
             nextAttempt = 0;
             AccordDiagnostics.DiagnosticLog.Event("Emergency.Mode", () => new { Enabled = Settings.EmergencyRotation });
         });
@@ -151,7 +147,7 @@ internal sealed class AutomationControl : IDisposable
         }
         backup.Shown = wrathAvailable || Settings.EmergencyRotation;
         backup.Text = Settings.EmergencyRotation ? "Exit backup" : "Wrath backup";
-        backupSt.Shown = backupAoe.Shown = Settings.EmergencyRotation && wrathAvailable;
+
         handoff.Tick(now);
         RecordStatus();
         // Saved intent is independent of temporary runner/IPC availability and diagnostic capture.
@@ -242,8 +238,7 @@ internal sealed class AutomationControl : IDisposable
     {
         if (used) handoff.Stop();
         Svc.DtrBar.Remove("Accord Wrath backup");
-        Svc.DtrBar.Remove("Accord backup ST");
-        Svc.DtrBar.Remove("Accord backup AoE");
+        backupArmed.UnregisterFunc();
         api.UnregisterFunc();
         Svc.DtrBar.Remove("Accord Auto rotation");
     }

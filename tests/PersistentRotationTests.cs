@@ -1,3 +1,4 @@
+using HotbarTools;
 using Accord;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -40,6 +41,18 @@ internal static class PersistentRotationTests
         Check(AutomationPreference.Resolve(false, true, true, true, AutomaticRunner.Wrath) == AutomaticRunner.Off, "AutoDuty overrode explicit off");
         Check(AutomationPreference.Resolve(true, true, true, true, AutomaticRunner.Rsr) == AutomaticRunner.Rsr, "Saved following did not resume an active duty");
         Check(AutomationPreference.Resolve(true, true, true, false, AutomaticRunner.Wrath) == AutomaticRunner.Off && reload.AutoRotationEnabled, "Paused activity lost the saved choice");
+        var rotation = new SlotValue(1,1000016);
+        var spare = new SlotValue(1,99);
+        var bars = new Dictionary<Position,SlotValue> { [new(0,3)] = rotation, [new(0,4)] = spare,
+            [new(10,14)] = rotation, [new(10,15)] = spare };
+        var backup = EmergencyBarPlacement.Plan(24, [(new(0,3),rotation,false),(new(10,14),rotation,false)],
+            p => bars.GetValueOrDefault(p), _ => false);
+        Check(backup.Count == 4 && backup.Any(e => e.Position == new Position(0,2) && e.After == EmergencyBarPlacement.Area)
+            && backup.Any(e => e.Position == new Position(10,13) && e.After == EmergencyBarPlacement.Area), "Joined backup displaced another bound action");
+        bars[new(0,7)] = new(1,139);
+        backup = EmergencyBarPlacement.Plan(24, [(new(0,3),rotation,false),(new(0,7),new(1,139),true),(new(10,14),rotation,false)],
+            p => bars.GetValueOrDefault(p), pos => pos.Bar==10);
+        Check(backup.Count==2 && backup.Single(e=>e.After==EmergencyBarPlacement.Area).Position==new Position(0,7), "Split backup changed mapped positions or shared bar");
         return checks;
     }
 }

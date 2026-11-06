@@ -240,6 +240,7 @@ internal sealed class SetupController : IDisposable
     {
         if (Plugin.Instance.MigrationPending || engine.HasPending)
             throw new InvalidOperationException("Complete the pending settings operation before preparing manual layouts.");
+        SyncEmergencyPlacement(restoreOnly: true);
         fallback.Prepare(Pack.SelectedJobs(Settings).Select(j => j.JobId), exiting);
         Status = fallback.Status;
         updates.Invalidate();
@@ -261,8 +262,87 @@ internal sealed class SetupController : IDisposable
         if (fallback.Pending) throw new InvalidOperationException("Manual fallback is active. Use Restore Accord hotbars before changing Accord layouts or settings.");
     }
 
+    private string EmergencyJournal => Path.Combine(Svc.PluginInterface.GetPluginConfigDirectory(),
+        "emergency-hotbars", NativeHotbars.CharacterKey(Svc.PlayerState.ContentId) + ".json");
+    private unsafe List<SlotEdit> EmergencyPlan()
+    {
+        HotbarLayoutStore.Ready(false);
+        if (!Svc.PluginInterface.GetIpcSubscriber<bool>("WrathCombo.EmergencyHotbars.v1").InvokeFunc())
+            throw new InvalidOperationException("Update the Wrath testing plugin before enabling hotbar backup.");
+        uint job = (uint)Player.Job;
+        if (fallback.Pending || !Pack.IsActive(job, Settings) || !ConfiguredLayout.SupportsJoinedDamage(job))
+            throw new InvalidOperationException("Choose an active PvE combat job with its Accord layout.");
+        var preset = Pack.Find(job)!;
+        var contents = Layouts.Contents(preset, Settings);
+        var st = contents[ControlIntent.SingleTarget].Select(c => c.Action.Value).ToHashSet();
+        var aoe = contents[ControlIntent.AreaDamage].Select(c => c.Action.Value).ToHashSet();
+        var anchors = new List<(Position Position, SlotValue Expected, bool Area)>();
+        foreach (var c in LayoutPlan(preset, Settings, false).Controls)
+            if (st.Contains(c.Action.Value) || aoe.Contains(c.Action.Value))
+                anchors.Add((c.Position, c.Action.Value, aoe.Contains(c.Action.Value)));
+        foreach (var slot in preset.Slots.Where(s => s.LogicalSlot is 1 or 2))
+        {
+            var source = new Position(slot.RegularBar-1, slot.RegularSlot-1);
+            var map = Defaults.Maps().FirstOrDefault(m => m.Applies(job) && m.Regular == source && !m.SharedAcrossJobs);
+            if (map == null) continue;
+            foreach (var value in slot.LogicalSlot == 1 ? st : aoe)
+                anchors.Add((map.Cross, value, slot.LogicalSlot == 2));
+        }
+        return EmergencyBarPlacement.Plan(job, anchors, p => NativeHotbars.Read(job,p),
+            p => NativeHotbars.Ready(job)->IsHotbarShared((uint)p.Bar));
+    }
+    internal void CheckEmergencyPlacement() => EmergencyPlan();
+    internal unsafe bool SyncEmergencyPlacement(bool restoreOnly = false)
+    {
+        if (!Player.Available || IsPvP || Svc.PlayerState.ContentId == 0) return false;
+        var path = EmergencyJournal;
+        bool active = Settings.EmergencyRotation && !restoreOnly;
+        if (!active && !File.Exists(path)) return false;
+        HotbarLayoutStore.Ready(false);
+        uint current = (uint)Player.Job;
+        List<SlotEdit>? edits = null;
+        if (File.Exists(path))
+        {
+            edits = System.Text.Json.JsonSerializer.Deserialize<List<SlotEdit>>(File.ReadAllText(path), JsonStore.Options);
+            if (edits is not {Count: > 0} || edits.Any(e => !e.Position.Valid || e.Job != edits[0].Job ||
+                    e.After != EmergencyBarPlacement.Single && e.After != EmergencyBarPlacement.Area))
+                throw new InvalidDataException("Invalid emergency hotbar restore record.");
+            if (!active || edits[0].Job != current)
+            {
+                foreach (var e in edits)
+                {
+                    if (NativeHotbars.Ready(current)->IsHotbarShared((uint)e.Position.Bar))
+                        throw new InvalidOperationException("Unshare the backup bar before restoring it.");
+                    if (NativeHotbars.Read(e.Job,e.Position) == e.After) NativeHotbars.Write(current,e.Job,e.Position,e.Before);
+                }
+                NativeHotbars.Flush(current);
+                File.Delete(path);
+                edits = null;
+            }
+        }
+        if (!active || !Pack.IsActive(current, Settings) || !ConfiguredLayout.SupportsJoinedDamage(current)) return false;
+        if (edits == null)
+        {
+            edits = EmergencyPlan();
+            JsonStore.Write(path, edits);
+            if (edits.GroupBy(e => e.Position.Bar >= 10).Any(group => group.Select(e => e.After).Distinct().Count() < 2))
+                Svc.Chat.Print("Wrath backup replaced the existing rotation button. That bar has no empty slot for the second backup button.");
+        }
+        bool changed = false;
+        foreach (var e in edits)
+            if (!NativeHotbars.Ready(current)->IsHotbarShared((uint)e.Position.Bar) && NativeHotbars.Read(e.Job,e.Position) == e.Before)
+            {
+                NativeHotbars.Write(current,e.Job,e.Position,e.After);
+                changed = true;
+            }
+        if (changed) NativeHotbars.Flush(current);
+        Status = "Wrath backup is active on the rotation hotbar.";
+        return true;
+    }
+
     private void TickReady()
     {
+        if (SyncEmergencyPlacement()) { UpdateEntries(); return; }
         if (engine.HasPending)
         {
             if (engine.Recover()) { updates.Invalidate(); UpdateEntries(); Status = "Settings operation recovered. Layout updates will resume after state verification."; }
