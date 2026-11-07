@@ -205,9 +205,12 @@ internal sealed class SetupController : IDisposable
 
     internal void Tick()
     {
-        if (pendingChoices is not null && Player.Available &&
-            !Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas] &&
-            !Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas51])
+        if (HotbarLayoutStore.Loading)
+        {
+            Status = "Live layout waiting for loading to finish.";
+            return;
+        }
+        if (pendingChoices is not null && Player.Available)
         {
             if (Environment.TickCount64 < pendingRetry) return;
             pendingRetry = Environment.TickCount64 + 2000;
@@ -374,12 +377,6 @@ internal sealed class SetupController : IDisposable
         if (Settings.EngineConfigurationId != snapshot.Value<string>("ConfigurationId")) updates.Invalidate();
         uint job = (uint)Player.Job;
         ulong contentId = Svc.PlayerState.ContentId;
-        if (Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas] ||
-            Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas51])
-        {
-            Status = "Live layout waiting for loading to finish.";
-            return;
-        }
         if (updates.Applied)
         {
             if (Settings.LiveMode)

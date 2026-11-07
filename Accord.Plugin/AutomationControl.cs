@@ -42,13 +42,15 @@ internal sealed class AutomationControl : IDisposable
     private readonly ICallGateProvider<string, string> api = Svc.PluginInterface.GetIpcProvider<string, string>("Accord.AutomationRunner.v1");
     private readonly IDtrBarEntry entry = Svc.DtrBar.Get("Accord Auto rotation");
     private bool wrathAvailable, rsrAvailable, initialized, used;
-    private bool dutyAvailable, dutyRunning;
+    private bool dutyAvailable, dutyRunning, pvpPaused;
     private long nextDiscovery, nextAttempt, nextActivityPoll;
     private string settingsError = "", lastStatus = "", activityStatus = "";
     private AccordSettings Settings => Plugin.Instance.Settings;
     private AutomaticRunner Selected => Settings.AutomaticEngine == AutomationEngine.Wrath ? AutomaticRunner.Wrath : AutomaticRunner.Rsr;
     private bool SelectedAvailable => Selected == AutomaticRunner.Wrath ? wrathAvailable : rsrAvailable;
-    private AutomaticRunner Desired => Settings.EmergencyRotation ? AutomaticRunner.Off : AutomationPreference.Resolve(Settings.AutoRotationEnabled, Settings.FollowAutoDuty, dutyAvailable, dutyRunning, Selected);
+    private AutomaticRunner Desired => Settings.EmergencyRotation ? AutomaticRunner.Off : AutomationPreference.Resolve(Settings.AutoRotationEnabled, Settings.FollowAutoDuty, dutyAvailable, dutyRunning, Selected, pvpPaused);
+    private string Status => pvpPaused && Settings.AutoRotationEnabled && handoff.IsCoordinating
+        ? "Auto rotation paused in PvP." : settingsError.Length > 0 ? settingsError : handoff.Status;
     private void Discover() { wrathAvailable = wrath.Compatible(); rsrAvailable = rsr.Compatible(); }
     private readonly IDtrBarEntry backup = Svc.DtrBar.Get("Accord Wrath backup");
     private readonly ICallGateProvider<bool> backupArmed = Svc.PluginInterface.GetIpcProvider<bool>("Accord.EmergencyHotbarsArmed.v1");
@@ -108,6 +110,11 @@ internal sealed class AutomationControl : IDisposable
     internal void Tick()
     {
         long now = Environment.TickCount64;
+        bool loading = HotbarLayoutStore.Loading;
+        pvpPaused = AutomationPreference.PvPPaused(pvpPaused, Svc.ClientState.IsPvP || SetupController.IsPvP, loading || !Svc.ClientState.IsLoggedIn);
+        // Cancel even a pending start before renewing the lease could grant it.
+        if (pvpPaused && handoff.Requested != AutomaticRunner.Off)
+            handoff.Request(AutomaticRunner.Off, now);
         if (now >= nextDiscovery) { nextDiscovery = now + 1000; Discover(); }
         if (!initialized && (wrathAvailable || rsrAvailable))
         {
@@ -156,26 +163,26 @@ internal sealed class AutomationControl : IDisposable
         {
             if (handoff.IsCoordinating && handoff.Requested != AutomaticRunner.Off)
                 handoff.Request(AutomaticRunner.Off, now);
-            else if (Settings.EmergencyRotation && wrathAvailable && !handoff.IsCoordinating && now >= nextAttempt)
+            else if ((Settings.EmergencyRotation && wrathAvailable || pvpPaused && (wrathAvailable || rsrAvailable)) && !handoff.IsCoordinating && now >= nextAttempt)
             {
                 nextAttempt = now + 2000;
                 handoff.Request(AutomaticRunner.Off, now);
             }
         }
-        else if ((!handoff.IsCoordinating || handoff.Requested != desired) && now >= nextAttempt && ECommons.GameHelpers.Player.Available)
+        else if ((!handoff.IsCoordinating || handoff.Requested != desired) && now >= nextAttempt && !loading && ECommons.GameHelpers.Player.Available)
         {
             nextAttempt = now + 2000;
             Start(now);
         }
         RecordStatus();
-        string status = settingsError.Length > 0 ? settingsError : handoff.Status;
+        string status = Status;
         entry.Text = new SeStringBuilder().AddIcon(BitmapFontIcon.ElementLightning)
             .AddText(handoff.Owner != AutomaticRunner.Off ? " A" : Settings.AutoRotationEnabled ? " \u2026" : " M").Build();
         entry.Tooltip = (Settings.EmergencyRotation ? "Wrath backup active. Automatic execution is paused." : status) + "\nAuto rotation setting: " + (Settings.AutoRotationEnabled ? "on" : "off") + ". Selected engine: " + Selected + ". Click to change the saved choice.";
     }
     private void RecordStatus()
     {
-        string status = settingsError.Length > 0 ? settingsError : handoff.Status;
+        string status = Status;
         if (status != lastStatus)
         {
             // Retain transitions even when temporary detailed capture is off.
@@ -188,7 +195,7 @@ internal sealed class AutomationControl : IDisposable
     {
         if (!Svc.Framework.IsInFrameworkUpdateThread) return "Use the framework thread.";
         command = command.ToLowerInvariant();
-        if (command == "status") return settingsError.Length > 0 ? settingsError : handoff.Status;
+        if (command == "status") return Status;
         if (command is not ("on" or "off")) return "Choose on, off or status. Select the automatic engine in Accord.";
         Settings.AutoRotationEnabled = command == "on";
         Svc.PluginInterface.SavePluginConfig(Settings);
@@ -196,7 +203,8 @@ internal sealed class AutomationControl : IDisposable
         nextAttempt = 0;
         settingsError = "";
         if (command == "off") { used = true; handoff.Request(AutomaticRunner.Off, Environment.TickCount64); }
-        return command == "on" ? "Auto rotation enabled and saved; waiting for the selected engine." : "Auto rotation disabled and saved.";
+        return command == "on" && pvpPaused ? "Auto rotation enabled and saved; execution is paused in PvP." :
+            command == "on" ? "Auto rotation enabled and saved; waiting for the selected engine." : "Auto rotation disabled and saved.";
     }
     internal void Draw()
     {
@@ -211,7 +219,7 @@ internal sealed class AutomationControl : IDisposable
         ImGui.TextDisabled(rsrAvailable ? "RSR available for future learning mode (sprout)." : "Future learning mode requires the Accord-compatible RSR fork.");
         bool enabled = Settings.AutoRotationEnabled;
         if (ImGui.Checkbox("Auto rotation", ref enabled)) Queue(enabled ? "on" : "off");
-        ImGui.TextWrapped(settingsError.Length > 0 ? settingsError : handoff.Status);
+        ImGui.TextWrapped(Status);
         bool follow = Settings.FollowAutoDuty;
         if (ImGui.Checkbox("Follow AutoDuty navigation", ref follow))
         {

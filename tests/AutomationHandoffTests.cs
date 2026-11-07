@@ -46,6 +46,31 @@ internal static class AutomationHandoffTests
         var w = new Endpoint(); var r = new Endpoint();
         var coordinator = new AutomationHandoff(w, r);
         void Tick(long now) { w.Now = r.Now = now; coordinator.Tick(now); }
+        foreach (var selected in new[] { AutomaticRunner.Wrath, AutomaticRunner.Rsr })
+        {
+            var left = new Endpoint(); var right = new Endpoint();
+            var pvpControl = new AutomationHandoff(left, right);
+            bool paused = false;
+            void Step(long now, bool pvp, bool loading = false, bool enabled = true)
+            {
+                left.Now = right.Now = now;
+                paused = AutomationPreference.PvPPaused(paused, pvp, loading);
+                var desired = AutomationPreference.Resolve(enabled, false, false, false, selected, paused);
+                if (desired != pvpControl.Requested) pvpControl.Request(desired, now);
+                pvpControl.Tick(now);
+            }
+            Step(0, false);
+            Step(500, true);
+            Check(left.Starts + right.Starts == 0, "PvP entry granted a pending start");
+            Step(1000, false, loading: true);
+            Check(pvpControl.Requested == AutomaticRunner.Off, "Exit loading restarted the runner early");
+            Step(1500, false); Step(2000, false);
+            Check(pvpControl.Owner == selected, "Leaving PvP did not resume the selected engine");
+            Step(2100, true); Step(2600, true);
+            Check(!left.Lease.Allowed(2600) && !right.Lease.Allowed(2600), "PvP left an active runner enabled");
+            Step(3100, false, enabled: false);
+            Check(pvpControl.Owner == AutomaticRunner.Off && left.Starts + right.Starts == 1, "Saved off was lost on PvP exit");
+        }
         coordinator.Request(AutomaticRunner.Rsr, 0);
         Check(!w.Lease.Allowed(0) && !r.Lease.Allowed(0), "Request started a runner before settling.");
         w.Busy = true; Tick(500);
