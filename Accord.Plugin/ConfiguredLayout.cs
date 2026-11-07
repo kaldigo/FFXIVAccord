@@ -122,7 +122,7 @@ internal sealed class ConfiguredLayout
         "Benediction" or "Liturgy of the Bell" or "Synastry" or "Macrocosmos" or "Kardia" or "Pneuma" or "Curing Waltz" or "Improvisation" or "Aurora" => ControlIntent.Support,
         "Astral Flow" => ControlIntent.Mechanics,
         "Elusive Jump" => ControlIntent.Movement,
-        "Technical Step" => ControlIntent.PrimaryMechanics,
+        "Technical Step" => ControlIntent.Burst,
         "The Wanderer's Minuet" or "Standard Step" or "Astral Draw" => ControlIntent.Mechanics,
         "Perfect Balance" or "Geirskogul" or "Kassatsu" or "Ten Chi Jin" or "Meikyo Shisui" or "Enshroud" or "Reawaken" or "Flamethrower" or "Transpose" or "Hammer Stamp" => ControlIntent.Mechanics,
         "Nature's Minne" or "Mantra" or "Lux Solaris" or "Closed Position" => ControlIntent.Support,
@@ -160,7 +160,7 @@ internal sealed class ConfiguredLayout
             foreach (string name in split)
             {
                 var value = resolve(job.Job, name);
-                content[!legacy && name == "Technical Step" ? ControlIntent.PrimaryMechanics : ControlIntent.Mechanics].Add(new(new ActionChoice { Name = name, Type = value.Type, Id = value.Id, Automation = VariantId.ClassMechanics }));
+                content[ControlIntent.Mechanics].Add(new(new ActionChoice { Name = name, Type = value.Type, Id = value.Id, Automation = VariantId.ClassMechanics }));
             }
         }
         content[ControlIntent.Sprint].Add(new(new() { Name = "Sprint", Id = 3, Selector = true }));
@@ -240,7 +240,6 @@ internal sealed class ConfiguredLayout
     internal static readonly Dictionary<uint, string[]> SplitActions = new()
     {
         [23] = ["The Wanderer's Minuet", "Mage's Ballad", "Army's Paeon"],
-        [38] = ["Standard Step", "Technical Step"],
         // Umbral Draw is a native replacement, not an assignable action. Keep
         // the draw root so the game alternates it, alongside separate play slots.
         [33] = ["Astral Draw", "Play I", "Play II", "Play III", "Minor Arcana"],

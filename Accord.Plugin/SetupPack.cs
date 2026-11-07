@@ -22,11 +22,11 @@ internal sealed class SetupPack
         Data = JsonSerializer.Deserialize<PresetPack>(stream) ?? throw new InvalidDataException("Invalid setup pack.");
         if (Data.SchemaVersion != 1 || Data.WrathVersion != "1.0.4.27")
             throw new InvalidDataException("The setup pack does not match the pinned engine.");
-        // Dances are owned by class mechanics; Devilment is the burst initiator.
+        // Gate dance initiation through engine features. Damage buttons always finish dances and weave Devilment.
         var dancer = Data.Jobs.Single(j => j.Job == "DNC");
         dancer.AutoBurst = new PresetVariant();
-        dancer.Settings["EnabledActionsV6"]!.AsArray().Add(4018);
-        dancer.Settings["EnabledActionsV6"]!.AsArray().Add(4045);
+        foreach (int id in new[] { 4018, 4045, 4019, 4046 })
+            dancer.Settings["EnabledActionsV6"]!.AsArray().Add(id);
         foreach (var job in Data.Jobs)
         {
             jobsById.Add(job.JobId, job);
@@ -105,7 +105,7 @@ internal sealed class SetupPack
             case 33: flags[Feature.AstCardsOnStDamage] = true; flags[Feature.AstCardsOnAoeDamage] = true; break;
             case 35: flags[Feature.RdmBarrierOnAoe] = protection; break;
             case 38:
-                flags[Feature.DncStandardInitiation] = mechanics; flags[Feature.DncTechnicalInitiation] = mechanics;
+                flags[Feature.DncStandardInitiation] = mechanics; flags[Feature.DncTechnicalInitiation] = settings.Enabled(VariantId.Burst, job);
                 flags[Feature.DncCuringWaltz] = support; flags[Feature.DncPartnerOnAoe] = support;
                 flags[Feature.DncTargetlessPrepull] = false; // Retired: no added idle dance initiation.
                 flags[Feature.DncImprovisationFinish] = true; break;
@@ -161,7 +161,8 @@ internal sealed class SetupPack
         if (job.Job == "DNC")
         {
             AddSlot(11, "Standard Step", "Start a standard dance");
-            AddSlot(12, "Devilment", "Burst initiation");
+            AddSlot(12, "Empty", "Devilment follows through ST/AoE");
+            result.Slots.Single(s => s.LogicalSlot == 12).RetiredAction = "Devilment";
         }
         if (job.Job == "AST")
         {
@@ -194,7 +195,8 @@ internal sealed class SetupPack
         if (settings.Enabled(VariantId.Burst, job.JobId))
         {
             if (job.JobId is 24 or 28) ReplaceSlot(11, "Empty", "Burst initiation is delegated to ST/AoE");
-            if (job.JobId is 33 or 38) ReplaceSlot(12, "Empty", "Burst initiation is delegated to ST/AoE");
+            if (job.JobId == 38) ReplaceSlot(3, "Empty", "Technical dance initiation is delegated to ST/AoE");
+            if (job.JobId == 33) ReplaceSlot(12, "Empty", "Burst initiation is delegated to ST/AoE");
             if (job.JobId == 31) ReplaceSlot(3, "Empty", "Burst and overheat are handled by ST/AoE");
             if (job.JobId == 32) ReplaceSlot(3, "Empty", "Burst is handled by ST/AoE; interrupt has its own control");
         }
@@ -203,10 +205,7 @@ internal sealed class SetupPack
             if (job.JobId == 31) ReplaceSlot(6, "Empty", "Conditional Flamethrower initiation and channel holding are handled by AoE");
             if (job.JobId is 23 or 33) ReplaceSlot(11, "Empty", "Song or draw initiation is delegated to ST/AoE");
             if (job.JobId == 38)
-            {
-                ReplaceSlot(3, "Empty", "Technical dance initiation is delegated to ST/AoE");
                 ReplaceSlot(11, "Empty", "Standard dance follows upstream initiation and completion through ST/AoE");
-            }
         }
         if (settings.Enabled(VariantId.Support, job.JobId))
         {
@@ -307,7 +306,6 @@ internal sealed class SetupPack
         24 => [19008, 19195],
         28 => [16003, 16054],
         33 => [1016, 1043],
-        38 => [4019, 4046],
         _ => [],
     };
 
@@ -347,7 +345,7 @@ internal sealed class SetupPack
         .Where(v => v is not null).SelectMany(v => v!.Enable.Concat(v.Disable))
         .Concat(ManualProtectionPresets(job.JobId)).Concat(SupportPresets(job.JobId)).Concat(ProtectionPresets(job.JobId)).Concat(BurstPresets(job.JobId))
         .Concat(job.JobId == 30 ? new[] { 10036, 10040 } : job.JobId == 32 ? new[] { 5121 } : Array.Empty<int>())
-        .Concat(job.JobId == 38 ? new[] { 4175 } : Array.Empty<int>())
+        .Concat(job.JobId == 38 ? new[] { 4018, 4045, 4019, 4046, 4175 } : Array.Empty<int>())
         .Concat(job.JobId == 31 ? new[] { 8305 } : Array.Empty<int>())
         .Concat(job.JobId == 33 ? new[] { 1011, 1044 } : Array.Empty<int>()).ToHashSet();
 

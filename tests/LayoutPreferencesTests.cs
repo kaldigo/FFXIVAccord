@@ -250,6 +250,16 @@ internal static class LayoutPreferencesTests
         Check(configured.Contents(pack.Find(38)!, customSettings)[ControlIntent.Mechanics].Any(c => c.Action.Name == "Technical Step"), "custom mapping lost its old dance membership");
         Check(configured.Contents(pack.Find(24)!, new AccordSettings { Layouts = shipped })[ControlIntent.HealingProtection].Any(c => c.Action.Name == "Asylum"), "repaired default did not use the new grouping");
 
+        foreach (bool split in new[] { false, true })
+        {
+            var dancerSettings = new AccordSettings();
+            configured.InitializeDefaults(dancerSettings.Layouts);
+            dancerSettings.Layouts.Global.SplitMechanics = split;
+            var controls = configured.Contents(pack.Find(38)!, dancerSettings);
+            Check(controls[ControlIntent.Burst].Single().Action is { Name: "Technical Step", Automation: VariantId.Burst }, "Dancer burst must start Technical Step");
+            Check(controls.Values.SelectMany(group => group).Count(c => c.Action.Name == "Technical Step") == 1, "duplicate Technical Step");
+        }
+
         var overrideSettings = new AccordSettings { ActiveJobs = [23, 31] };
         configured.InitializeDefaults(overrideSettings.Layouts);
         overrideSettings.Layouts.Classes[23] = new() { Automation = new() { [VariantId.Support] = true } };
