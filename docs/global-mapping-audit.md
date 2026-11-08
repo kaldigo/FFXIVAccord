@@ -23,7 +23,7 @@ The audit covers `SetupPack.Resolve`, including controls appended by its variant
 | Healer movement was at the far end of bar 2 | All dedicated movement starts at bar 2's left edge. The healer exception is removed. Dragoon's two movement controls stay together. |
 | Tanks have stance, while healers and raising casters have a resurrection selector | Both intents occupy bar 2 slot 12; they are mutually exclusive across supported jobs. Shirk occupies slot 11. |
 | Summoner Astral Flow occupied a movement position, but changes function by summon, including Rekindle | Treat it as class mechanics. Sprint is independently available to every class. |
-| Dancer Technical Step was placed with burst | Keep it with class mechanics, alongside Standard Step. Split mode still supplies both direct controls. |
+| Dancer Technical Step was placed with burst | Technical Step is the Dancer burst trigger. Standard Step follows class mechanics. |
 | Targeted protection, personal shields, party protection, Rescue and preparation tools varied by old slot | Give these explicit intents instead of deriving their placement from class-specific coordinates. The existing primary Protection selector remains distinct from additional protection utilities. |
 | Tank/healer controls are appended or swapped by variant resolution | Classify the complete resolved controls by function: e.g. Bulwark/Holos as protection, Oblation/Deployment Tactics as targeted protection, Equilibrium as recovery and Aurora as support. |
 | Useful role actions were missing from some reviewed base layouts | Supply applicable interrupts, Esuna, recovery and knockback controls. Important role groups win duplicates by priority. Native class/level availability still filters them. |

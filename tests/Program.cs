@@ -174,8 +174,9 @@ foreach (var job in pack.Data.Jobs)
         if (job.JobId is >= 8 and <= 15) Check(resolved.Slots.Length == 12, "Crafting page must remain complete.");
         if (job.Job == "DNC")
         {
+            Check(new[] { 4019, 4046 }.All(id => ids.Contains(id) && pack.ControlledPresets(job).Contains(id)), "Devilment must remain enabled on both damage paths for prepared Dancers.");
             Check(ids.Contains(4018) && ids.Contains(4045), "DNC completion must survive manual variants.");
-            Check(resolved.Slots.Any(s => s.Action == "Technical Step") == !settings.Enabled(VariantId.ClassMechanics) && resolved.Slots.Any(s => s.Action == "Standard Step") == !settings.Enabled(VariantId.ClassMechanics), "Dance initiation/prepull access disagrees with mechanics.");
+            Check(resolved.Slots.Any(s => s.Action == "Technical Step") == !settings.Enabled(VariantId.Burst) && resolved.Slots.Any(s => s.Action == "Standard Step") == !settings.Enabled(VariantId.ClassMechanics), "Dance initiation/prepull access disagrees with mechanics.");
         }
         if (job.Job == "AST") Check(resolved.Slots.Any(s => s.Action == "Astral Draw") == !settings.Enabled(VariantId.ClassMechanics) && resolved.Slots.Any(s => s.Action == "Divination") == !settings.Enabled(VariantId.Burst), "AST initiators disagree with their independent variants.");
         if (job.Job == "BRD")
@@ -239,8 +240,8 @@ try { ExtraJobMappings.Merge(Defaults.Maps(), [ExtraJobMappings.For(8)], new());
 catch (InvalidDataException) { }
 
 // All four variants: explicit initiation ownership and retained, distinct controls.
-var burstSlots = new Dictionary<uint, int> { [19]=3,[21]=3,[32]=3,[20]=3,[22]=3,[34]=3,[39]=3,[41]=3,[23]=3,[31]=3,[27]=3,[35]=3,[42]=3,[37]=3,[24]=11,[28]=11,[33]=12,[38]=12 };
-var mechanicSlots = new Dictionary<uint, int> { [20]=6,[22]=6,[30]=8,[34]=6,[39]=6,[41]=6,[23]=11,[33]=11,[38]=3,[31]=6 };
+var burstSlots = new Dictionary<uint, int> { [19]=3,[21]=3,[32]=3,[20]=3,[22]=3,[34]=3,[39]=3,[41]=3,[23]=3,[31]=3,[27]=3,[35]=3,[42]=3,[37]=3,[24]=11,[28]=11,[33]=12,[38]=3 };
+var mechanicSlots = new Dictionary<uint, int> { [20]=6,[22]=6,[30]=8,[34]=6,[39]=6,[41]=6,[23]=11,[33]=11,[38]=11,[31]=6 };
 var retainedUtility = new Dictionary<uint, string[]>
 {
     [19]=["Cover","Sheltron"], [21]=["Raw Intuition"], [32]=["The Blackest Night","Interject"], [37]=["Heart of Stone"],
@@ -343,7 +344,7 @@ foreach (var job in pack.Data.Jobs)
         if (job.JobId < 19) { Check(features.Count == 0, "Noncombat class gained rotation features."); continue; }
         Check(features[Feature.BurstContinuation], "Manual burst must retain confirmed continuation.");
         if (job.JobId == 38)
-            Check(features[Feature.DncStandardInitiation] == settings.Enabled(VariantId.ClassMechanics) && features[Feature.DncTechnicalInitiation] == settings.Enabled(VariantId.ClassMechanics) && features[Feature.DncCuringWaltz] == settings.Enabled(VariantId.Support), "DNC granular feature mapping has conflicting ownership.");
+            Check(features[Feature.DncStandardInitiation] == settings.Enabled(VariantId.ClassMechanics) && features[Feature.DncTechnicalInitiation] == settings.Enabled(VariantId.Burst) && features[Feature.DncCuringWaltz] == settings.Enabled(VariantId.Support), "DNC granular feature mapping has conflicting ownership.");
         if (job.JobId == 25) Check(features[Feature.BlmManawardOnAoe] == settings.Enabled(VariantId.Protection), "Manaward AoE must follow protection.");
         if (job.JobId == 24) Check(features[Feature.WhmDivineCaressOnDamage] == settings.Enabled(VariantId.Protection), "Divine Caress follow-through must follow protection.");
         if (job.JobId == 33) Check(features[Feature.AstCardsOnStDamage] && features[Feature.AstCardsOnAoeDamage], "Accepted AST cards must remain usable from damage in manual mechanics.");
