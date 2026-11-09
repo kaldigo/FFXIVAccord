@@ -11,6 +11,9 @@ internal static class PersistentRotationTests
         void Check(bool ok, string reason) { checks++; if (!ok) throw new Exception(reason); }
         var old = JsonConvert.DeserializeObject<AccordSettings>("{\"AutomaticEngine\":0}")!;
         Check(old.WrathPreferences.Value<bool>("BlackMage") && old.WrathPreferences.Value<bool>("Forecasts") && old.WrathPreferences.Value<bool>("EnemyTargeting"), "Existing installs did not receive enabled rotation improvements");
+        Check(old.WrathPreferences.Value<bool>("AcquireVisibleEnemy") && !old.WrathPreferences.Value<bool>("SwitchEnemyTarget"), "Existing installs should acquire empty/self and preserve selected enemies");
+        old.WrathPreferences["AcquireVisibleEnemy"] = false;
+        old.WrathPreferences["SwitchEnemyTarget"] = true;
         old.WrathPreferences["BlackMage"] = false;
         old.WrathPreferences["EnemyFocus"] = true;
         old.WrathPreferences["EnemyOverrideOrder"] = new JArray("Focus", "Selected", "WorldMouseover");
@@ -27,6 +30,10 @@ internal static class PersistentRotationTests
         Check(writes == 1 && JToken.DeepEquals(engine, desired), "Desired settings not applied as one batch");
         WrathPreferences.Apply(desired, () => (JObject)engine.DeepClone(), Write);
         Check(writes == 1, "Verification rewrites unchanged settings during combat");
+        engine.Remove("AcquireVisibleEnemy");
+        WrathPreferences.Apply(desired, () => (JObject)engine.DeepClone(), Write);
+        Check(writes == 1 && desired.Value<bool?>("AcquireVisibleEnemy") == false, "Older engine changed saved acquisition preference");
+        engine["AcquireVisibleEnemy"] = false;
         engine["BlackMage"] = true;
         bool rejected = false;
         try { WrathPreferences.Apply(desired, () => (JObject)engine.DeepClone(), _ => {}); } catch (InvalidOperationException) { rejected = true; }

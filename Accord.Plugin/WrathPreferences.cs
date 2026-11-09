@@ -52,6 +52,7 @@ internal static class WrathPreferences
             ["EnemyFocus"] = false,
             ["AutomaticEnemies"] = true,
             ["OverridesInAutomation"] = false,
+            ["AcquireVisibleEnemy"] = true,
             ["SwitchEnemyTarget"] = false,
             ["SwitchAllyTarget"] = false,
             ["IncludeHealing"] = false,
@@ -65,6 +66,12 @@ internal static class WrathPreferences
     internal static JObject Apply(JObject desired, System.Func<JObject> read, System.Action<JObject> write)
     {
         var before = read();
+        // Older Wrath builds can still verify and apply the rest of the profile during an update.
+        if (!before.ContainsKey("AcquireVisibleEnemy"))
+        {
+            desired = (JObject)desired.DeepClone();
+            desired.Remove("AcquireVisibleEnemy");
+        }
         var changes = new JObject();
         foreach (var item in desired.Properties())
         {

@@ -25,6 +25,7 @@ internal static class WrathSettingsPanel
         var actual = WrathPreferences.Apply(desired, () => Call("read"), changes => Call(changes.ToString(Formatting.None)));
         verified = true;
         status = "Saved rotation improvements and targeting settings applied and verified in Wrath.";
+        if (!actual.ContainsKey("AcquireVisibleEnemy")) status += " Update Wrath testing to enable visible enemy acquisition.";
         AccordDiagnostics.DiagnosticLog.Event("Settings.WrathSelectionVerified", () => new { Settings = actual });
     }
     internal static bool Tick()
@@ -92,7 +93,8 @@ internal static class WrathSettingsPanel
             Toggle(options, "EnemyFocus", "Damage override: focus target");
             Toggle(options, "AutomaticEnemies", "Allow automatic enemy switching for action coverage");
             Toggle(options, "OverridesInAutomation", "Apply mouseover and focus overrides to automatic actions too");
-            Toggle(options, "SwitchEnemyTarget", "Allow the Wrath runner to visibly select its enemy recipient");
+            Toggle(options, "AcquireVisibleEnemy", "Wrath auto: target the enemy when my target is empty or myself");
+            Toggle(options, "SwitchEnemyTarget", "Wrath auto: replace an existing target with the enemy being attacked");
             Toggle(options, "SwitchAllyTarget", "Allow the Wrath runner to visibly select its ally recipient");
             DrawOrder(options, "AllyOverrideOrder", "Ally override order");
             DrawOrder(options, "EnemyOverrideOrder", "Enemy override order");
