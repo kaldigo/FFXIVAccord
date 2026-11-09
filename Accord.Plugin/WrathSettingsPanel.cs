@@ -9,7 +9,7 @@ namespace Accord;
 internal static class WrathSettingsPanel
 {
     private static long nextCheck;
-    private static bool verified;
+    private static JObject? lastVerified;
     private static string status = "Waiting to verify Wrath configuration.";
     private static JObject Call(string request)
     {
@@ -20,18 +20,25 @@ internal static class WrathSettingsPanel
     }
     internal static void ApplyVerified()
     {
-        verified = false;
         var desired = WrathPreferences.Resolve(Plugin.Instance.Settings.WrathPreferences);
-        var actual = WrathPreferences.Apply(desired, () => Call("read"), changes => Call(changes.ToString(Formatting.None)));
-        verified = true;
+        JObject? actual;
+        try { actual = WrathPreferences.Apply(desired, () => Call("read"), changes => Call(changes.ToString(Formatting.None)), lastVerified); }
+        catch { lastVerified = null; throw; }
+        if (actual == null)
+        {
+            const string pending = "Wrath is using your previous settings. Saved changes will apply automatically after combat and the current action finish.";
+            if (status != pending) AccordDiagnostics.DiagnosticLog.Event("Settings.WrathSelectionDeferred", () => new { Settings = desired });
+            status = pending;
+            return;
+        }
+        lastVerified = actual;
         status = "Saved rotation improvements and targeting settings applied and verified in Wrath.";
         if (!actual.ContainsKey("AcquireVisibleEnemy")) status += " Update Wrath testing to enable visible enemy acquisition.";
         AccordDiagnostics.DiagnosticLog.Event("Settings.WrathSelectionVerified", () => new { Settings = actual });
     }
     internal static bool Tick()
     {
-        if (!Player.Available) return verified;
-        if (Environment.TickCount64 < nextCheck) return verified;
+        if (!Player.Available || Environment.TickCount64 < nextCheck) return lastVerified != null;
         nextCheck = Environment.TickCount64 + 2000;
         try { ApplyVerified(); return true; }
         catch (Exception ex)
@@ -104,7 +111,6 @@ internal static class WrathSettingsPanel
         Plugin.Instance.Settings.WrathPreferences[key] = value.DeepClone();
         Svc.PluginInterface.SavePluginConfig(Plugin.Instance.Settings);
         nextCheck = 0;
-        verified = false;
         status = "Saved; waiting for Wrath to apply and verify the change.";
     }
     private static void Toggle(JObject options, string key, string label)

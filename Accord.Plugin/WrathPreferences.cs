@@ -3,6 +3,8 @@ namespace Accord;
 
 internal static class WrathPreferences
 {
+    internal const string DeferredWrite = "Saved changes will apply outside combat after the current action finishes.";
+
     internal static JObject Resolve(JObject saved)
     {
         var result = new JObject
@@ -63,7 +65,7 @@ internal static class WrathPreferences
         foreach (var item in saved.Properties()) result[item.Name] = item.Value.DeepClone();
         return result;
     }
-    internal static JObject Apply(JObject desired, System.Func<JObject> read, System.Action<JObject> write)
+    internal static JObject? Apply(JObject desired, System.Func<JObject> read, System.Action<JObject> write, JObject? lastVerified = null)
     {
         var before = read();
         // Older Wrath builds can still verify and apply the rest of the profile during an update.
@@ -79,7 +81,16 @@ internal static class WrathPreferences
                 throw new System.InvalidOperationException("Missing or incompatible Wrath setting: " + item.Name);
             if (!JToken.DeepEquals(before[item.Name], item.Value)) changes[item.Name] = item.Value.DeepClone();
         }
-        if (changes.Count > 0) write(changes);
+        if (changes.Count > 0)
+        {
+            try { write(changes); }
+            catch (System.InvalidOperationException ex) when (ex.Message == DeferredWrite && lastVerified != null)
+            {
+                // Wrath rejects the batch before applying it. Confirm the running profile is still intact.
+                if (JToken.DeepEquals(read(), lastVerified)) return null;
+                throw;
+            }
+        }
         var after = read();
         foreach (var item in desired.Properties())
             if (!JToken.DeepEquals(after[item.Name], item.Value))

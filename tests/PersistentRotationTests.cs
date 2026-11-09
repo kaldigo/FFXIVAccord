@@ -30,6 +30,27 @@ internal static class PersistentRotationTests
         Check(writes == 1 && JToken.DeepEquals(engine, desired), "Desired settings not applied as one batch");
         WrathPreferences.Apply(desired, () => (JObject)engine.DeepClone(), Write);
         Check(writes == 1, "Verification rewrites unchanged settings during combat");
+        var active = (JObject)engine.DeepClone();
+        var edit = (JObject)desired.DeepClone();
+        edit["BlackMage"] = true;
+        void Defer(JObject _) => throw new InvalidOperationException(WrathPreferences.DeferredWrite);
+        Check(WrathPreferences.Apply(edit, () => engine, Defer, active) == null && JToken.DeepEquals(engine, active), "Deferred combat edit interrupted a verified profile");
+        edit["EnemyFocus"] = false;
+        Check(WrathPreferences.Apply(edit, () => engine, Defer, active) == null, "Second combat edit lost the running profile");
+        bool failed = false;
+        try { WrathPreferences.Apply(edit, () => engine, Defer); } catch (InvalidOperationException) { failed = true; }
+        Check(failed, "An unverified profile was treated as ready");
+        engine["Forecasts"] = false;
+        failed = false;
+        try { WrathPreferences.Apply(edit, () => engine, Defer, active); } catch (InvalidOperationException) { failed = true; }
+        Check(failed, "Deferred response masked engine drift");
+        engine = (JObject)active.DeepClone();
+        failed = false;
+        try { WrathPreferences.Apply(edit, () => engine, _ => throw new InvalidOperationException("disk failure"), active); }
+        catch (InvalidOperationException) { failed = true; }
+        Check(failed, "A genuine write failure was ignored");
+        Check(JToken.DeepEquals(WrathPreferences.Apply(edit, () => engine, Write, active), edit), "Latest combat edits were not applied when the engine became ready");
+        engine = (JObject)active.DeepClone(); writes = 1;
         engine.Remove("AcquireVisibleEnemy");
         WrathPreferences.Apply(desired, () => (JObject)engine.DeepClone(), Write);
         Check(writes == 1 && desired.Value<bool?>("AcquireVisibleEnemy") == false, "Older engine changed saved acquisition preference");
