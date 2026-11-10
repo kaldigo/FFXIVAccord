@@ -42,15 +42,18 @@ internal sealed class AutomationControl : IDisposable
     private readonly ICallGateProvider<string, string> api = Svc.PluginInterface.GetIpcProvider<string, string>("Accord.AutomationRunner.v1");
     private readonly IDtrBarEntry entry = Svc.DtrBar.Get("Accord Auto rotation");
     private bool wrathAvailable, rsrAvailable, initialized, used;
-    private bool dutyAvailable, dutyRunning, pvpPaused;
+    private bool dutyAvailable, dutyRunning, pvpPaused, waitingForCombatJob;
+    private const string CombatJobStatus = "Waiting for a combat job";
+    private bool RunnerPaused => pvpPaused || waitingForCombatJob;
     private long nextDiscovery, nextAttempt, nextActivityPoll;
     private string settingsError = "", lastStatus = "", activityStatus = "";
     private AccordSettings Settings => Plugin.Instance.Settings;
     private AutomaticRunner Selected => Settings.AutomaticEngine == AutomationEngine.Wrath ? AutomaticRunner.Wrath : AutomaticRunner.Rsr;
     private bool SelectedAvailable => Selected == AutomaticRunner.Wrath ? wrathAvailable : rsrAvailable;
-    private AutomaticRunner Desired => Settings.EmergencyRotation ? AutomaticRunner.Off : AutomationPreference.Resolve(Settings.AutoRotationEnabled, Settings.FollowAutoDuty, dutyAvailable, dutyRunning, Selected, pvpPaused);
+    private AutomaticRunner Desired => Settings.EmergencyRotation ? AutomaticRunner.Off : AutomationPreference.Resolve(Settings.AutoRotationEnabled, Settings.FollowAutoDuty, dutyAvailable, dutyRunning, Selected, RunnerPaused);
     private string Status => pvpPaused && Settings.AutoRotationEnabled && handoff.IsCoordinating
-        ? "Auto rotation paused in PvP." : settingsError.Length > 0 ? settingsError : handoff.Status;
+        ? "Auto rotation paused in PvP." : waitingForCombatJob && Settings.AutoRotationEnabled && !Settings.EmergencyRotation
+        ? CombatJobStatus : settingsError.Length > 0 ? settingsError : handoff.Status;
     private void Discover() { wrathAvailable = wrath.Compatible(); rsrAvailable = rsr.Compatible(); }
     private readonly IDtrBarEntry backup = Svc.DtrBar.Get("Accord Wrath backup");
     private readonly ICallGateProvider<bool> backupArmed = Svc.PluginInterface.GetIpcProvider<bool>("Accord.EmergencyHotbarsArmed.v1");
@@ -112,8 +115,10 @@ internal sealed class AutomationControl : IDisposable
         long now = Environment.TickCount64;
         bool loading = HotbarLayoutStore.Loading;
         pvpPaused = AutomationPreference.PvPPaused(pvpPaused, Svc.ClientState.IsPvP || SetupController.IsPvP, loading || !Svc.ClientState.IsLoggedIn);
+        uint job = ECommons.GameHelpers.Player.Available ? (uint)ECommons.GameHelpers.Player.Job : 0;
+        waitingForCombatJob = AutomationPreference.WaitingForCombatJob(job);
         // Cancel even a pending start before renewing the lease could grant it.
-        if (pvpPaused && handoff.Requested != AutomaticRunner.Off)
+        if (RunnerPaused && handoff.Requested != AutomaticRunner.Off)
             handoff.Request(AutomaticRunner.Off, now);
         if (now >= nextDiscovery) { nextDiscovery = now + 1000; Discover(); }
         if (!initialized && (wrathAvailable || rsrAvailable))
@@ -163,7 +168,7 @@ internal sealed class AutomationControl : IDisposable
         {
             if (handoff.IsCoordinating && handoff.Requested != AutomaticRunner.Off)
                 handoff.Request(AutomaticRunner.Off, now);
-            else if ((Settings.EmergencyRotation && wrathAvailable || pvpPaused && (wrathAvailable || rsrAvailable)) && !handoff.IsCoordinating && now >= nextAttempt)
+            else if ((Settings.EmergencyRotation && wrathAvailable || RunnerPaused && (wrathAvailable || rsrAvailable)) && !handoff.IsCoordinating && now >= nextAttempt)
             {
                 nextAttempt = now + 2000;
                 handoff.Request(AutomaticRunner.Off, now);
@@ -204,6 +209,7 @@ internal sealed class AutomationControl : IDisposable
         settingsError = "";
         if (command == "off") { used = true; handoff.Request(AutomaticRunner.Off, Environment.TickCount64); }
         return command == "on" && pvpPaused ? "Auto rotation enabled and saved; execution is paused in PvP." :
+            command == "on" && waitingForCombatJob ? CombatJobStatus :
             command == "on" ? "Auto rotation enabled and saved; waiting for the selected engine." : "Auto rotation disabled and saved.";
     }
     internal void Draw()

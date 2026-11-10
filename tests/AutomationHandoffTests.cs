@@ -51,11 +51,11 @@ internal static class AutomationHandoffTests
             var left = new Endpoint(); var right = new Endpoint();
             var pvpControl = new AutomationHandoff(left, right);
             bool paused = false;
-            void Step(long now, bool pvp, bool loading = false, bool enabled = true)
+            void Step(long now, bool pvp, bool loading = false, bool enabled = true, uint job = 25)
             {
                 left.Now = right.Now = now;
                 paused = AutomationPreference.PvPPaused(paused, pvp, loading);
-                var desired = AutomationPreference.Resolve(enabled, false, false, false, selected, paused);
+                var desired = AutomationPreference.Resolve(enabled, false, false, false, selected, paused || AutomationPreference.WaitingForCombatJob(job));
                 if (desired != pvpControl.Requested) pvpControl.Request(desired, now);
                 pvpControl.Tick(now);
             }
@@ -70,6 +70,19 @@ internal static class AutomationHandoffTests
             Check(!left.Lease.Allowed(2600) && !right.Lease.Allowed(2600), "PvP left an active runner enabled");
             Step(3100, false, enabled: false);
             Check(pvpControl.Owner == AutomaticRunner.Off && left.Starts + right.Starts == 1, "Saved off was lost on PvP exit");
+            Step(3600, false); Step(4100, false);
+            Check(pvpControl.Owner == selected, "Combat job did not acquire the runner");
+            for (uint job = 8; job <= 18; job++)
+            {
+                Step(4500 + 500 * job, false, job: job);
+                Check(pvpControl.Requested == AutomaticRunner.Off && !left.Lease.Allowed(left.Now) && !right.Lease.Allowed(right.Now),
+                    $"Crafter or gatherer {job} kept an active runner");
+            }
+            Step(14000, false, job: 0);
+            Step(14500, false); Step(15000, false);
+            Check(pvpControl.Owner == selected && left.Starts + right.Starts == 3, "Returning from gathering required toggling auto");
+            Step(15500, false, job: 9); Step(16000, false, enabled: false);
+            Check(pvpControl.Requested == AutomaticRunner.Off, "Switching jobs overrode saved off");
         }
         coordinator.Request(AutomaticRunner.Rsr, 0);
         Check(!w.Lease.Allowed(0) && !r.Lease.Allowed(0), "Request started a runner before settling.");
