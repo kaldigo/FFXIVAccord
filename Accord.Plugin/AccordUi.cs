@@ -11,95 +11,38 @@ namespace Accord;
 
 internal static class AccordUi
 {
-    internal enum Page { General, Automation, Classes, Hotbars, RoleActions, Exclusions, Groups, Overrides, PvPGlobal, PvPOverrides, Preview, Recovery, Rotation, Testing }
-    private static Page page;
-    private static string search = "";
-    private static readonly string[] titles = ["General", "Global automation", "Active classes", "Global mapping", "Global role actions", "Global exclusions", "Personal groups", "Mapping overrides", "PvP Global", "PvP overrides", "Preview", "Recovery & tools", "Rotation behaviour", "Rotation testing"];
-    private static readonly string[] keywords = ["live mode bars shared", "burst protection support mechanics auto rotation rsr", "jobs enable", "layout slots position manual defaults override", "important role", "exclude manual wrath", "potions roulette items extras", "role class overrides add edit inheritance", "pvp global automation mapping rotation one two", "pvp role class overrides", "preview class result inherited", "backup restore logout diagnostics", "target enemy range aoe activities combat opener potions healer healing weave gcd", "testing trace capture baseline"];
-
-    internal static void Draw()
-    {
-        var setup = SetupController.Instance;
-        if (setup is null) return;
-        LayoutEditor.BeginSession(setup);
-        float scale = ImGuiHelpers.GlobalScale;
-        float footer = 90 * scale;
-        float width = Math.Clamp(ImGui.GetContentRegionAvail().X * .22f, 150 * scale, 205 * scale);
-        if (ImGui.BeginChild("Navigation", new Vector2(width, -footer), true))
-        {
-            ImGui.TextUnformatted("ACCORD");
-            ImGui.TextDisabled(SetupController.IsPvP ? "PvP" : setup.Live ? "Live hotbars" : "Static hotbars");
-            ImGui.Spacing(); ImGui.SetNextItemWidth(-1);
-            ImGui.InputTextWithHint("##find", "Find a setting...", ref search, 80);
-            foreach (var item in new[] { Page.General, Page.Automation, Page.Rotation, Page.Classes, Page.Hotbars, Page.RoleActions, Page.Exclusions, Page.Groups, Page.Overrides, Page.PvPGlobal, Page.PvPOverrides, Page.Preview, Page.Recovery, Page.Testing })
-            {
-                int index = (int)item;
-                if (!(titles[index] + " " + keywords[index]).Contains(search, StringComparison.OrdinalIgnoreCase)) continue;
-                if (index is 0 or 3 or 8 or 11) { ImGui.Spacing(); ImGui.TextDisabled(index == 0 ? "SETUP" : index == 3 ? "LAYOUT" : index == 8 ? "PVP" : "TOOLS"); }
-                if (ImGui.Selectable(titles[index], page == item)) page = item;
-            }
-        }
-        ImGui.EndChild(); ImGui.SameLine();
-        if (ImGui.BeginChild("SettingsPage", new Vector2(0, -footer), false))
-        {
-            ImGui.TextUnformatted(titles[(int)page]); ImGui.Separator(); ImGui.Spacing();
-            ImGui.PushItemWidth(Math.Min(300 * scale, ImGui.GetContentRegionAvail().X));
-            switch (page)
-            {
-                case Page.General: DrawGeneral(setup); LayoutEditor.Draw(setup, page); break;
-                case Page.Automation: DrawAutomation(setup); break;
-                case Page.Classes: DrawClassSelection(setup); break;
-                case Page.Recovery: DrawRecovery(setup); break;
-                case Page.Testing: RotationTestingPanel.Draw(); break;
-                default: LayoutEditor.Draw(setup, page); break;
-            }
-            ImGui.PopItemWidth();
-        }
-        ImGui.EndChild();
-        ImGui.Separator();
-        LayoutEditor.Footer(setup);
-        ImGui.TextWrapped(setup.Status.Split('\n')[0]);
-        if (ImGui.IsItemHovered()) ImGui.SetTooltip(setup.Status);
-    }
-
-    private static void DrawAutomation(SetupController setup)
+    internal enum Page { General, Hotbars, RoleActions, Exclusions, Groups, Overrides, PvPGlobal, PvPOverrides, Preview }
+    internal static void DrawAutomation(SetupController setup)
     {
         Plugin.Instance.Automation.Draw();
-        RsrSettingsPanel.Draw();
-        WrathSettingsPanel.Draw();
-        ImGui.Separator();
-        ImGui.TextWrapped("Choose the global automation defaults. Class overrides can replace individual options; server-status buttons update an applied override for the active class.");
+        RebornMaterial.M3Widgets.SectionLabel("Global automation permissions");
         var job = Player.Available ? setup.Pack.Find((uint)Player.Job) : null;
         if (job is null) ImGui.TextWrapped("Switch to a supported class to see what each variant controls for that class.");
         foreach (var definition in VariantDefinitions.All)
         {
             bool enabled = setup.Settings.Enabled(definition.Id);
-            if (ImGui.Checkbox(definition.Label, ref enabled)) setup.Run(() => setup.SetVariant(definition.Id, enabled, global: true));
-            if (ImGui.IsItemHovered()) ImGui.SetTooltip(definition.Description);
-            if (job is not null)
-            {
-                ImGui.Indent();
-                var pvp = SetupController.IsPvP ? setup.PvP.Pack.Find(job.JobId) : null;
-                ImGui.TextWrapped($"{job.Job}: {(pvp is null ? JobIntents.Describe(job.JobId, definition.Id) : pvp.Descriptions.GetValueOrDefault(definition.Id, "No additional automation for this variant."))}");
-                ImGui.Unindent();
-            }
+            var pvp = job != null && SetupController.IsPvP ? setup.PvP.Pack.Find(job.JobId) : null;
+            var help = job == null ? definition.Description : pvp == null ? JobIntents.Describe(job.JobId, definition.Id)
+                : pvp.Descriptions.GetValueOrDefault(definition.Id, definition.Description);
+            if (RebornMaterial.M3Widgets.RowSwitch(definition.Label, ref enabled, help))
+                setup.Run(() => setup.SetVariant(definition.Id, enabled, global: true));
         }
     }
 
-    private static void DrawGeneral(SetupController setup)
+    internal static void DrawGeneral(SetupController setup)
     {
         bool live = setup.Settings.LiveMode;
-        if (ImGui.Checkbox("Update hotbars automatically", ref live)) setup.Run(() => setup.SetLive(live));
-        ImGui.TextWrapped(live ? "Layout and automation changes apply immediately, including in combat."
+        if (RebornMaterial.M3Widgets.RowSwitch("Update hotbars automatically", ref live)) setup.Run(() => setup.SetLive(live));
+        ImGui.TextWrapped(live ? "Accord updates managed hotbars when your layout changes."
             : "Apply your layout manually using the button below.");
         bool cleanup = setup.Settings.ClearOtherActions;
-        if (ImGui.Checkbox("Clear other controller and noncombat actions", ref cleanup)) setup.Run(() => setup.SetCleanup(cleanup));
+        if (RebornMaterial.M3Widgets.RowSwitch("Clear other controller and noncombat actions", ref cleanup)) setup.Run(() => setup.SetCleanup(cleanup));
         if (ImGui.IsItemHovered()) ImGui.SetTooltip("Combat regular bars are always fully managed according to the bar selection. This option retains the existing cleanup behaviour for controller, noncombat and PvP layouts. Shared bars are preserved.");
         if (!setup.Settings.LiveMode && ImGui.Button("Set selected class hotbars")) setup.Run(setup.ApplyHotbars);
         ImGui.Spacing(); ImGui.Separator(); ImGui.TextUnformatted("Managed bars");
     }
 
-    private static void DrawRecovery(SetupController setup)
+    internal static void DrawRecovery(SetupController setup)
     {
         bool manualLogout = setup.Settings.ManualLogoutFallback;
         if (ImGui.Checkbox("Save manual hotbars before logout", ref manualLogout)) setup.Run(() => setup.SetManualFallback(manualLogout));
@@ -131,9 +74,8 @@ internal static class AccordUi
                 }
     }
 
-    private static void DrawClassSelection(SetupController setup)
+    internal static void DrawClassSelection(SetupController setup)
     {
-        ImGui.TextUnformatted("Active classes");
         ImGui.TextWrapped("Click a class to enable or disable Accord. Base classes follow their job.");
         if (ImGui.Button("Select all")) setup.Run(() => setup.SetActiveJobs(setup.Pack.Data.Jobs.Select(j => j.JobId)));
         ImGui.SameLine();
@@ -176,7 +118,7 @@ internal static class AccordUi
     {
         var setup = SetupController.Instance!;
         var parts = args.Trim().ToLowerInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length == 0) { Plugin.Instance.IsOpen = true; return; }
+        if (parts.Length == 0) { Plugin.Instance.Open(); return; }
         if (Plugin.Instance.MigrationPending) throw new InvalidOperationException("Open /accord to complete separate setup first.");
         switch (parts[0])
         {

@@ -1,13 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
     <AssemblyName>Accord</AssemblyName><Version>0.2.15</Version>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
     <Nullable>enable</Nullable><AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>preview</LangVersion><Platforms>x64</Platforms>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <DalamudLibPath>$(appdata)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="../assets/icon.png" LogicalName="Accord.icon.png" />
+    <PackageReference Include="RebornMaterial" Version="7.5.8.1" GeneratePathProperty="true" />
+    <None Include="$(PkgRebornMaterial)/lib/net10.0-windows10.0.26100/RebornMaterial.dll" Link="RebornMaterial.dll" CopyToOutputDirectory="PreserveNewest" />
     <PackageReference Include="DalamudPackager" Version="15.0.0" />
     <ProjectReference Include="../ECommons/ECommons/ECommons.csproj" />
     <Reference Include="InteropGenerator.Runtime"><HintPath>$(DalamudLibPath)InteropGenerator.Runtime.dll</HintPath><Private>false</Private></Reference>

@@ -16,7 +16,6 @@ internal static class RsrPermissionsPanel
     private static string filter = "";
     internal static void Draw()
     {
-        if (!ImGui.CollapsingHeader("RSR manual action permissions")) return;
         ImGui.TextWrapped("Checked actions are reserved for manual use while Accord controls RSR automation. These settings are separate for each job and PvE/PvP. Your Wrath buttons and their exclusions remain independent.");
         ImGui.BeginDisabled(pending);
         if (ImGui.Button("Refresh RSR actions")) Request(new JObject { ["Command"] = "read" });

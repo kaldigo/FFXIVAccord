@@ -214,7 +214,8 @@ internal sealed class AutomationControl : IDisposable
     }
     internal void Draw()
     {
-        ImGui.TextWrapped("Wrath handles Accord's rotation buttons. Auto rotation is a saved choice and resumes after updates when the selected engine and settings are ready. Temporary pauses do not turn the checkbox off. Only loaded compatible engines are offered.");
+        bool enabled = Settings.AutoRotationEnabled;
+        if (RebornMaterial.M3Widgets.RowSwitch("Auto rotation", ref enabled, Status)) Queue(enabled ? "on" : "off");
         if (ImGui.BeginCombo("Automation engine", SelectedAvailable ? Selected.ToString() : "Select an available engine"))
         {
             if (wrathAvailable && ImGui.Selectable("Wrath", Selected == AutomaticRunner.Wrath)) Select(AutomationEngine.Wrath);
@@ -222,12 +223,8 @@ internal sealed class AutomationControl : IDisposable
             if (!wrathAvailable && !rsrAvailable) ImGui.TextDisabled("No compatible engine is loaded.");
             ImGui.EndCombo();
         }
-        ImGui.TextDisabled(rsrAvailable ? "RSR available for future learning mode (sprout)." : "Future learning mode requires the Accord-compatible RSR fork.");
-        bool enabled = Settings.AutoRotationEnabled;
-        if (ImGui.Checkbox("Auto rotation", ref enabled)) Queue(enabled ? "on" : "off");
-        ImGui.TextWrapped(Status);
         bool follow = Settings.FollowAutoDuty;
-        if (ImGui.Checkbox("Follow AutoDuty navigation", ref follow))
+        if (RebornMaterial.M3Widgets.RowSwitch("Follow AutoDuty navigation", ref follow, activityStatus))
         {
             bool value = follow;
             _ = Svc.Framework.RunOnTick(() =>
@@ -237,9 +234,6 @@ internal sealed class AutomationControl : IDisposable
                 nextActivityPoll = nextAttempt = 0;
             });
         }
-        ImGui.TextWrapped(activityStatus);
-        ImGui.TextWrapped("When following AutoDuty, the saved Auto rotation switch must be on; execution pauses when navigation stops. This does not change either saved switch. AutoDuty and BossMod retain movement control.");
-        ImGui.Separator();
     }
     private void Select(AutomationEngine engine) => _ = Svc.Framework.RunOnTick(() =>
     {

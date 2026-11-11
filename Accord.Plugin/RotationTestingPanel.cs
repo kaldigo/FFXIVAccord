@@ -15,8 +15,6 @@ internal static class RotationTestingPanel
     private static JToken? defaultProfile;
     internal static void Draw()
     {
-        DiagnosticCapturePanel.Draw();
-        RsrPermissionsPanel.Draw();
         ImGui.TextWrapped("Observe the existing Wrath rotation for up to 60 seconds. This does not run a second resolver or change your rotation settings. Start replaces the previous capture.");
         ImGui.BeginDisabled(pending);
         if (ImGui.Button("Start 60 second capture")) Request("start");

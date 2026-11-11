@@ -16,8 +16,8 @@ namespace Accord;
 public sealed class Plugin : IDalamudPlugin
 {
     internal static Plugin Instance = null!;
-    internal bool IsOpen;
-    private bool firstOpen = true;
+    private readonly Dalamud.Interface.Windowing.WindowSystem windows = new("Accord");
+    private readonly AccordWindow window;
     internal bool MigrationPending;
     internal bool RequiresMigration;
     internal string MigrationSource = "";
@@ -47,7 +47,6 @@ public sealed class Plugin : IDalamudPlugin
             Settings.LiveMode = false;
             MigrationPending = true;
             RequiresMigration = true;
-            IsOpen = true;
         }
         else Settings = pluginInterface.GetPluginConfig() as AccordSettings ?? new AccordSettings();
         if (Settings.Version < 2 && !MigrationPending)
@@ -63,6 +62,13 @@ public sealed class Plugin : IDalamudPlugin
         }
         setup = new SetupController();
         Automation = new AutomationControl();
+        RebornMaterial.M3.Initialize(pluginInterface, new RebornMaterial.M3Settings { UiAccentColor = new Vector4(.29f, .68f, .68f, 1) });
+        RebornMaterial.M3Brand.Name = "Accord";
+        RebornMaterial.M3Brand.Version = typeof(Plugin).Assembly.GetName().Version!.ToString();
+        RebornMaterial.M3Brand.SetLogoResource(typeof(Plugin).Assembly, "Accord.icon.png");
+        window = new AccordWindow(setup);
+        windows.AddWindow(window);
+        if (MigrationPending) Open();
         DiagnosticCapturePanel.Init();
         Svc.Commands.AddHandler("/accord", new Dalamud.Game.Command.CommandInfo((_, args) => setup.Run(() => AccordUi.Command(args))) { HelpMessage = "Open Accord setup and hotbar controls." });
         pluginInterface.UiBuilder.Draw += Draw;
@@ -71,7 +77,7 @@ public sealed class Plugin : IDalamudPlugin
         Svc.Framework.Update += Update;
     }
 
-    private void Open() => IsOpen = true;
+    internal void Open() => window.OpenAndRestore();
     private void Update(IFramework _)
     {
         DiagnosticCapturePanel.Tick();
@@ -80,29 +86,18 @@ public sealed class Plugin : IDalamudPlugin
     }
     private void Draw()
     {
-        if (!IsOpen) return;
-        var display = ImGui.GetIO().DisplaySize;
-        var maximum = Vector2.Max(new Vector2(320, 260), display - new Vector2(40, 60));
-        ImGui.SetNextWindowSizeConstraints(Vector2.Min(new Vector2(800, 520) * ImGuiHelpers.GlobalScale, maximum), maximum);
-        if (firstOpen)
-        {
-            ImGui.SetNextWindowSize(Vector2.Min(new Vector2(1100, 760) * ImGuiHelpers.GlobalScale, maximum), ImGuiCond.Always);
-            firstOpen = false;
-        }
-        if (ImGui.Begin("Accord###Accord", ref IsOpen))
-        {
-            if (MigrationPending)
-            {
-                ImGui.TextWrapped(setup.MigrationSummary);
-                ImGui.TextWrapped(setup.Status);
-                if (ImGui.Button("Preview personal settings import")) setup.Run(setup.PreviewMigration);
-                if (setup.MigrationReady && ImGui.Button("Import these personal settings")) setup.Run(setup.ImportMigration);
-                if (!RequiresMigration && !setup.HasPendingOperation && ImGui.Button("Cancel import")) MigrationPending = false;
-                if (setup.HasPendingOperation && ImGui.Button("Keep recovery record and review again")) setup.Run(setup.AbandonPendingOperation);
-            }
-            else AccordUi.Draw();
-        }
-        ImGui.End();
+        if (!window.IsOpen) return;
+        RebornMaterial.M3.BeginFrame();
+        windows.Draw();
+    }
+    internal void DrawMigration()
+    {
+        ImGui.TextWrapped(setup.MigrationSummary);
+        ImGui.TextWrapped(setup.Status);
+        if (ImGui.Button("Preview personal settings import")) setup.Run(setup.PreviewMigration);
+        if (setup.MigrationReady && ImGui.Button("Import these personal settings")) setup.Run(setup.ImportMigration);
+        if (!RequiresMigration && !setup.HasPendingOperation && ImGui.Button("Cancel import")) MigrationPending = false;
+        if (setup.HasPendingOperation && ImGui.Button("Keep recovery record and review again")) setup.Run(setup.AbandonPendingOperation);
     }
     public void Dispose()
     {
@@ -114,6 +109,8 @@ public sealed class Plugin : IDalamudPlugin
         Svc.PluginInterface.UiBuilder.OpenMainUi -= Open;
         Svc.Commands.RemoveHandler("/accord");
         setup.Dispose();
+        windows.RemoveAllWindows();
+        RebornMaterial.M3.Dispose();
         ClassIcons.Dispose();
         HotbarLayoutStore.Reset();
         ECommonsMain.Dispose();

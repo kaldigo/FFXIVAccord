@@ -6,10 +6,12 @@
   "build": "Accord.Plugin/bin/Release",
   "required_dlls": [
     "Accord.dll",
-    "ECommons.dll"
+    "ECommons.dll",
+    "RebornMaterial.dll"
   ],
   "licenses": {
     "LICENSE": "LICENSE",
-    "ECommons/LICENSE.md": "licenses/ECommons.md"
+    "ECommons/LICENSE.md": "licenses/ECommons.md",
+    "licenses/RebornMaterial.txt": "licenses/RebornMaterial.txt"
   }
 }

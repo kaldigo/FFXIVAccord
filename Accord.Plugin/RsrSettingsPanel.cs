@@ -73,12 +73,11 @@ internal static class RsrSettingsPanel
     }
     internal static void Draw()
     {
-        if (!ImGui.CollapsingHeader("RSR automation preferences")) return;
-        ImGui.TextWrapped("Accord automatically saves, applies and verifies these settings, including while auto rotation is off. Unavailable engines are retried automatically. These control RSR's automatic runner; Wrath's buttons use Accord's rotation and variant settings.");
+        ImGui.TextWrapped("Accord saves these settings automatically and applies them when RSR is available.");
         foreach (var (key, label) in options)
         {
             bool value = Plugin.Instance.Settings.RsrPreferences.TryGetValue(key, out var saved) ? saved : Default(key);
-            if (ImGui.Checkbox(label, ref value))
+            if (RebornMaterial.M3Widgets.RowSwitch(label, ref value))
             {
                 Plugin.Instance.Settings.RsrPreferences[key] = value;
                 Svc.PluginInterface.SavePluginConfig(Plugin.Instance.Settings);

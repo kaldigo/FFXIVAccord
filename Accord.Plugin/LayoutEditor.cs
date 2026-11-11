@@ -48,14 +48,17 @@ internal static partial class LayoutEditor
     }
     internal static void Footer(SetupController setup)
     {
-        bool dirty = JsonConvert.SerializeObject(draft) != JsonConvert.SerializeObject(setup.Settings.Layouts);
-        if (!dirty) saved = JsonConvert.SerializeObject(draft);
-        ImGui.BeginDisabled(!dirty);
-        if (ImGui.Button("Save changes")) setup.Run(() => setup.SaveLayouts(Copy(draft!)));
+        string current = JsonConvert.SerializeObject(setup.Settings.Layouts);
+        if (JsonConvert.SerializeObject(draft) == current) { saved = current; return; }
+        ImGui.TextUnformatted("Unsaved layout or rotation changes");
+        if (RebornMaterial.M3Widgets.Button("save-draft", "Save changes", RebornMaterial.M3ButtonStyle.Filled))
+            setup.Run(() => setup.SaveLayouts(Copy(draft)));
         ImGui.SameLine();
-        if (ImGui.Button("Discard changes")) { draft = Copy(setup.Settings.Layouts); saved = JsonConvert.SerializeObject(draft); }
-        ImGui.EndDisabled(); ImGui.SameLine();
-        ImGui.TextDisabled(dirty ? "Unsaved changes" : string.IsNullOrWhiteSpace(setup.LayoutStatus) ? "Settings saved" : "Saved - review layout warnings");
+        if (RebornMaterial.M3Widgets.Button("discard-draft", "Discard changes"))
+        {
+            draft = Copy(setup.Settings.Layouts);
+            saved = current;
+        }
     }
     private static string Label(object value) => value is ControlIntent intent ? intent switch
     {
@@ -79,7 +82,6 @@ internal static partial class LayoutEditor
             (selectedOverride, selectedPvPOverride) = (selectedPvPOverride, selectedOverride);
             return;
         }
-        if (page == AccordUi.Page.Rotation) { DrawRotation(draft.Global.Rotation, new(), false); return; }
         if (page == AccordUi.Page.General) { Bars(setup); return; }
         if (page == AccordUi.Page.Groups) { Groups(setup, draft!); return; }
         if (page == AccordUi.Page.Preview) { DrawPreview(setup); return; }
