@@ -77,7 +77,7 @@ internal static class RsrSettingsPanel
         foreach (var (key, label) in options)
         {
             bool value = Plugin.Instance.Settings.RsrPreferences.TryGetValue(key, out var saved) ? saved : Default(key);
-            if (RebornMaterial.M3Widgets.RowSwitch(label, ref value))
+            if (AccordControls.Toggle(label, ref value))
             {
                 Plugin.Instance.Settings.RsrPreferences[key] = value;
                 Svc.PluginInterface.SavePluginConfig(Plugin.Instance.Settings);

@@ -1,0 +1,168 @@
+using System;
+using System.Linq;
+using System.Numerics;
+using Dalamud.Bindings.ImGui;
+using Glasswork;
+using Glasswork.Backend;
+
+namespace Accord;
+
+internal static class AccordControls
+{
+    internal static bool Toggle(string label, ref bool value, string? detail = null)
+    {
+        ImGui.PushID(label);
+        Gw.BeginRow(label, detail ?? "");
+        try { return Gw.Toggle(ref value, "##value"); }
+        finally { Gw.EndRow(); ImGui.PopID(); }
+    }
+
+    internal static void Section(string label, Action draw)
+    {
+        bool visible = Gw.BeginSection(label);
+        try { if (visible) draw(); }
+        finally { Gw.EndSection(); }
+    }
+
+    internal static void EnemyRules(Func<string, bool> read, Action<string, bool> write)
+    {
+        void Rule(string key, string label, string detail)
+        {
+            bool value = read(key);
+            if (Toggle(label, ref value, detail)) write(key, value);
+        }
+        Section("Visible target in Wrath auto", () =>
+        {
+            Rule("AcquireVisibleEnemy", "Select the enemy I attack", "When I have no target or have myself selected.");
+            Rule("SwitchEnemyTarget", "Replace my current target", "Allow Wrath to visibly select a different enemy.");
+        });
+        Section("Damage targeting", () =>
+        {
+            Rule("EnemyTargeting", "Check action coverage", "Validate targets across PvE damage buttons.");
+            Rule("AcquireEnemy", "Acquire an engaged enemy", "When I have no enemy selected.");
+            Rule("AutomaticEnemies", "Switch for coverage", "Allow automatic enemy switching for action coverage.");
+            Rule("Fallback", "Use a fallback target", "When my deliberate target is invalid.");
+        });
+        Section("Manual overrides", () =>
+        {
+            Rule("EnemyMouseover", "World mouseover", "Use my hovered enemy for damage actions.");
+            Rule("EnemyFocus", "Focus target", "Allow my focus target as a damage override.");
+            Rule("OverridesInAutomation", "Use overrides in auto rotation", "Apply mouseover and focus to automatic actions too.");
+        });
+    }
+
+    internal static void Runner(bool enabled, string status, Action<bool> enable, Action engine,
+        bool follow, string activity, Action<bool> setFollow)
+    {
+        Section("Runner", () =>
+        {
+            if (Toggle("Auto rotation", ref enabled, status)) enable(enabled);
+            engine();
+            if (Toggle("Follow AutoDuty", ref follow, activity)) setFollow(follow);
+        });
+    }
+}
+
+internal enum Desk { Play, Rules, Bars, Tools }
+internal enum TaskPage { Home, Permissions, Enemies, Healing, Opener, Reserved, JobTuning, Rsr, Jobs, Managed, Mapping, RoleActions, Groups, Overrides, PvP, PvPOverrides, Preview, DutyLog, Trace, Recovery }
+internal sealed record Destination(TaskPage Id, Desk Desk, string Group, string Name, string Detail);
+
+internal sealed class AccordShell
+{
+    internal static Look Theme() => Look.Liquid();
+    private static readonly string[] Areas = ["Play", "Rotation rules", "Hotbar studio", "Testing & recovery"];
+    private static readonly Destination[] Pages =
+    [
+        new(TaskPage.Home,Desk.Play,"","Play controls","Auto rotation, engine selection and AutoDuty"),
+        new(TaskPage.Permissions,Desk.Rules,"Action selection","Automation permissions","Burst, support, protection and class mechanics"),
+        new(TaskPage.Enemies,Desk.Rules,"Action selection","Enemy targeting","Single target, AoE threshold, mouseover and visible targets"),
+        new(TaskPage.Healing,Desk.Rules,"Action selection","Healing and allies","Weave healing, raise, cleanse and choose recipients"),
+        new(TaskPage.Reserved,Desk.Rules,"Action selection","Reserve actions for manual use","Wrath button exclusions and RSR action permissions"),
+        new(TaskPage.Opener,Desk.Rules,"Job and engine behaviour","Pulls and openers","Combat-only actions, job openers and potions"),
+        new(TaskPage.JobTuning,Desk.Rules,"Job and engine behaviour","Job improvements","Per-job rotation choices, forecasts and mitigation"),
+        new(TaskPage.Rsr,Desk.Rules,"Job and engine behaviour","RSR automation rules","Defense, healing thresholds, ground actions and burst"),
+        new(TaskPage.Jobs,Desk.Bars,"Setup","Choose managed jobs","Enable Accord for combat, crafting and gathering jobs"),
+        new(TaskPage.Managed,Desk.Bars,"Setup","Choose managed bars","Live updates, shared bars and controller cleanup"),
+        new(TaskPage.Mapping,Desk.Bars,"Layout","Place rotation buttons","Map actions and intents to hotbar slots"),
+        new(TaskPage.RoleActions,Desk.Bars,"Layout","Place role actions","Choose role actions for managed slots"),
+        new(TaskPage.Groups,Desk.Bars,"Layout","Personal action groups","Items, potions and extra actions"),
+        new(TaskPage.Overrides,Desk.Bars,"Exceptions and review","Role and job overrides","Override inherited mappings, automation and rotation rules"),
+        new(TaskPage.PvP,Desk.Bars,"Exceptions and review","PvP setup","Compact bars, Guard, rotation buttons and action selection"),
+        new(TaskPage.PvPOverrides,Desk.Bars,"Exceptions and review","PvP overrides","Role and job exceptions for PvP"),
+        new(TaskPage.Preview,Desk.Bars,"Exceptions and review","Preview resolved hotbars","Inspect the layout a job inherits before applying it"),
+        new(TaskPage.DutyLog,Desk.Tools,"Record a problem","Latest duty log","Arm logging, mark a moment and export the duty ZIP"),
+        new(TaskPage.Trace,Desk.Tools,"Record a problem","Inspect rotation decisions","Capture a short trace of actions and targets"),
+        new(TaskPage.Recovery,Desk.Tools,"Restore a setup","Hotbar recovery","Manual fallback, backup restore and troubleshooting report")
+    ];
+    private Desk area;
+    private TaskPage? selected = TaskPage.Home;
+    private string search = "";
+    internal void OpenArea(Desk value) { area = value; selected = value == Desk.Play ? TaskPage.Home : null; search = ""; }
+    private void Open(Destination dest) { area = dest.Desk; selected = dest.Id; search = ""; }
+
+    internal void Draw(string job, Action<TaskPage> draw, Action pending)
+    {
+        bool compact = ImGui.GetContentRegionAvail().X < 690 * Frame.Scale;
+        if (compact)
+        {
+            int index = (int)area;
+            ImGui.SetNextItemWidth(-1);
+            if (Gw.ComboBox(ref index, Areas, "Workspace")) OpenArea((Desk)index);
+        }
+        else
+        {
+            if (ImGui.BeginChild("Workspace", new Vector2(176 * Frame.Scale, 0), false))
+            {
+                Gw.Heading("Accord");
+                Gw.Badge(job);
+                ImGui.Spacing();
+                Gw.Divider();
+                for (int i = 0; i < Areas.Length; i++)
+                    if (Gw.Button(Areas[i], i == (int)area ? ButtonStyle.Prominent : ButtonStyle.Default, width: ImGui.GetContentRegionAvail().X))
+                        OpenArea((Desk)i);
+            }
+            ImGui.EndChild();
+            ImGui.SameLine();
+        }
+        if (ImGui.BeginChild($"Desk-{area}-{selected}", Vector2.Zero, false))
+        {
+            ImGui.SetNextItemWidth(-1);
+            Gw.TextField(ref search, "Find a setting");
+            pending();
+            if (search.Length > 0)
+            {
+                Gw.Heading("Search results");
+                var matches = Pages.Where(p => (p.Name + " " + p.Detail).Contains(search.Trim(), StringComparison.OrdinalIgnoreCase)).ToArray();
+                if (matches.Length == 0) ImGui.TextDisabled("No matching settings.");
+                foreach (var dest in matches) if (Gw.Row(dest.Name, dest.Detail)) Open(dest);
+            }
+            else if (selected is { } id)
+            {
+                if (id != TaskPage.Home && Gw.Button("<  " + Areas[(int)area], ButtonStyle.Plain)) OpenArea(area);
+                var dest = Array.Find(Pages, p => p.Id == id)!;
+                Gw.Heading(dest.Name);
+                ImGui.PushID((int)id);
+                try { draw(id); } finally { ImGui.PopID(); }
+                if (id == TaskPage.Home)
+                    AccordControls.Section("Quick settings", () =>
+                    {
+                        foreach (var link in new[] { TaskPage.Permissions, TaskPage.Enemies, TaskPage.Healing, TaskPage.Mapping })
+                        {
+                            var item = Array.Find(Pages, p => p.Id == link)!;
+                            if (Gw.Row(item.Name, item.Detail)) Open(item);
+                        }
+                    });
+            }
+            else
+            {
+                Gw.Heading(Areas[(int)area]);
+                foreach (var section in Pages.Where(p => p.Desk == area).GroupBy(p => p.Group))
+                    AccordControls.Section(section.Key, () =>
+                    {
+                        foreach (var item in section) if (Gw.Row(item.Name, item.Detail)) Open(item);
+                    });
+            }
+        }
+        ImGui.EndChild();
+    }
+}

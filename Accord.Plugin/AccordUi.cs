@@ -12,10 +12,9 @@ namespace Accord;
 internal static class AccordUi
 {
     internal enum Page { General, Hotbars, RoleActions, Exclusions, Groups, Overrides, PvPGlobal, PvPOverrides, Preview }
-    internal static void DrawAutomation(SetupController setup)
+    internal static void DrawPermissions(SetupController setup)
     {
-        Plugin.Instance.Automation.Draw();
-        RebornMaterial.M3Widgets.SectionLabel("Global automation permissions");
+        Glasswork.Backend.Gw.Heading("Global automation permissions");
         var job = Player.Available ? setup.Pack.Find((uint)Player.Job) : null;
         if (job is null) ImGui.TextWrapped("Switch to a supported class to see what each variant controls for that class.");
         foreach (var definition in VariantDefinitions.All)
@@ -24,7 +23,7 @@ internal static class AccordUi
             var pvp = job != null && SetupController.IsPvP ? setup.PvP.Pack.Find(job.JobId) : null;
             var help = job == null ? definition.Description : pvp == null ? JobIntents.Describe(job.JobId, definition.Id)
                 : pvp.Descriptions.GetValueOrDefault(definition.Id, definition.Description);
-            if (RebornMaterial.M3Widgets.RowSwitch(definition.Label, ref enabled, help))
+            if (AccordControls.Toggle(definition.Label, ref enabled, help))
                 setup.Run(() => setup.SetVariant(definition.Id, enabled, global: true));
         }
     }
@@ -32,11 +31,11 @@ internal static class AccordUi
     internal static void DrawGeneral(SetupController setup)
     {
         bool live = setup.Settings.LiveMode;
-        if (RebornMaterial.M3Widgets.RowSwitch("Update hotbars automatically", ref live)) setup.Run(() => setup.SetLive(live));
+        if (AccordControls.Toggle("Update hotbars automatically", ref live)) setup.Run(() => setup.SetLive(live));
         ImGui.TextWrapped(live ? "Accord updates managed hotbars when your layout changes."
             : "Apply your layout manually using the button below.");
         bool cleanup = setup.Settings.ClearOtherActions;
-        if (RebornMaterial.M3Widgets.RowSwitch("Clear other controller and noncombat actions", ref cleanup)) setup.Run(() => setup.SetCleanup(cleanup));
+        if (AccordControls.Toggle("Clear other controller and noncombat actions", ref cleanup)) setup.Run(() => setup.SetCleanup(cleanup));
         if (ImGui.IsItemHovered()) ImGui.SetTooltip("Combat regular bars are always fully managed according to the bar selection. This option retains the existing cleanup behaviour for controller, noncombat and PvP layouts. Shared bars are preserved.");
         if (!setup.Settings.LiveMode && ImGui.Button("Set selected class hotbars")) setup.Run(setup.ApplyHotbars);
         ImGui.Spacing(); ImGui.Separator(); ImGui.TextUnformatted("Managed bars");

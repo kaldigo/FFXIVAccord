@@ -214,29 +214,39 @@ internal sealed class AutomationControl : IDisposable
     }
     internal void Draw()
     {
-        bool enabled = Settings.AutoRotationEnabled;
-        if (RebornMaterial.M3Widgets.RowSwitch("Auto rotation", ref enabled, Status)) Queue(enabled ? "on" : "off");
-        if (ImGui.BeginCombo("Automation engine", EngineLabel))
+        AccordControls.Runner(Settings.AutoRotationEnabled, Status, value => Queue(value ? "on" : "off"),
+            DrawEngine, Settings.FollowAutoDuty, activityStatus, SetFollow);
+    }
+    private void DrawEngine()
+    {
+        string[] choices = (wrathAvailable, rsrAvailable) switch
         {
-            if (wrathAvailable && ImGui.Selectable("Wrath", Selected == AutomaticRunner.Wrath)) Select(AutomationEngine.Wrath);
-            if (rsrAvailable && ImGui.Selectable("RSR", Selected == AutomaticRunner.Rsr)) Select(AutomationEngine.Rsr);
-            if (!wrathAvailable && !rsrAvailable) ImGui.TextDisabled("No compatible engine is loaded.");
-            ImGui.EndCombo();
+            (true, true) => ["Wrath", "RSR"],
+            (true, false) => ["Wrath"],
+            (false, true) => ["RSR"],
+            _ => []
+        };
+        if (choices.Length == 0)
+        {
+            ImGui.TextDisabled("No compatible automation engine is loaded.");
+            return;
         }
+        int index = Array.IndexOf(choices, Selected == AutomaticRunner.Rsr ? "RSR" : "Wrath");
+        if (Glasswork.Backend.Gw.ComboBox(ref index, choices, "Automation engine"))
+            Select(choices[index] == "Wrath" ? AutomationEngine.Wrath : AutomationEngine.Rsr);
         if (Settings.AutomaticEngine is { } preferred && Selected != AutomaticRunner.Off && preferred.ToString() != Selected.ToString())
-            ImGui.TextWrapped($"Using {Selected} until your preferred engine ({preferred}) is available.");
-        bool follow = Settings.FollowAutoDuty;
-        if (RebornMaterial.M3Widgets.RowSwitch("Follow AutoDuty navigation", ref follow, activityStatus))
         {
-            bool value = follow;
-            _ = Svc.Framework.RunOnTick(() =>
-            {
-                Settings.FollowAutoDuty = value;
-                Svc.PluginInterface.SavePluginConfig(Settings);
-                nextActivityPoll = nextAttempt = 0;
-            });
+            ImGui.TextWrapped($"Using {Selected} until your preferred engine ({preferred}) is available.");
+            if (Glasswork.Backend.Gw.Button($"Prefer {Selected}"))
+                Select(Selected == AutomaticRunner.Rsr ? AutomationEngine.Rsr : AutomationEngine.Wrath);
         }
     }
+    private void SetFollow(bool value) => _ = Svc.Framework.RunOnTick(() =>
+    {
+        Settings.FollowAutoDuty = value;
+        Svc.PluginInterface.SavePluginConfig(Settings);
+        nextActivityPoll = nextAttempt = 0;
+    });
     private void Select(AutomationEngine engine) => _ = Svc.Framework.RunOnTick(() =>
     {
         Settings.AutomaticEngine = engine;

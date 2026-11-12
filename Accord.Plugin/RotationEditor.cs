@@ -41,7 +41,7 @@ internal static partial class LayoutEditor
                 return;
             }
             bool enabled = value ?? inherited ?? false;
-            if (RebornMaterial.M3Widgets.RowSwitch(label, ref enabled)) set(enabled);
+            if (AccordControls.Toggle(label, ref enabled)) set(enabled);
         }
         void Choice(string label, int? value, int? inherited, string[] labels, Action<int?> set)
         {
@@ -54,7 +54,7 @@ internal static partial class LayoutEditor
             }
             int selected = value ?? inherited ?? 0;
             ImGui.BeginDisabled(over && !apply);
-            if (RebornMaterial.M3Widgets.RowCombo(label, ref selected, labels)) set(selected);
+            if (Glasswork.Backend.Gw.ComboBox(ref selected, labels, label)) set(selected);
             ImGui.EndDisabled();
             ImGui.PopID();
         }
@@ -69,7 +69,7 @@ internal static partial class LayoutEditor
             }
             int current = value ?? inherited ?? fallback;
             ImGui.BeginDisabled(over && !apply);
-            if (RebornMaterial.M3Widgets.RowDragInt(label, ref current, min, max)) set(current);
+            if (Glasswork.Backend.Gw.Slider(ref current, min, max, label)) set(current);
             ImGui.EndDisabled();
             ImGui.PopID();
         }

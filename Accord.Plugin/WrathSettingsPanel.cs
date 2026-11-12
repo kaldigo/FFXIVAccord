@@ -52,15 +52,7 @@ internal static class WrathSettingsPanel
     internal static void DrawTargeting()
     {
         var options = WrathPreferences.Resolve(Plugin.Instance.Settings.WrathPreferences);
-        Toggle(options, "Fallback", "Fall back when a deliberate target is invalid");
-        Toggle(options, "EnemyTargeting", "Use action coverage and target validation across PvE damage buttons");
-        Toggle(options, "AcquireEnemy", "Acquire an engaged enemy when none is selected");
-        Toggle(options, "EnemyMouseover", "Damage override: world mouseover");
-        Toggle(options, "EnemyFocus", "Damage override: focus target");
-        Toggle(options, "AutomaticEnemies", "Allow automatic enemy switching for action coverage");
-        Toggle(options, "OverridesInAutomation", "Apply mouseover and focus overrides to automatic actions too");
-        Toggle(options, "AcquireVisibleEnemy", "Wrath auto: target the enemy when my target is empty or myself");
-        Toggle(options, "SwitchEnemyTarget", "Wrath auto: replace an existing target with the enemy being attacked");
+        AccordControls.EnemyRules(key => options.Value<bool>(key), (key, value) => Save(key, value));
         DrawOrder(options, "EnemyOverrideOrder", "Enemy override order");
         ImGui.TextWrapped(status);
     }
@@ -83,38 +75,38 @@ internal static class WrathSettingsPanel
     internal static void DrawJobs()
     {
         var options = WrathPreferences.Resolve(Plugin.Instance.Settings.WrathPreferences);
-        RebornMaterial.M3Widgets.SectionLabel("Encounter forecasts");
+        Glasswork.Backend.Gw.Heading("Encounter forecasts");
         Toggle(options, "Forecasts", "Read BossMod encounter forecasts");
         Toggle(options, "SpaceMitigation", "Defer forecast party mitigation when an observed defense covers the hit");
-        RebornMaterial.M3Widgets.SectionLabel("Tanks");
+        Glasswork.Backend.Gw.Heading("Tanks");
         Toggle(options, "Paladin", "PLD: coordinate burst with the planned GCD and active buffs");
         Toggle(options, "Warrior", "WAR: check buff duration and downtime before burst");
         Toggle(options, "Gunbreaker", "GNB: use observed No Mercy state and downtime checks");
         Toggle(options, "DarkKnight", "DRK: reserve shield mana for observed incoming damage");
-        RebornMaterial.M3Widgets.SectionLabel("Healers");
+        Glasswork.Backend.Gw.Heading("Healers");
         Toggle(options, "WhiteMage", "WHM: shared healing and preparation");
         Toggle(options, "Scholar", "SCH: shared healing and retained Deployment recipient");
         Toggle(options, "Astrologian", "AST: shared healing and prepared spell");
         Toggle(options, "Sage", "SGE: retain prepared spell and recipient");
-        RebornMaterial.M3Widgets.SectionLabel("Melee");
+        Glasswork.Backend.Gw.Heading("Melee");
         Toggle(options, "Monk", "MNK: recover Perfect Balance using accepted chakra rather than press order");
         Toggle(options, "Drg", "DRG: prepare Life Surge for the planned hit");
         Toggle(options, "Ninja", "NIN: commit mudra intent only after an accepted action");
         Toggle(options, "Samurai", "SAM: retain Iaijutsu across ST/AoE changes and use equivalent available positionals");
         Toggle(options, "Reaper", "RPR: protect combo and known uptime before Enshroud");
         Toggle(options, "Viper", "VPR: protect buff/combo duration before either Reawaken path");
-        RebornMaterial.M3Widgets.SectionLabel("Physical ranged");
+        Glasswork.Backend.Gw.Heading("Physical ranged");
         Toggle(options, "Bard", "BRD: refresh existing DoTs under an expiring buff");
         Toggle(options, "Machinist", "MCH: match Reassemble to the selected weaponskill");
         Toggle(options, "Dancer", "DNC: finish accepted dances, protect expiring procs and budget new dances");
-        RebornMaterial.M3Widgets.SectionLabel("Casters and limited jobs");
+        Glasswork.Backend.Gw.Heading("Casters and limited jobs");
         Toggle(options, "BlackMage", "BLM: use permitted instant options when a selected cast cannot fit the forecast");
         Toggle(options, "Summoner", "SMN: bind Swiftcast to its spell and resurrection recipient");
         Toggle(options, "RedMage", "RDM: reserve Swiftcast/Dualcast and mana for a requested resurrection");
         Toggle(options, "Pictomancer", "PCT: fit motif preparation into known cast and downtime windows");
         Toggle(options, "BlueMage", "BLU: bind Bristle to an equipped spell and validate Final Sting before preparation");
         Toggle(options, "Beastmaster", "BST: bind finisher steps to the current pet and confirmed actions");
-        RebornMaterial.M3Widgets.SectionLabel("Diagnostics");
+        Glasswork.Backend.Gw.Heading("Diagnostics");
         Toggle(options, "CompareDrg", "DRG: capture planned-hit comparisons with the original provider");
         ImGui.TextWrapped(status);
     }
@@ -136,7 +128,7 @@ internal static class WrathSettingsPanel
     private static void Toggle(JObject options, string key, string label)
     {
         bool value = options.Value<bool>(key);
-        if (RebornMaterial.M3Widgets.RowSwitch(label, ref value)) Save(key, new JValue(value));
+        if (AccordControls.Toggle(label, ref value)) Save(key, new JValue(value));
     }
     private static void DrawOrder(JObject options, string key, string label)
     {

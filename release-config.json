@@ -7,11 +7,14 @@
   "required_dlls": [
     "Accord.dll",
     "ECommons.dll",
-    "RebornMaterial.dll"
+    "Glasswork.dll",
+    "Glasswork.Glass.dll",
+    "Glasswork.Backend.dll",
+    "Glasswork.Dalamud.dll"
   ],
   "licenses": {
     "LICENSE": "LICENSE",
     "ECommons/LICENSE.md": "licenses/ECommons.md",
-    "licenses/RebornMaterial.txt": "licenses/RebornMaterial.txt"
+    "licenses/Glasswork.txt": "licenses/Glasswork.txt"
   }
 }

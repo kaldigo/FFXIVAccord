@@ -18,6 +18,7 @@ public sealed class Plugin : IDalamudPlugin
     internal static Plugin Instance = null!;
     private readonly Dalamud.Interface.Windowing.WindowSystem windows = new("Accord");
     private readonly AccordWindow window;
+    private readonly Glasswork.Dalamud.GlassworkHost glass;
     internal bool MigrationPending;
     internal bool RequiresMigration;
     internal string MigrationSource = "";
@@ -62,11 +63,8 @@ public sealed class Plugin : IDalamudPlugin
         }
         setup = new SetupController();
         Automation = new AutomationControl();
-        RebornMaterial.M3.Initialize(pluginInterface, new RebornMaterial.M3Settings { UiAccentColor = new Vector4(.29f, .68f, .68f, 1) });
-        RebornMaterial.M3Brand.Name = "Accord";
-        RebornMaterial.M3Brand.Version = typeof(Plugin).Assembly.GetName().Version!.ToString();
-        RebornMaterial.M3Brand.SetLogoResource(typeof(Plugin).Assembly, "Accord.icon.png");
-        window = new AccordWindow(setup);
+        glass = new Glasswork.Dalamud.GlassworkHost(pluginInterface, Svc.Log) { Look = AccordShell.Theme() };
+        window = new AccordWindow(setup, glass);
         windows.AddWindow(window);
         if (MigrationPending) Open();
         DiagnosticCapturePanel.Init();
@@ -77,7 +75,7 @@ public sealed class Plugin : IDalamudPlugin
         Svc.Framework.Update += Update;
     }
 
-    internal void Open() => window.OpenAndRestore();
+    internal void Open() { window.IsOpen = true; window.BringToFront(); }
     private void Update(IFramework _)
     {
         DiagnosticCapturePanel.Tick();
@@ -87,8 +85,9 @@ public sealed class Plugin : IDalamudPlugin
     private void Draw()
     {
         if (!window.IsOpen) return;
-        RebornMaterial.M3.BeginFrame();
-        windows.Draw();
+        glass.BeginFrame();
+        try { windows.Draw(); }
+        finally { glass.EndFrame(); }
     }
     internal void DrawMigration()
     {
@@ -110,7 +109,7 @@ public sealed class Plugin : IDalamudPlugin
         Svc.Commands.RemoveHandler("/accord");
         setup.Dispose();
         windows.RemoveAllWindows();
-        RebornMaterial.M3.Dispose();
+        glass.Dispose();
         ClassIcons.Dispose();
         HotbarLayoutStore.Reset();
         ECommonsMain.Dispose();

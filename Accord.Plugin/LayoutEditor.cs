@@ -51,10 +51,10 @@ internal static partial class LayoutEditor
         string current = JsonConvert.SerializeObject(setup.Settings.Layouts);
         if (JsonConvert.SerializeObject(draft) == current) { saved = current; return; }
         ImGui.TextUnformatted("Unsaved layout or rotation changes");
-        if (RebornMaterial.M3Widgets.Button("save-draft", "Save changes", RebornMaterial.M3ButtonStyle.Filled))
+        if (Glasswork.Backend.Gw.Button("Save changes", Glasswork.Backend.ButtonStyle.Prominent))
             setup.Run(() => setup.SaveLayouts(Copy(draft)));
         ImGui.SameLine();
-        if (RebornMaterial.M3Widgets.Button("discard-draft", "Discard changes"))
+        if (Glasswork.Backend.Gw.Button("Discard changes"))
         {
             draft = Copy(setup.Settings.Layouts);
             saved = current;
