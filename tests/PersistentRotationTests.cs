@@ -9,7 +9,9 @@ internal static class PersistentRotationTests
     {
         int checks = 0;
         void Check(bool ok, string reason) { checks++; if (!ok) throw new Exception(reason); }
+        Check(new AccordSettings().AutomaticEngine == null && JsonConvert.DeserializeObject<AccordSettings>("{}")!.AutomaticEngine == null, "Missing engine preference became explicit");
         var old = JsonConvert.DeserializeObject<AccordSettings>("{\"AutomaticEngine\":0}")!;
+        Check(old.AutomaticEngine == AutomationEngine.Wrath, "Existing saved engine preference lost on upgrade");
         Check(old.WrathPreferences.Value<bool>("BlackMage") && old.WrathPreferences.Value<bool>("Forecasts") && old.WrathPreferences.Value<bool>("EnemyTargeting"), "Existing installs did not receive enabled rotation improvements");
         Check(old.WrathPreferences.Value<bool>("AcquireVisibleEnemy") && !old.WrathPreferences.Value<bool>("SwitchEnemyTarget"), "Existing installs should acquire empty/self and preserve selected enemies");
         old.WrathPreferences["AcquireVisibleEnemy"] = false;

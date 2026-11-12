@@ -43,6 +43,37 @@ internal static class AutomationHandoffTests
         Check(!EngineAvailability.Compatible(true, capability), "Unknown ownership protocol must not be offered");
         capability["Version"] = 1; capability.Remove("Running");
         Check(!EngineAvailability.Compatible(true, capability), "Older API without actual runner-state reporting must not be offered");
+        foreach (AutomationEngine? preference in new AutomationEngine?[] { null, AutomationEngine.Wrath, AutomationEngine.Rsr })
+        {
+            var desiredEngine = preference == AutomationEngine.Wrath ? AutomaticRunner.Wrath : AutomaticRunner.Rsr;
+            Check(EngineAvailability.Resolve(preference, false, false) == AutomaticRunner.Off, "Both engines absent");
+            Check(EngineAvailability.Resolve(preference, true, false) == AutomaticRunner.Wrath, "Wrath-only selection");
+            Check(EngineAvailability.Resolve(preference, false, true) == AutomaticRunner.Rsr, "RSR-only selection");
+            Check(EngineAvailability.Resolve(preference, true, true) == desiredEngine, "Preferred engine was not restored");
+        }
+        foreach (var preferred in new[] { AutomationEngine.Wrath, AutomationEngine.Rsr })
+        {
+            var left = new Endpoint(); var right = new Endpoint();
+            var control = new AutomationHandoff(left, right);
+            var favourite = preferred == AutomationEngine.Wrath ? left : right;
+            var alternate = favourite == left ? right : left;
+            void Step(long now)
+            {
+                left.Now = right.Now = now;
+                var runner = EngineAvailability.Resolve(preferred, !left.Absent, !right.Absent);
+                if (!control.IsCoordinating || control.Requested != runner) control.Request(runner, now);
+                control.Tick(now);
+            }
+            Step(0); Step(500);
+            favourite.Absent = true;
+            Step(1000); Step(1500);
+            Check(alternate.Lease.Allowed(1500), "Missing preferred engine did not hand off");
+            favourite.Absent = false; alternate.Busy = true;
+            Step(2000); Step(2500);
+            Check(!alternate.Lease.Allowed(2500) && !favourite.Lease.Allowed(2500), "Return overlapped a pending action");
+            alternate.Busy = false; Step(3000);
+            Check(favourite.Lease.Allowed(3000) && !alternate.Lease.Allowed(3000), "Preferred engine failed to resume");
+        }
         var w = new Endpoint(); var r = new Endpoint();
         var coordinator = new AutomationHandoff(w, r);
         void Tick(long now) { w.Now = r.Now = now; coordinator.Tick(now); }

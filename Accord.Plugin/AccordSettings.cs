@@ -14,7 +14,7 @@ public sealed class AccordSettings : Dalamud.Configuration.IPluginConfiguration
     public bool AutoRotationEnabled { get; set; }
     public bool FollowAutoDuty { get; set; }
     public Newtonsoft.Json.Linq.JObject WrathPreferences { get; set; } = global::Accord.WrathPreferences.Resolve(new());
-    public AutomationEngine AutomaticEngine { get; set; } = AutomationEngine.Rsr;
+    public AutomationEngine? AutomaticEngine { get; set; }
     public Dictionary<string, bool> RsrPreferences { get; set; } = new();
     public LayoutPreferences Layouts { get; set; } = new();
     public PvPSettings PvP { get; set; } = new();

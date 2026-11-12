@@ -48,12 +48,12 @@ internal sealed class AutomationControl : IDisposable
     private long nextDiscovery, nextAttempt, nextActivityPoll;
     private string settingsError = "", lastStatus = "", activityStatus = "";
     private AccordSettings Settings => Plugin.Instance.Settings;
-    private AutomaticRunner Selected => Settings.AutomaticEngine == AutomationEngine.Wrath ? AutomaticRunner.Wrath : AutomaticRunner.Rsr;
-    private bool SelectedAvailable => Selected == AutomaticRunner.Wrath ? wrathAvailable : rsrAvailable;
+    private AutomaticRunner Selected => EngineAvailability.Resolve(Settings.AutomaticEngine, wrathAvailable, rsrAvailable);
+    private string EngineLabel => Selected == AutomaticRunner.Off ? "Waiting for a compatible engine" : Selected.ToString();
     private AutomaticRunner Desired => Settings.EmergencyRotation ? AutomaticRunner.Off : AutomationPreference.Resolve(Settings.AutoRotationEnabled, Settings.FollowAutoDuty, dutyAvailable, dutyRunning, Selected, RunnerPaused);
     private string Status => pvpPaused && Settings.AutoRotationEnabled && handoff.IsCoordinating
         ? "Auto rotation paused in PvP." : waitingForCombatJob && Settings.AutoRotationEnabled && !Settings.EmergencyRotation
-        ? CombatJobStatus : settingsError.Length > 0 ? settingsError : handoff.Status;
+        ? CombatJobStatus : Settings.AutoRotationEnabled && Selected == AutomaticRunner.Off ? EngineLabel : settingsError.Length > 0 ? settingsError : handoff.Status;
     private void Discover() { wrathAvailable = wrath.Compatible(); rsrAvailable = rsr.Compatible(); }
     private readonly IDtrBarEntry backup = Svc.DtrBar.Get("Accord Wrath backup");
     private readonly ICallGateProvider<bool> backupArmed = Svc.PluginInterface.GetIpcProvider<bool>("Accord.EmergencyHotbarsArmed.v1");
@@ -93,7 +93,7 @@ internal sealed class AutomationControl : IDisposable
         try
         {
             Discover();
-            if (!SelectedAvailable) throw new InvalidOperationException("Waiting for the selected Accord-compatible engine to load.");
+            if (Selected == AutomaticRunner.Off) throw new InvalidOperationException("Waiting for the selected Accord-compatible engine to load.");
             if (wrathAvailable)
             {
                 SetupController.Instance!.ApplyAutomationSettings();
@@ -183,7 +183,7 @@ internal sealed class AutomationControl : IDisposable
         string status = Status;
         entry.Text = new SeStringBuilder().AddIcon(BitmapFontIcon.ElementLightning)
             .AddText(handoff.Owner != AutomaticRunner.Off ? " A" : Settings.AutoRotationEnabled ? " \u2026" : " M").Build();
-        entry.Tooltip = (Settings.EmergencyRotation ? "Wrath backup active. Automatic execution is paused." : status) + "\nAuto rotation setting: " + (Settings.AutoRotationEnabled ? "on" : "off") + ". Selected engine: " + Selected + ". Click to change the saved choice.";
+        entry.Tooltip = (Settings.EmergencyRotation ? "Wrath backup active. Automatic execution is paused." : status) + "\nAuto rotation setting: " + (Settings.AutoRotationEnabled ? "on" : "off") + ". Selected engine: " + EngineLabel + ". Click to change the saved choice.";
     }
     private void RecordStatus()
     {
@@ -216,13 +216,15 @@ internal sealed class AutomationControl : IDisposable
     {
         bool enabled = Settings.AutoRotationEnabled;
         if (RebornMaterial.M3Widgets.RowSwitch("Auto rotation", ref enabled, Status)) Queue(enabled ? "on" : "off");
-        if (ImGui.BeginCombo("Automation engine", SelectedAvailable ? Selected.ToString() : "Select an available engine"))
+        if (ImGui.BeginCombo("Automation engine", EngineLabel))
         {
             if (wrathAvailable && ImGui.Selectable("Wrath", Selected == AutomaticRunner.Wrath)) Select(AutomationEngine.Wrath);
             if (rsrAvailable && ImGui.Selectable("RSR", Selected == AutomaticRunner.Rsr)) Select(AutomationEngine.Rsr);
             if (!wrathAvailable && !rsrAvailable) ImGui.TextDisabled("No compatible engine is loaded.");
             ImGui.EndCombo();
         }
+        if (Settings.AutomaticEngine is { } preferred && Selected != AutomaticRunner.Off && preferred.ToString() != Selected.ToString())
+            ImGui.TextWrapped($"Using {Selected} until your preferred engine ({preferred}) is available.");
         bool follow = Settings.FollowAutoDuty;
         if (RebornMaterial.M3Widgets.RowSwitch("Follow AutoDuty navigation", ref follow, activityStatus))
         {
