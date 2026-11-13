@@ -56,9 +56,12 @@ class PackageTests(unittest.TestCase):
 
     def test_package_excludes_user_configuration_and_keeps_notices(self):
         (self.build / 'configuration.json').write_text('private fixture')
+        (self.build / 'Glasswork.dll').write_bytes(b'stale renderer')
         archive = packager.package(self.root, 'v1.2.3.4')
         with zipfile.ZipFile(archive) as zipped:
             self.assertNotIn('configuration.json', zipped.namelist())
+            self.assertNotIn('Glasswork.dll', zipped.namelist())
+            self.assertIn('AetherglassUI.dll', zipped.namelist())
             self.assertTrue(set(self.cfg['licenses'].values()).issubset(zipped.namelist()))
             manifest = json.loads(zipped.read(self.name + '.json'))
             self.assertEqual(manifest['RepoUrl'], 'https://github.com/' + self.cfg['repository'])

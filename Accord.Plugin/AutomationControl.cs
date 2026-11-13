@@ -214,6 +214,9 @@ internal sealed class AutomationControl : IDisposable
             command == "on" && waitingForCombatJob ? CombatJobStatus :
             command == "on" ? "Auto rotation enabled and saved; waiting for the selected engine." : "Auto rotation disabled and saved.";
     }
+    internal AetherglassUI.Topic PlaySettings()=>new("Automatic execution",
+        new("engine","Automation engine",DrawEngine,Detail:Settings.EmergencyRotation?"Wrath backup active. Automatic execution is paused.":Status),
+        AccordControls.Flag("follow","Follow AutoDuty",()=>Settings.FollowAutoDuty,SetFollow,activityStatus));
     internal string HeaderEngine => Selected == AutomaticRunner.Off ? "" : Selected == AutomaticRunner.Rsr ? "RSR" : "Wrath";
     internal void DrawDock() => AccordControls.Dock(Settings.AutoRotationEnabled, value => Queue(value ? "on" : "off"));
     internal void Draw()
@@ -236,12 +239,14 @@ internal sealed class AutomationControl : IDisposable
             return;
         }
         int index = Array.IndexOf(choices, Selected == AutomaticRunner.Rsr ? "RSR" : "Wrath");
-        if (Glasswork.Backend.Gw.ComboBox(ref index, choices, "Automation engine"))
-            Select(choices[index] == "Wrath" ? AutomationEngine.Wrath : AutomationEngine.Rsr);
+        string current=index>=0?choices[index]:"Choose engine";
+        string next=AetherglassUI.Controls.Choice("##engine",current,choices);
+        if(next!=current)
+            Select(next == "Wrath" ? AutomationEngine.Wrath : AutomationEngine.Rsr);
         if (Settings.AutomaticEngine is { } preferred && Selected != AutomaticRunner.Off && preferred.ToString() != Selected.ToString())
         {
             ImGui.TextWrapped($"Using {Selected} until your preferred engine ({preferred}) is available.");
-            if (Glasswork.Backend.Gw.Button($"Prefer {Selected}"))
+            if (ImGui.Button($"Prefer {Selected}"))
                 Select(Selected == AutomaticRunner.Rsr ? AutomationEngine.Rsr : AutomationEngine.Wrath);
         }
     }

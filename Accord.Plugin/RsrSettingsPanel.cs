@@ -73,24 +73,12 @@ internal static class RsrSettingsPanel
             return false;
         }
     }
-    internal static void Draw()
-    {
-        ImGui.TextWrapped("Accord saves these settings automatically and applies them when RSR is available.");
-        foreach (var section in sections)
-            AccordControls.Section(section.Key, () =>
-            {
-                foreach (var option in section) DrawOption(option.Key, option.Label);
-            });
-        ImGui.TextWrapped(status);
-    }
-    private static void DrawOption(string key, string label)
-    {
-        bool value = Plugin.Instance.Settings.RsrPreferences.TryGetValue(key, out var saved) ? saved : Default(key);
-        if (AccordControls.Toggle(label, ref value))
-        {
-            Plugin.Instance.Settings.RsrPreferences[key] = value;
-            Svc.PluginInterface.SavePluginConfig(Plugin.Instance.Settings);
-            nextCheck = 0;
-        }
-    }
+    internal static AetherglassUI.Topic[] Rows()=>[
+        ..sections.Select(section=>new AetherglassUI.Topic("RSR · "+section.Key+" · saved automatically",section.Select(option=>
+            AccordControls.Flag(option.Key,option.Label,
+                ()=>Plugin.Instance.Settings.RsrPreferences.TryGetValue(option.Key,out var saved)?saved:Default(option.Key),
+                value=>{Plugin.Instance.Settings.RsrPreferences[option.Key]=value;Svc.PluginInterface.SavePluginConfig(Plugin.Instance.Settings);nextCheck=0;})
+        ).ToArray())),
+        new("Verification",new AetherglassUI.Setting("status","RSR settings status",()=>ImGui.TextWrapped(status)))
+    ];
 }

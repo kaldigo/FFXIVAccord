@@ -18,7 +18,6 @@ public sealed class Plugin : IDalamudPlugin
     internal static Plugin Instance = null!;
     private readonly Dalamud.Interface.Windowing.WindowSystem windows = new("Accord");
     private readonly AccordWindow window;
-    private readonly Glasswork.Dalamud.GlassworkHost glass;
     internal bool MigrationPending;
     internal bool RequiresMigration;
     internal string MigrationSource = "";
@@ -63,7 +62,6 @@ public sealed class Plugin : IDalamudPlugin
         }
         setup = new SetupController();
         Automation = new AutomationControl();
-        glass = new Glasswork.Dalamud.GlassworkHost(pluginInterface, Svc.Log) { Look = AccordShell.Theme() };
         window = new AccordWindow(setup);
         windows.AddWindow(window);
         if (MigrationPending) Open();
@@ -85,13 +83,11 @@ public sealed class Plugin : IDalamudPlugin
     private void Draw()
     {
         if (!window.IsOpen) return;
-        glass.BeginFrame();
-        try { windows.Draw(); }
-        finally { glass.EndFrame(); }
+        windows.Draw();
     }
     internal void DrawMigration()
     {
-        Glasswork.Backend.Gw.Heading("Import personal settings");
+        ImGui.TextUnformatted("Import personal settings");
         ImGui.TextWrapped(setup.MigrationSummary);
         ImGui.TextWrapped(setup.Status);
         if (ImGui.Button("Preview personal settings import")) setup.Run(setup.PreviewMigration);
@@ -110,7 +106,6 @@ public sealed class Plugin : IDalamudPlugin
         Svc.Commands.RemoveHandler("/accord");
         setup.Dispose();
         windows.RemoveAllWindows();
-        glass.Dispose();
         ClassIcons.Dispose();
         HotbarLayoutStore.Reset();
         ECommonsMain.Dispose();

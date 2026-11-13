@@ -14,7 +14,34 @@ namespace Accord;
 
 internal static partial class LayoutEditor
 {
-    internal static void DrawGlobalRotation(RotationSection section) => DrawRotation(draft.Global.Rotation, new(), false, section);
+    internal static AetherglassUI.Topic RotationRows(RotationSection section)
+    {
+        var v=draft.Global.Rotation;
+        var def=WrathFork.Contract.RotationPreferences.Defaults();
+        AetherglassUI.Setting Flag(string key,string label,Func<bool> get,Action<bool> set)=>AccordControls.Flag(key,label,get,set);
+        AetherglassUI.Setting Number(string key,string label,Func<int> get,int max,Action<int> set)=>new(key,label,()=>{
+            int old=get(),value=old;AetherglassUI.Controls.Integer(ref value,1,max);if(value!=old)set(value);
+        }){Layout=AetherglassUI.FieldLayout.Number};
+        AetherglassUI.Setting[] rows=section switch {
+            RotationSection.Healing=>[
+                Flag("heal","Weave healing into healer damage buttons",()=>v.IncludeHealing??def.IncludeHealing??false,x=>v.IncludeHealing=x),
+                Flag("gcd","Allow healing GCDs in healer damage buttons",()=>v.HealingGcds??def.HealingGcds??false,x=>v.HealingGcds=x)],
+            RotationSection.Targeting=>[
+                new("mode","Enemy targeting",()=>{
+                    string[] labels=["Manual","Enemies fighting your party","Any eligible enemy"];
+                    string current=labels[Math.Clamp((int)(v.Targeting??def.Targeting??0),0,2)];
+                    string next=AetherglassUI.Controls.Choice("##mode",current,labels);
+                    if(next!=current)v.Targeting=(WrathFork.Contract.EnemySelection)Array.IndexOf(labels,next);
+                }),
+                Number("range","Target selection range",()=>v.TargetRange??def.TargetRange??30,30,x=>v.TargetRange=x),
+                Number("aoe","Switch to AoE at (enemies)",()=>v.AoeTargets??def.AoeTargets??3,10,x=>v.AoeTargets=x),
+                Flag("untargeted","Untargeted AoE in activities",()=>v.ActivityUntargetedAoe??def.ActivityUntargetedAoe??false,x=>v.ActivityUntargetedAoe=x)],
+            _=>[Flag("combat","Act only during combat",()=>v.CombatOnly??def.CombatOnly??false,x=>v.CombatOnly=x),
+                Flag("openers","Use job openers",()=>v.Openers??def.Openers??false,x=>v.Openers=x),
+                Flag("potions","Use damage potions in supported openers",()=>v.OpenerPotions??def.OpenerPotions??false,x=>v.OpenerPotions=x)]
+        };
+        return new("Damage buttons · save changes",rows);
+    }
     private static LayoutPreferences draft = null!;
     private static string scope = "Global";
     private static string? selectedOverride;
@@ -52,10 +79,10 @@ internal static partial class LayoutEditor
         string current = JsonConvert.SerializeObject(setup.Settings.Layouts);
         if (JsonConvert.SerializeObject(draft) == current) { saved = current; return; }
         ImGui.TextUnformatted("Unsaved layout or rotation changes");
-        if (Glasswork.Backend.Gw.Button("Save changes", Glasswork.Backend.ButtonStyle.Prominent))
+        if (ImGui.Button("Save changes"))
             setup.Run(() => setup.SaveLayouts(Copy(draft)));
         ImGui.SameLine();
-        if (Glasswork.Backend.Gw.Button("Discard changes"))
+        if (ImGui.Button("Discard changes"))
         {
             draft = Copy(setup.Settings.Layouts);
             saved = current;
@@ -83,7 +110,6 @@ internal static partial class LayoutEditor
             (selectedOverride, selectedPvPOverride) = (selectedPvPOverride, selectedOverride);
             return;
         }
-        if (page == AccordUi.Page.General) { Bars(setup); return; }
         if (page == AccordUi.Page.Groups) { Groups(setup, draft!); return; }
         if (page == AccordUi.Page.Preview) { DrawPreview(setup); return; }
         if (page == AccordUi.Page.Overrides) { Overrides(setup); return; }
@@ -210,20 +236,15 @@ internal static partial class LayoutEditor
         }
     }
 
-    private static void Bars(SetupController setup)
-    {
-        ImGui.TextWrapped("Bars 1–3 are required. Add other unshared bars here to use them in your mappings.");
-            for (int bar = 1; bar <= 10; bar++)
-            {
-                bool included = bar <= 3 || draft.AdditionalBars.Contains(bar);
-                bool shared = setup.SharedRegularBar(bar);
-                ImGui.BeginDisabled(bar <= 3 || (shared && !included));
-                if (ImGui.Checkbox($"Bar {bar}" + (shared ? " (shared)" : ""), ref included))
-                { if (included) draft.AdditionalBars.Add(bar); else draft.AdditionalBars.Remove(bar); }
-                ImGui.EndDisabled();
-                if (shared && included) ImGui.TextWrapped($"Bar {bar} is shared. Unshare it" + (bar > 3 ? " or deselect it" : "") + " before applying layouts.");
-            }
-    }
+    internal static AetherglassUI.Topic ManagedBars(SetupController setup)=>new("Managed bars · layout draft",
+        Enumerable.Range(1,10).Select(bar=>{
+            bool shared=setup.SharedRegularBar(bar);
+            return AccordControls.Flag("bar"+bar,"Bar "+bar,()=>bar<=3||draft.AdditionalBars.Contains(bar),v=>{
+                if(v)draft.AdditionalBars.Add(bar);else draft.AdditionalBars.Remove(bar);
+            },shared?"Shared bar · unshare before applying.":"") with {
+                DisabledReason=()=>bar<=3?"Required":shared&&!draft.AdditionalBars.Contains(bar)?"Shared in game":null
+            };
+        }).ToArray());
 
     private static void Overrides(SetupController setup, bool pvp = false)
     {

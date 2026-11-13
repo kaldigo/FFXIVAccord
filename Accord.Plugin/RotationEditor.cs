@@ -53,7 +53,9 @@ internal static partial class LayoutEditor
             }
             int selected = value ?? inherited ?? 0;
             ImGui.BeginDisabled(over && !apply);
-            if (Glasswork.Backend.Gw.ComboBox(ref selected, labels, label)) set(selected);
+            string prior=labels[Math.Clamp(selected,0,labels.Length-1)];
+            string next=AetherglassUI.Controls.Choice(label,prior,labels);
+            if(next!=prior)set(Array.IndexOf(labels,next));
             ImGui.EndDisabled();
             ImGui.PopID();
         }
@@ -68,7 +70,9 @@ internal static partial class LayoutEditor
             }
             int current = value ?? inherited ?? fallback;
             ImGui.BeginDisabled(over && !apply);
-            if (Glasswork.Backend.Gw.Slider(ref current, min, max, label)) set(current);
+            int edited=current;
+            AetherglassUI.Controls.Row(label,label,"",()=>AetherglassUI.Controls.Integer(ref edited,min,max));
+            if(edited!=current)set(edited);
             ImGui.EndDisabled();
             ImGui.PopID();
         }

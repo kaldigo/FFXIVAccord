@@ -15,3 +15,9 @@ Initialise pinned submodules. Build with .NET 10 and Dalamud API 15 references u
 Successful source updates on `main` automatically produce an immutable versioned preview using the shared DalamudPlugins publisher, then update this repository's `pluginmaster.json`. Feed-only commits do not retrigger releases. The central installation feed refreshes hourly and supports on-demand refresh.
 
 This standalone repository was extracted from the Accord companion source at commit 4d2ce69900f30917b1c64b6634b044d8f56741e3, whose upstream history remains in the Wrath Combo fork. Inherited licenses and attribution are retained. No personal configurations, game data or build outputs are published.
+
+## Testing window
+
+Open `/accord` for Play, Rotation rules, Hotbar studio and Testing & recovery. Search filters the current workspace, including settings in collapsed groups. Wrath and RSR preference edits save immediately. Changes to rotation-button rules and hotbar layouts stay in the shared draft until you save or discard them. Import and stopped-operation recovery continue through Accord’s existing controllers.
+
+Builds reference the [AetherglassUI source project](https://github.com/kaldigo/FFXIV-AetherglassUI). Standalone builds can set `AetherglassUIProject` to the library project path. The testing workflow checks out its pinned revision and packages `AetherglassUI.dll` with Accord.

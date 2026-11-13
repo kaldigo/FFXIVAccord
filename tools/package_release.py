@@ -20,7 +20,7 @@ def package(root,tag,changelog='Validated source update. Development preview; na
         for item in sorted(build.rglob('*')):
             if not item.is_file():continue
             relative=item.relative_to(build)
-            if len(relative.parts)==1 and (item.suffix=='.dll' or item.name==name+'.deps.json') or relative.parts[0] in ['Resources','Assets','images','runtimes']:
+            if len(relative.parts)==1 and (item.name in cfg['required_dlls'] or item.name==name+'.deps.json') or relative.parts[0] in ['Resources','Assets','images','runtimes']:
                 z.write(item,relative.as_posix())
         z.writestr(name+'.json',json.dumps(manifest,indent=2)+'\n')
         z.write(icon,'images/icon.png')

@@ -8,16 +8,14 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <DalamudLibPath>$(appdata)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
   </PropertyGroup>
+  <PropertyGroup>
+    <AetherglassUIProject Condition="'$(AetherglassUIProject)' == '' and Exists('../../AetherglassUI/Library/AetherglassUI.csproj')">../../AetherglassUI/Library/AetherglassUI.csproj</AetherglassUIProject>
+    <AetherglassUIProject Condition="'$(AetherglassUIProject)' == '' and Exists('../../../../AetherglassUI/Library/AetherglassUI.csproj')">../../../../AetherglassUI/Library/AetherglassUI.csproj</AetherglassUIProject>
+    <AetherglassUIProject Condition="'$(AetherglassUIProject)' == ''">../.dependencies/AetherglassUI/Library/AetherglassUI.csproj</AetherglassUIProject>
+  </PropertyGroup>
+  <ItemGroup><ProjectReference Include="$(AetherglassUIProject)" /></ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="../assets/icon.png" LogicalName="Accord.icon.png" />
-    <PackageReference Include="Glasswork" Version="0.1.0-beta.3" GeneratePathProperty="true" />
-    <None Include="$(PkgGlasswork)/lib/net10.0/Glasswork.dll" Link="Glasswork.dll" CopyToOutputDirectory="PreserveNewest" />
-    <PackageReference Include="Glasswork.Glass" Version="0.1.0-beta.3" GeneratePathProperty="true" />
-    <None Include="$(PkgGlasswork_Glass)/lib/net10.0-windows7.0/Glasswork.Glass.dll" Link="Glasswork.Glass.dll" CopyToOutputDirectory="PreserveNewest" />
-    <PackageReference Include="Glasswork.Backend" Version="0.1.0-beta.3" GeneratePathProperty="true" />
-    <None Include="$(PkgGlasswork_Backend)/lib/net10.0-windows7.0/Glasswork.Backend.dll" Link="Glasswork.Backend.dll" CopyToOutputDirectory="PreserveNewest" />
-    <PackageReference Include="Glasswork.Dalamud" Version="0.1.0-beta.3" GeneratePathProperty="true" />
-    <None Include="$(PkgGlasswork_Dalamud)/lib/net10.0-windows7.0/Glasswork.Dalamud.dll" Link="Glasswork.Dalamud.dll" CopyToOutputDirectory="PreserveNewest" />
     <PackageReference Include="DalamudPackager" Version="15.0.0" />
     <ProjectReference Include="../ECommons/ECommons/ECommons.csproj" />
     <Reference Include="InteropGenerator.Runtime"><HintPath>$(DalamudLibPath)InteropGenerator.Runtime.dll</HintPath><Private>false</Private></Reference>

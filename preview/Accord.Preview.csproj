@@ -5,6 +5,12 @@
     <DalamudLibPath Condition="'$(DALAMUD_HOME)' != ''">$(DALAMUD_HOME)</DalamudLibPath>
     <DalamudLibPath Condition="'$(DalamudLibPath)' == ''">$(appdata)/XIVLauncher/addon/Hooks/dev</DalamudLibPath>
   </PropertyGroup>
+  <PropertyGroup>
+    <AetherglassUIProject Condition="'$(AetherglassUIProject)' == '' and Exists('../../AetherglassUI/Library/AetherglassUI.csproj')">../../AetherglassUI/Library/AetherglassUI.csproj</AetherglassUIProject>
+    <AetherglassUIProject Condition="'$(AetherglassUIProject)' == '' and Exists('../../../../AetherglassUI/Library/AetherglassUI.csproj')">../../../../AetherglassUI/Library/AetherglassUI.csproj</AetherglassUIProject>
+    <AetherglassUIProject Condition="'$(AetherglassUIProject)' == ''">../.dependencies/AetherglassUI/Library/AetherglassUI.csproj</AetherglassUIProject>
+  </PropertyGroup>
+  <ItemGroup><ProjectReference Include="$(AetherglassUIProject)" /></ItemGroup>
   <ItemGroup>
     <Compile Include="../Accord.Plugin/RotationEditor.cs" Link="RotationEditor.cs" />
     <Compile Include="../Contract/RotationPreferences.cs" Link="RotationPreferences.cs" />

@@ -167,54 +167,27 @@ internal static class DiagnosticCapturePanel
         DiagnosticLog.Event("Controller.Health", () => new { Endpoints = health });
     }
     private static bool BoundForDisplay() => Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BoundByDuty] || Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BoundByDuty56];
-    internal static void Draw()
-    {
-        bool value = Plugin.Instance.Settings.ContinuousDiagnostics;
-        ImGui.BeginDisabled(busy);
-        if (ImGui.Checkbox("Keep advanced log of latest duty", ref value))
-        {
-            bool requested = value;
-            _ = Svc.Framework.RunOnTick(() =>
-            {
-                Plugin.Instance.Settings.ContinuousDiagnostics = requested;
+    internal static AetherglassUI.Topic[] Rows()=>[new("Latest duty",
+        AccordControls.Flag("record","Keep advanced log of latest duty",()=>Plugin.Instance.Settings.ContinuousDiagnostics,
+            requested=>{_ = Svc.Framework.RunOnTick(()=>{
+                Plugin.Instance.Settings.ContinuousDiagnostics=requested;
                 Svc.PluginInterface.SavePluginConfig(Plugin.Instance.Settings);
-                nextPoll = 0;
-            });
-        }
-        ImGui.EndDisabled();
-        if (value && !enabled && !BoundForDisplay()) ImGui.TextWrapped("Armed for duty entry. The most recent duty stays available.");
-        if (!value || enabled || !message.StartsWith("Stopped.") && !message.StartsWith("Off.")) ImGui.TextWrapped(message);
-        foreach (var item in health)
-        {
-            var state = item.Value["Status"] as JObject;
-            string detail = item.Value.Value<bool>("Success") != true ? "UNAVAILABLE: " + item.Value.Value<string>("Error") :
-                $"{(state?.Value<bool>("Active") == true ? "recording" : state?.Value<bool>("Flushing") == true ? "finishing files" : "stopped")} | events {state?["Written"]} | lost {state?["Dropped"]} | {state?["Error"]}";
-            ImGui.TextWrapped(item.Key + ": " + detail);
-        }
-        if (enabled)
-        {
-            ImGui.InputText("What went wrong / expected action", ref marker, 500);
-            if (ImGui.Button("Mark this moment"))
-            {
-                string note = marker; marker = "";
-                _ = Svc.Framework.RunOnTick(() => DiagnosticLog.Event("User.Marker", () => new { Note = note }));
-            }
-        }
-        if (duty != null)
-        {
-            string directory = DutyDirectory;
-            ImGui.TextWrapped("Session folder: " + directory);
-            if (ImGui.Button("Copy session folder")) ImGui.SetClipboardText(directory);
-            bool flushing = health.Values.Any(x => x["Status"]?.Value<bool>("Flushing") == true);
-            ImGui.BeginDisabled(enabled || flushing || busy);
-            if (ImGui.Button("Export duty ZIP")) Export(directory);
-            ImGui.EndDisabled();
-            if (enabled || flushing) ImGui.TextWrapped("Export becomes available after recording stops and the files finish writing.");
-        }
-        if (ImGui.CollapsingHeader("What gets recorded"))
-            ImGui.TextWrapped("Records while inside a duty. The next duty replaces this one. Each plugin uses up to about 32 MiB of compressed storage. Starting a new capture also retires completed older diagnostic recordings. Exported ZIPs are kept. Background checks are sampled and counted; individual presses, sends and confirmations are recorded. Capture includes selections and rejection reasons, button presses, targets, queues, action effects, settings, forecasts and automation ownership. Logs include local settings and nearby actor IDs/statuses; no chat or character names are collected by the world sampler.");
-        ImGui.Separator();
-    }
+                nextPoll=0;
+            });}) with {DisabledReason=()=>busy?"Export in progress":null},
+        new AetherglassUI.Setting("state","Capture status",()=>ImGui.TextWrapped(
+            Plugin.Instance.Settings.ContinuousDiagnostics&&!enabled&&!BoundForDisplay()?"Armed for duty entry.":message)){
+            ExpandedContent=()=>{foreach(var item in health){
+                var state=item.Value["Status"] as JObject;
+                var detail=item.Value.Value<bool>("Success")!=true?"Unavailable: "+item.Value.Value<string>("Error"):
+                    $"{(state?.Value<bool>("Active")==true?"recording":state?.Value<bool>("Flushing")==true?"finishing files":"stopped")} · events {state?["Written"]} · lost {state?["Dropped"]} {state?["Error"]}";
+                ImGui.TextWrapped(item.Key+" · "+detail);
+            }}},
+        new("marker","Mark this moment",()=>{AetherglassUI.Controls.Text(ref marker,500);
+            if(ImGui.SmallButton("Record marker")){string note=marker;marker="";_=Svc.Framework.RunOnTick(()=>DiagnosticLog.Event("User.Marker",()=>new {Note=note}));}},Visible:()=>enabled),
+        new("folder","Session folder",()=>{if(ImGui.Button("Copy path"))ImGui.SetClipboardText(DutyDirectory);},Detail:duty==null?"":DutyDirectory,Visible:()=>duty!=null),
+        new AetherglassUI.Setting("export","Export duty ZIP",()=>{if(ImGui.Button("Export"))Export(DutyDirectory);},Visible:()=>duty!=null){
+            DisabledReason=()=>enabled||busy||health.Values.Any(x=>x["Status"]?.Value<bool>("Flushing")==true)?"Wait for recording and file writes to finish.":null},
+        new("contents","What gets recorded",()=>{if(ImGui.TreeNode("Details")){ImGui.TextWrapped("Records while inside a duty. The next duty replaces this one. Each plugin uses up to about 32 MiB of compressed storage. Starting a new capture also retires completed older diagnostic recordings. Exported ZIPs are kept. Background checks are sampled and counted; individual presses, sends and confirmations are recorded. Capture includes selections and rejection reasons, button presses, targets, queues, action effects, settings, forecasts and automation ownership. Logs include local settings and nearby actor IDs/statuses; no chat or character names are collected by the world sampler."); ImGui.TreePop();}}))];
     private static void Export(string directory)
     {
         busy = true;

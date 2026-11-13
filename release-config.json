@@ -7,14 +7,10 @@
   "required_dlls": [
     "Accord.dll",
     "ECommons.dll",
-    "Glasswork.dll",
-    "Glasswork.Glass.dll",
-    "Glasswork.Backend.dll",
-    "Glasswork.Dalamud.dll"
+    "AetherglassUI.dll"
   ],
   "licenses": {
     "LICENSE": "LICENSE",
-    "ECommons/LICENSE.md": "licenses/ECommons.md",
-    "licenses/Glasswork.txt": "licenses/Glasswork.txt"
+    "ECommons/LICENSE.md": "licenses/ECommons.md"
   }
 }

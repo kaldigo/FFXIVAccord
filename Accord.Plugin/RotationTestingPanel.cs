@@ -13,23 +13,31 @@ internal static class RotationTestingPanel
     private static bool pending;
     private static JObject? clientBaseline;
     private static JToken? defaultProfile;
-    internal static void Draw()
+    private static int page;
+    internal static AetherglassUI.Topic[] Rows()
     {
-        ImGui.TextWrapped("Observe the existing Wrath rotation for up to 60 seconds. This does not run a second resolver or change your rotation settings. Start replaces the previous capture.");
-        ImGui.BeginDisabled(pending);
-        if (ImGui.Button("Start 60 second capture")) Request("start");
-        ImGui.SameLine(); if (ImGui.Button("Stop")) Request("stop");
-        ImGui.SameLine(); if (ImGui.Button("Refresh")) Request("read");
-        ImGui.EndDisabled();
-        ImGui.TextWrapped(status);
-        if (report is null) return;
-        ImGui.TextWrapped($"Last refreshed status: {(report.Value<bool>("Active") ? "capturing" : report.Value<string>("StopReason"))}. Older observations discarded: {report["Dropped"]}.");
-        if (ImGui.Button("Copy capture report")) ImGui.SetClipboardText(report.ToString(Formatting.Indented));
-        ImGui.TextWrapped($"Unchanged selections omitted: {report["RepeatedSelections"]}. Selection means a normal uncached hotbar query, not a key press or successful execution. Send records the outgoing action and recipient; it does not prove server acceptance. Refresh before copying.");
-        if (ImGui.BeginChild("TraceEntries", new System.Numerics.Vector2(0, 240), true))
-            foreach (var entry in (JArray?)report["Entries"] ?? new JArray())
-                ImGui.TextWrapped($"{entry["ElapsedMs"]} ms | {entry["Kind"]} | {entry["Input"]} → {entry["Output"]} | recipient {entry["Recipient"]}");
-        ImGui.EndChild();
+        AetherglassUI.Setting Command(string id,string label,string button)=>new(id,label,()=>{
+            if(ImGui.Button(button))Request(id);
+        }){DisabledReason=()=>pending?"Waiting for Wrath.":null};
+        return [new("Wrath decision trace",
+            Command("start","Start 60 second capture","Start") with {Detail="Starting a capture replaces the previous trace."},
+            Command("stop","Stop capture","Stop"),Command("read","Refresh capture report","Refresh"),
+            new("status","Capture status",()=>ImGui.TextWrapped(status)),
+            new("copy","Copy complete capture report",()=>{if(ImGui.Button("Copy report"))ImGui.SetClipboardText(report!.ToString(Formatting.Indented));},Visible:()=>report!=null),
+            new AetherglassUI.Setting("events","Captured decisions and action sends",()=>ImGui.TextUnformatted($"{(report?["Entries"] as JArray)?.Count??0} events"),Visible:()=>report!=null){
+                ExpandedContent=()=>{
+                    ImGui.TextWrapped($"Last refresh: {(report!.Value<bool>("Active")?"capturing":report.Value<string>("StopReason"))}. Dropped: {report["Dropped"]}. Repeated selections omitted: {report["RepeatedSelections"]}.");
+                    var entries=report["Entries"] as JArray;
+                    if(entries==null)return;
+                    int last=Math.Max(0,(entries.Count-1)/32);
+                    page=Math.Clamp(page,0,last);
+                    if(page>0 && ImGui.SmallButton("Previous"))page--;
+                    if(page<last && ImGui.SmallButton("Next"))page++;
+                    for(int i=page*32;i<Math.Min(entries.Count,(page+1)*32);i++){
+                        var entry=entries[i];
+                        ImGui.TextWrapped($"{entry["ElapsedMs"]} ms | {entry["Kind"]} | {entry["Input"]} → {entry["Output"]} | recipient {entry["Recipient"]}");
+                    }
+                }})];
     }
     private static void Request(string command)
     {
@@ -52,6 +60,7 @@ internal static class RotationTestingPanel
                 response["AccordSettingsAtStart"] = clientBaseline?.DeepClone();
                 response["DefaultProfileAtStart"] = defaultProfile?.DeepClone();
                 response["AccordSettingsAtRead"] = JObject.FromObject(SetupController.Instance!.Settings);
+                if(command=="start")page=0;
                 report = response;
                 status = "Capture refreshed at " + DateTime.Now.ToLongTimeString();
             }

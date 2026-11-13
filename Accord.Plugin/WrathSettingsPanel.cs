@@ -49,79 +49,89 @@ internal static class WrathSettingsPanel
             return false;
         }
     }
-    internal static void DrawTargeting()
+    internal static AetherglassUI.Topic[] Rows(TaskPage task)
     {
-        var options = WrathPreferences.Resolve(Plugin.Instance.Settings.WrathPreferences);
-        AccordControls.EnemyRules(key => options.Value<bool>(key), (key, value) => Save(key, value));
-        DrawOrder(options, "EnemyOverrideOrder", "Enemy override order");
-        ImGui.TextWrapped(status);
-    }
-    internal static void DrawHealing()
-    {
-        var options = WrathPreferences.Resolve(Plugin.Instance.Settings.WrathPreferences);
-        AccordControls.HealingRules(key => options.Value<bool>(key), (key, value) => Save(key, value));
-        DrawOrder(options, "AllyOverrideOrder", "Ally override order");
-        ImGui.TextWrapped(status);
-    }
-    internal static void DrawJobs()
-    {
-        var options = WrathPreferences.Resolve(Plugin.Instance.Settings.WrathPreferences);
-        if (ImGui.CollapsingHeader("Encounter forecasts"))
-        {
-            Toggle(options, "Forecasts", "Read BossMod encounter forecasts");
-            Toggle(options, "SpaceMitigation", "Defer forecast party mitigation when an observed defense covers the hit");
-        }
-        if (ImGui.CollapsingHeader("Tanks"))
-        {
-            Toggle(options, "Paladin", "PLD: coordinate burst with the planned GCD and active buffs");
-            Toggle(options, "Warrior", "WAR: check buff duration and downtime before burst");
-            Toggle(options, "Gunbreaker", "GNB: use observed No Mercy state and downtime checks");
-            Toggle(options, "DarkKnight", "DRK: reserve shield mana for observed incoming damage");
-        }
-        if (ImGui.CollapsingHeader("Healers"))
-        {
-            Toggle(options, "WhiteMage", "WHM: shared healing and preparation");
-            Toggle(options, "Scholar", "SCH: shared healing and retained Deployment recipient");
-            Toggle(options, "Astrologian", "AST: shared healing and prepared spell");
-            Toggle(options, "Sage", "SGE: retain prepared spell and recipient");
-        }
-        if (ImGui.CollapsingHeader("Melee"))
-        {
-            Toggle(options, "Monk", "MNK: recover Perfect Balance using accepted chakra rather than press order");
-            Toggle(options, "Drg", "DRG: prepare Life Surge for the planned hit");
-            Toggle(options, "Ninja", "NIN: commit mudra intent only after an accepted action");
-            Toggle(options, "Samurai", "SAM: retain Iaijutsu across ST/AoE changes and use equivalent available positionals");
-            Toggle(options, "Reaper", "RPR: protect combo and known uptime before Enshroud");
-            Toggle(options, "Viper", "VPR: protect buff/combo duration before either Reawaken path");
-        }
-        if (ImGui.CollapsingHeader("Physical ranged"))
-        {
-            Toggle(options, "Bard", "BRD: refresh existing DoTs under an expiring buff");
-            Toggle(options, "Machinist", "MCH: match Reassemble to the selected weaponskill");
-            Toggle(options, "Dancer", "DNC: finish accepted dances, protect expiring procs and budget new dances");
-        }
-        if (ImGui.CollapsingHeader("Casters and limited jobs"))
-        {
-            Toggle(options, "BlackMage", "BLM: use permitted instant options when a selected cast cannot fit the forecast");
-            Toggle(options, "Summoner", "SMN: bind Swiftcast to its spell and resurrection recipient");
-            Toggle(options, "RedMage", "RDM: reserve Swiftcast/Dualcast and mana for a requested resurrection");
-            Toggle(options, "Pictomancer", "PCT: fit motif preparation into known cast and downtime windows");
-            Toggle(options, "BlueMage", "BLU: bind Bristle to an equipped spell and validate Final Sting before preparation");
-            Toggle(options, "Beastmaster", "BST: bind finisher steps to the current pet and confirmed actions");
-        }
-        if (ImGui.CollapsingHeader("Diagnostics"))
-        {
-            Toggle(options, "CompareDrg", "DRG: capture planned-hit comparisons with the original provider");
-        }
-        ImGui.TextWrapped(status);
-    }
-    internal static void DrawPvP()
-    {
-        var options = WrathPreferences.Resolve(Plugin.Instance.Settings.WrathPreferences);
-        Toggle(options, "PvpMachinist", "PvP MCH: prepare the selected tool and preserve Drill through Guard");
-        Toggle(options, "PvpScheduling", "PvP: coordinated RDM/SMN burst and accepted Wildfire/Warrant/Honing releases");
-        Toggle(options, "PvpTargeting", "PvP: action-specific damage targets and Guard eligibility");
-        ImGui.TextWrapped(status);
+        var options=WrathPreferences.Resolve(Plugin.Instance.Settings.WrathPreferences);
+        AetherglassUI.Setting Flag(string key,string label,string detail="")=>
+            AccordControls.Flag(key,label,()=>options.Value<bool>(key),v=>Save(key,v),detail);
+        AetherglassUI.Setting Order(string key,string label)=>new(key,label,()=>{},Detail:"Earlier targets take priority."){
+            ExpandedContent=()=>DrawOrder(options,key,label)
+        };
+        AetherglassUI.Topic[] topics=task switch {
+            TaskPage.Enemies=>[
+                new("Wrath · Visible target in Wrath auto · saved automatically",
+                    Flag("AcquireVisibleEnemy","Select the enemy I attack","When I have no target or have myself selected."),
+                    Flag("SwitchEnemyTarget","Replace my current target","Allow Wrath to visibly select a different enemy.")),
+                new("Wrath · Damage targeting · saved automatically",
+                    Flag("EnemyTargeting","Check action coverage","Validate targets across PvE damage buttons."),
+                    Flag("AcquireEnemy","Acquire an engaged enemy","When I have no enemy selected."),
+                    Flag("AutomaticEnemies","Switch for coverage","Allow automatic enemy switching for action coverage."),
+                    Flag("Fallback","Use a fallback target","When my deliberate target is invalid.")),
+                new("Wrath · Manual overrides · saved automatically",
+                    Flag("EnemyMouseover","World mouseover","Use my hovered enemy for damage actions."),
+                    Flag("EnemyFocus","Focus target","Allow my focus target as a damage override."),
+                    Flag("OverridesInAutomation","Use overrides in auto rotation","Apply mouseover and focus to automatic actions too.")),
+                new("Wrath · priority",Order("EnemyOverrideOrder","Enemy override order")),
+            ],
+            TaskPage.Healing=>[
+                new("Wrath · Healing actions · saved automatically",
+                    Flag("IncludeRaise","Include resurrection in damage buttons"),
+                    Flag("HardCastRaise","Allow resurrection without instant cast"),
+                    Flag("IncludeCleanse","Include cleansing in damage buttons"),
+                    Flag("PreventiveHealing","Prepare healing before incoming damage"),
+                    Flag("GroundTargets","Use target overrides and coverage for ground heals")),
+                new("Wrath · Healing targets · saved automatically",
+                    Flag("PartyMouseover","Party-list mouseover"),
+                    Flag("WorldMouseover","World mouseover"),
+                    Flag("Focus","Focus target"),
+                    Flag("AutomaticAllies","Choose an eligible ally when no override applies"),
+                    Flag("SwitchAllyTarget","Let Wrath visibly select the healing target")),
+                new("Wrath · priority",Order("AllyOverrideOrder","Ally override order")),
+            ],
+            TaskPage.JobTuning=>[
+                new("Wrath · Encounter forecasts · saved automatically",
+                    Flag("Forecasts","Read BossMod encounter forecasts"),
+                    Flag("SpaceMitigation","Defer forecast party mitigation when an observed defense covers the hit")),
+                new("Wrath · Tanks · saved automatically",
+                    Flag("Paladin","PLD: coordinate burst with the planned GCD and active buffs"),
+                    Flag("Warrior","WAR: check buff duration and downtime before burst"),
+                    Flag("Gunbreaker","GNB: use observed No Mercy state and downtime checks"),
+                    Flag("DarkKnight","DRK: reserve shield mana for observed incoming damage")),
+                new("Wrath · Healers · saved automatically",
+                    Flag("WhiteMage","WHM: shared healing and preparation"),
+                    Flag("Scholar","SCH: shared healing and retained Deployment recipient"),
+                    Flag("Astrologian","AST: shared healing and prepared spell"),
+                    Flag("Sage","SGE: retain prepared spell and recipient")),
+                new("Wrath · Melee · saved automatically",
+                    Flag("Monk","MNK: recover Perfect Balance using accepted chakra rather than press order"),
+                    Flag("Drg","DRG: prepare Life Surge for the planned hit"),
+                    Flag("Ninja","NIN: commit mudra intent only after an accepted action"),
+                    Flag("Samurai","SAM: retain Iaijutsu across ST/AoE changes and use equivalent available positionals"),
+                    Flag("Reaper","RPR: protect combo and known uptime before Enshroud"),
+                    Flag("Viper","VPR: protect buff/combo duration before either Reawaken path")),
+                new("Wrath · Physical ranged · saved automatically",
+                    Flag("Bard","BRD: refresh existing DoTs under an expiring buff"),
+                    Flag("Machinist","MCH: match Reassemble to the selected weaponskill"),
+                    Flag("Dancer","DNC: finish accepted dances, protect expiring procs and budget new dances")),
+                new("Wrath · Casters and limited jobs · saved automatically",
+                    Flag("BlackMage","BLM: use permitted instant options when a selected cast cannot fit the forecast"),
+                    Flag("Summoner","SMN: bind Swiftcast to its spell and resurrection recipient"),
+                    Flag("RedMage","RDM: reserve Swiftcast/Dualcast and mana for a requested resurrection"),
+                    Flag("Pictomancer","PCT: fit motif preparation into known cast and downtime windows"),
+                    Flag("BlueMage","BLU: bind Bristle to an equipped spell and validate Final Sting before preparation"),
+                    Flag("Beastmaster","BST: bind finisher steps to the current pet and confirmed actions")),
+                new("Wrath · Diagnostics · saved automatically",
+                    Flag("CompareDrg","DRG: capture planned-hit comparisons with the original provider")),
+            ],
+            TaskPage.PvP=>[
+                new("Wrath · PvP · saved automatically",
+                    Flag("PvpMachinist","PvP MCH: prepare the selected tool and preserve Drill through Guard"),
+                    Flag("PvpScheduling","PvP: coordinated RDM/SMN burst and accepted Wildfire/Warrant/Honing releases"),
+                    Flag("PvpTargeting","PvP: action-specific damage targets and Guard eligibility")),
+            ],
+            _=>[]
+        };
+        return [..topics,new("Verification",new AetherglassUI.Setting("wrath-status","Wrath settings status",()=>ImGui.TextWrapped(status)))];
     }
     private static void Save(string key, JToken value)
     {
@@ -130,14 +140,9 @@ internal static class WrathSettingsPanel
         nextCheck = 0;
         status = "Saved; waiting for Wrath to apply and verify the change.";
     }
-    private static void Toggle(JObject options, string key, string label)
-    {
-        bool value = options.Value<bool>(key);
-        if (AccordControls.Toggle(label, ref value)) Save(key, new JValue(value));
-    }
     private static void DrawOrder(JObject options, string key, string label)
     {
-        if (options[key] is not JArray order || !ImGui.TreeNode(label)) return;
+        if (options[key] is not JArray order) return;
         for (int i = 0; i < order.Count; i++)
         {
             ImGui.PushID(key + i);
@@ -155,6 +160,6 @@ internal static class WrathSettingsPanel
             }
             ImGui.PopID();
         }
-        ImGui.TreePop();
+
     }
 }

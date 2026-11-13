@@ -17,6 +17,7 @@ public abstract class Screen : IPreviewScreen
     private readonly bool[] keep = [true, false, false];
     private readonly bool[] permissions = [false,true,true,false];
     private readonly WrathFork.Contract.RotationPreferences rotation = new();
+    private protected void StartTask(TaskPage page)=>shell.OpenTask(page);
     private protected void StartIn(Desk area) => shell.OpenArea(area);
     private readonly System.Collections.Generic.Dictionary<string, bool> ruleset = new()
     {
@@ -28,11 +29,10 @@ public abstract class Screen : IPreviewScreen
     }
     public abstract string Name { get; }
     public abstract Vector2 WindowSize { get; }
-    public Look Look => AccordShell.Theme();
+    public Look Look => Look.NeutralDark();
     public virtual ReadOnlySpan<PreviewInput> Script => [];
     public void Draw()
     {
-        AccordShell.DrawBackground();
         shell.Draw("BRD", engine == 0 ? "Wrath" : "RSR", task =>
     {
         if (task == TaskPage.Home)
@@ -92,15 +92,10 @@ public sealed class Rules() : Screen(true)
     public override string Name => "accord-rules";
     public override Vector2 WindowSize => new(960, 720);
 }
-public sealed class Targeting() : Screen(true)
+public sealed class Targeting : Screen
 {
-    private static readonly PreviewInput[] Navigate =
-    [
-        new(3, PreviewInputKind.Press, new(290, 266)),
-        new(4, PreviewInputKind.Release, new(290, 266)),
-        new(8, PreviewInputKind.Move, new(180, 90))
-    ];
-    public override ReadOnlySpan<PreviewInput> Script => Navigate;
+    public Targeting() : base(true) => StartTask(TaskPage.Enemies);
+
     public override string Name => "accord-targeting";
     public override Vector2 WindowSize => new(960, 800);
 }
@@ -116,31 +111,20 @@ public sealed class Tools : Screen
     public override string Name => "accord-tools";
     public override Vector2 WindowSize => new(410, 650);
 }
-public sealed class Healing() : Screen(true)
+public sealed class Healing : Screen
 {
-    private static readonly PreviewInput[] Navigate =
-    [
-        new(3, PreviewInputKind.Press, new(290, 324)),
-        new(4, PreviewInputKind.Release, new(290, 324)),
-        new(8, PreviewInputKind.Move, new(180, 90))
-    ];
-    public override ReadOnlySpan<PreviewInput> Script => Navigate;
+    public Healing() : base(true) => StartTask(TaskPage.Healing);
+
     public override string Name => "accord-healing";
     public override Vector2 WindowSize => new(960, 760);
 }
 
 public sealed class Mapping : Screen
 {
-    public Mapping() : base(false) => StartIn(Desk.Bars);
+    public Mapping() : base(false) => StartTask(TaskPage.Mapping);
     public override string Name => "accord-mapping-compact";
     public override Vector2 WindowSize => new(360, 660);
-    private static readonly PreviewInput[] Navigate =
-    [
-        new(3, PreviewInputKind.Press, new(160, 400)),
-        new(4, PreviewInputKind.Release, new(160, 400)),
-        new(8, PreviewInputKind.Move, new(20, 70))
-    ];
-    public override ReadOnlySpan<PreviewInput> Script => Navigate;
+
 }
 
 public sealed class RailHover() : Screen(false)
