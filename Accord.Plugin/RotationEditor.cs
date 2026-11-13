@@ -6,8 +6,7 @@ namespace Accord;
 internal static partial class LayoutEditor
 {
     internal enum RotationSection { All, Healing, Targeting, Openers }
-    internal static void DrawGlobalRotation(RotationSection section) => DrawRotation(draft.Global.Rotation, new(), false, section);
-    private static void DrawRotation(RotationPreferences local, RotationPreferences parent, bool over, RotationSection section = RotationSection.All)
+    internal static void DrawRotation(RotationPreferences local, RotationPreferences parent, bool over, RotationSection section = RotationSection.All)
     {
         parent = parent.Over(RotationPreferences.Defaults());
         if (section is RotationSection.All or RotationSection.Healing)

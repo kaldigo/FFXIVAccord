@@ -169,7 +169,6 @@ internal static class DiagnosticCapturePanel
     private static bool BoundForDisplay() => Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BoundByDuty] || Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BoundByDuty56];
     internal static void Draw()
     {
-        ImGui.TextWrapped("Records while inside a duty. The next duty replaces this one. Each plugin uses up to about 32 MiB of compressed storage. Starting a new capture also retires completed older diagnostic recordings. Exported ZIPs are kept. Background checks are sampled and counted; individual presses, sends and confirmations are recorded. Capture includes selections and rejection reasons, button presses, targets, queues, action effects, settings, forecasts and automation ownership. Logs include local settings and nearby actor IDs/statuses; no chat or character names are collected by the world sampler.");
         bool value = Plugin.Instance.Settings.ContinuousDiagnostics;
         ImGui.BeginDisabled(busy);
         if (ImGui.Checkbox("Keep advanced log of latest duty", ref value))
@@ -183,7 +182,8 @@ internal static class DiagnosticCapturePanel
             });
         }
         ImGui.EndDisabled();
-        ImGui.TextWrapped(value && !enabled && !BoundForDisplay() ? "Armed for duty entry. The most recent duty stays available." : message);
+        if (value && !enabled && !BoundForDisplay()) ImGui.TextWrapped("Armed for duty entry. The most recent duty stays available.");
+        if (!value || enabled || !message.StartsWith("Stopped.") && !message.StartsWith("Off.")) ImGui.TextWrapped(message);
         foreach (var item in health)
         {
             var state = item.Value["Status"] as JObject;
@@ -209,7 +209,10 @@ internal static class DiagnosticCapturePanel
             ImGui.BeginDisabled(enabled || flushing || busy);
             if (ImGui.Button("Export duty ZIP")) Export(directory);
             ImGui.EndDisabled();
+            if (enabled || flushing) ImGui.TextWrapped("Export becomes available after recording stops and the files finish writing.");
         }
+        if (ImGui.CollapsingHeader("What gets recorded"))
+            ImGui.TextWrapped("Records while inside a duty. The next duty replaces this one. Each plugin uses up to about 32 MiB of compressed storage. Starting a new capture also retires completed older diagnostic recordings. Exported ZIPs are kept. Background checks are sampled and counted; individual presses, sends and confirmations are recorded. Capture includes selections and rejection reasons, button presses, targets, queues, action effects, settings, forecasts and automation ownership. Logs include local settings and nearby actor IDs/statuses; no chat or character names are collected by the world sampler.");
         ImGui.Separator();
     }
     private static void Export(string directory)

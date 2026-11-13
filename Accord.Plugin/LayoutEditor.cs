@@ -14,6 +14,7 @@ namespace Accord;
 
 internal static partial class LayoutEditor
 {
+    internal static void DrawGlobalRotation(RotationSection section) => DrawRotation(draft.Global.Rotation, new(), false, section);
     private static LayoutPreferences draft = null!;
     private static string scope = "Global";
     private static string? selectedOverride;
@@ -179,36 +180,32 @@ internal static partial class LayoutEditor
             ImGui.BeginDisabled(!applied);
             var exclusions = over?.Exclusions ?? effective.Exclusions;
             var routes = Enum.GetValues<ControlIntent>().Where(i => i is not (ControlIntent.ImportantRole or ControlIntent.OtherRole or ControlIntent.Exclusions)).ToArray();
-            ImGui.TextWrapped("Checked routes may use the action. Untick a route to exclude it. The Exclusions mapping group provides deliberate access.");
-            if (ImGui.BeginTable("Exclusion routes", routes.Length + 2,
-                ImGuiTableFlags.ScrollX | ImGuiTableFlags.ScrollY | ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg,
-                new System.Numerics.Vector2(0, Math.Clamp(exclusions.Count * 30 + 64, 100, 300))))
+            ImGui.TextWrapped("Choose an action, then check the buttons that should skip it.");
+            Picker("Add action", a =>
             {
-                ImGui.TableSetupColumn("Action", ImGuiTableColumnFlags.WidthFixed, 160);
-                foreach (var route in routes) ImGui.TableSetupColumn(Label(route), ImGuiTableColumnFlags.WidthFixed, 115);
-                ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 65);
-                ImGui.TableSetupScrollFreeze(1, 1);
-                ImGui.TableHeadersRow();
-                for (int i = 0; i < exclusions.Count; i++)
+                if (!exclusions.Any(e => e.Action.Id == a.Id && e.Action.Type == a.Type))
+                    exclusions.Add(new() { Action = a });
+            }, actionsOnly: true);
+            for (int i = 0; i < exclusions.Count; i++)
+            {
+                var exclusion = exclusions[i];
+                ImGui.PushID(i);
+                if (ImGui.TreeNode($"{exclusion.Action.Name} ({exclusion.ExcludedFrom.Count} excluded)###action"))
                 {
-                    var exclusion = exclusions[i];
-                    ImGui.PushID(i);
-                    ImGui.TableNextRow(); ImGui.TableNextColumn();
-                    ImGui.TextUnformatted(exclusion.Action.Name);
                     foreach (var route in routes)
                     {
-                        ImGui.TableNextColumn();
-                        bool allowed = !exclusion.ExcludedFrom.Contains(route);
-                        if (ImGui.Checkbox("##" + route, ref allowed))
-                        { if (allowed) exclusion.ExcludedFrom.Remove(route); else exclusion.ExcludedFrom.Add(route); }
+                        bool excluded = exclusion.ExcludedFrom.Contains(route);
+                        if (ImGui.Checkbox(Label(route), ref excluded))
+                        {
+                            if (excluded) exclusion.ExcludedFrom.Add(route);
+                            else exclusion.ExcludedFrom.Remove(route);
+                        }
                     }
-                    ImGui.TableNextColumn();
-                    if (ImGui.SmallButton("Remove")) exclusions.RemoveAt(i--);
-                    ImGui.PopID();
+                    if (ImGui.SmallButton("Remove exclusion rule")) exclusions.RemoveAt(i--);
+                    ImGui.TreePop();
                 }
-                ImGui.EndTable();
+                ImGui.PopID();
             }
-            Picker("Add excluded action", a => exclusions.Add(new() { Action = a }), actionsOnly: true);
             ImGui.EndDisabled();
         }
     }
@@ -303,14 +300,14 @@ internal static partial class LayoutEditor
     private static void DrawPreview(SetupController setup)
     {
         ImGui.TextWrapped("Preview only. Choosing a class here does not change Global or create an override.");
+        ImGui.Checkbox("PvP", ref previewPvP);
+        if (previewPvP && setup.PvP.Pack.Find(previewJob) is null) previewJob = 23;
         if (ImGui.BeginCombo("Class", setup.Pack.Find(previewJob)!.Job))
         {
-            foreach (var job in setup.Pack.Data.Jobs.Where(j => j.JobId >= 19))
+            foreach (var job in setup.Pack.Data.Jobs.Where(j => j.JobId >= 19 && (!previewPvP || setup.PvP.Pack.Find(j.JobId) != null)))
                 if (ImGui.Selectable(job.Job, previewJob == job.JobId)) previewJob = job.JobId;
             ImGui.EndCombo();
         }
-        ImGui.Checkbox("PvP", ref previewPvP);
-        if (previewPvP && setup.PvP.Pack.Find(previewJob) is null) previewJob = 23;
         ImGui.Checkbox("Include explicitly added overrides", ref includeOverrides);
         var preferences = Copy(draft);
         if (!includeOverrides) { preferences.Roles.Clear(); preferences.Classes.Clear(); preferences.PvP.Roles.Clear(); preferences.PvP.Classes.Clear(); }
@@ -429,25 +426,14 @@ internal static partial class LayoutEditor
         }
         ImGui.EndTabBar();
 
-        void DrawEntries(MappingArea area)
+        void DrawEntries(MappingArea area) => AccordControls.MappingTable(stacked =>
         {
-            if (!ImGui.BeginTable("Groups", 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp)) return;
-            ImGui.TableSetupColumn("Intent / group", ImGuiTableColumnFlags.WidthStretch);
-            ImGui.TableSetupColumn("Keep when automated", ImGuiTableColumnFlags.WidthFixed, 145 * ImGuiHelpers.GlobalScale);
-            ImGui.TableSetupColumn("Order / destination", ImGuiTableColumnFlags.WidthFixed, 220 * ImGuiHelpers.GlobalScale);
-            ImGui.TableHeadersRow();
             for (int i = 0; i < area.Entries.Count; i++)
             {
                 var entry = area.Entries[i]; ImGui.PushID(i);
-                ImGui.TableNextRow(); ImGui.TableNextColumn();
-                ImGui.TextWrapped($"{i + 1}. {EntryName(setup, entry, preferences)}");
-                ImGui.TableNextColumn();
                 bool keep = keepAll || entry.KeepManual;
-                ImGui.BeginDisabled(keepAll);
-                if (ImGui.Checkbox("##Keep manual buttons when automated", ref keep)) entry.KeepManual = keep;
-                ImGui.EndDisabled();
-                if (keepAll && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled)) ImGui.SetTooltip("Enabled by Keep manual controls when automated.");
-                ImGui.TableNextColumn();
+                if (AccordControls.MappingRow(stacked, $"{i + 1}. {EntryName(setup, entry, preferences)}", keepAll, ref keep))
+                    entry.KeepManual = keep;
                 ImGui.BeginDisabled(i == 0);
                 if (ImGui.SmallButton("Up")) (area.Entries[i - 1], area.Entries[i]) = (entry, area.Entries[i - 1]);
                 ImGui.EndDisabled(); ImGui.SameLine(); ImGui.BeginDisabled(i == area.Entries.Count - 1);
@@ -484,8 +470,7 @@ internal static partial class LayoutEditor
                 if (remove) area.Entries.RemoveAt(i--);
                 ImGui.PopID();
             }
-            ImGui.EndTable();
-        }
+        });
     }
     private static void ChooseSource(LayoutPreferences preferences, Action<MappingEntry> selected)
     {
@@ -569,10 +554,13 @@ internal static partial class LayoutEditor
         {
             if (roleOnly && !FitsScope(actions[i])) continue;
             ImGui.PushID(i);
-            ImGui.TextUnformatted(actions[i].Name);
-            ImGui.SameLine();
-            if (i > 0 && ImGui.SmallButton("Up")) (actions[i-1], actions[i]) = (actions[i], actions[i-1]);
-            ImGui.SameLine();
+            ImGui.TextWrapped(actions[i].Name);
+            if (ImGui.GetContentRegionAvail().X >= 520 * ImGuiHelpers.GlobalScale) ImGui.SameLine();
+            if (i > 0)
+            {
+                if (ImGui.SmallButton("Up")) (actions[i-1], actions[i]) = (actions[i], actions[i-1]);
+                ImGui.SameLine();
+            }
             if (ImGui.SmallButton("Remove")) actions.RemoveAt(i--);
             ImGui.PopID();
         }
@@ -583,6 +571,7 @@ internal static partial class LayoutEditor
     private static void Picker(string label, Action<ActionChoice> selected, bool actionsOnly = false, bool roleOnly = false)
     {
         if (!ImGui.BeginCombo(label, "Choose action or item")) return;
+        if (ImGui.IsWindowAppearing()) search = "";
         if (!actionsOnly) ImGui.Combo("Type", ref kind, new[] { "Action", "Item", "General action" }, 3);
         int activeKind = actionsOnly ? 0 : kind;
         if (choices is null || loadedKind != activeKind || loadedPvP != editingPvP)
@@ -597,8 +586,11 @@ internal static partial class LayoutEditor
         }
         ImGui.InputText("Search", ref search, 100);
         if (activeKind == 1) ImGui.Checkbox("High-quality item", ref highQuality);
+        int shown = 0;
         foreach (var action in choices.Where(a => a.Name.Contains(search, StringComparison.OrdinalIgnoreCase) &&
-                     (!roleOnly || (Svc.Data.GetExcelSheet<Sheets.Action>().GetRow(a.Id).IsRoleAction && FitsScope(a)))).Take(100))
+                     (!roleOnly || (Svc.Data.GetExcelSheet<Sheets.Action>().GetRow(a.Id).IsRoleAction && FitsScope(a)))).Take(101))
+        {
+            if (++shown > 100) { ImGui.TextDisabled("Refine your search to see more results."); break; }
             if (ImGui.Selectable(action.Name + "##" + action.Id))
             {
                 var choice = Copy(action);
@@ -606,6 +598,8 @@ internal static partial class LayoutEditor
                 { choice.Id += 1000000; choice.Name += " (HQ)"; }
                 selected(choice); ImGui.CloseCurrentPopup();
             }
+        }
+        if (shown == 0) ImGui.TextDisabled("No matching actions or items.");
         ImGui.EndCombo();
     }
     private static bool FitsScope(ActionChoice action)

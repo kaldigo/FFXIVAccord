@@ -43,34 +43,37 @@ internal static class AccordUi
 
     internal static void DrawRecovery(SetupController setup)
     {
+        Glasswork.Backend.Gw.Heading("Manual logout hotbars");
         bool manualLogout = setup.Settings.ManualLogoutFallback;
         if (ImGui.Checkbox("Save manual hotbars before logout", ref manualLogout)) setup.Run(() => setup.SetManualFallback(manualLogout));
         ImGui.TextWrapped("Saves three-bar manual layouts for selected combat classes before normal logout. Restores your exact previous Accord layouts on login when compatible Wrath is available. Uses regular bars 1–3 and controller pages 1–3; other bars stay unchanged.");
         if (ImGui.Button("Prepare manual hotbars now")) setup.Run(setup.PrepareManualHotbars);
-        ImGui.SameLine();
         if (ImGui.Button("Restore Accord hotbars")) setup.Run(setup.RestoreAccordHotbars);
         ImGui.TextWrapped(setup.ManualStatus);
         ImGui.Separator();
         ImGui.TextWrapped(setup.Status);
         if (setup.HasPendingOperation && ImGui.Button("Keep recovery record and review again")) setup.Run(setup.AbandonPendingOperation);
-            ImGui.TextWrapped("Reapply Accord's default Wrath settings for selected classes. Backs up the previous settings and keeps your variants and hotbars.");
-            if (ImGui.Button("Reset selected classes to Accord defaults")) setup.Run(setup.ResetSelectedSettings);
-            if (!string.IsNullOrWhiteSpace(SetupController.IsPvP ? setup.PvP.Settings.LastHotbarBackup : setup.Settings.LastHotbarBackup))
-            {
-                ImGui.Separator();
-                ImGui.TextWrapped("Restore the saved hotbar layout from before the last Accord hotbar operation, including live updates. Turns live mode off; Wrath settings and variants stay as they are. This is not necessarily your layout from before first using Accord.");
-                if (ImGui.Button("Restore previous hotbar layout")) setup.Run(setup.Restore);
-            }
+        Glasswork.Backend.Gw.Heading("Reset class settings");
+        ImGui.TextWrapped("Reapply Accord's default Wrath settings for selected classes. Backs up the previous settings and keeps your variants and hotbars.");
+        if (ImGui.Button("Reset selected classes to Accord defaults")) setup.Run(setup.ResetSelectedSettings);
+        if (!string.IsNullOrWhiteSpace(SetupController.IsPvP ? setup.PvP.Settings.LastHotbarBackup : setup.Settings.LastHotbarBackup))
+        {
             ImGui.Separator();
-            ImGui.TextWrapped("Save Accord and Wrath settings and status to a local file for troubleshooting. Nothing is uploaded.");
-            if (ImGui.Button("Save troubleshooting report")) setup.Run(setup.ExportDiagnostics);
-            foreach (var backup in Directory.EnumerateFiles(Svc.PluginInterface.GetPluginConfigDirectory(), "combined-prototype-*.json").OrderByDescending(File.GetLastWriteTimeUtc))
-                if (ImGui.Button("Review settings from old combined plugin: " + Path.GetFileName(backup)))
-                {
-                    Plugin.Instance.MigrationSource = backup;
-                    Plugin.Instance.MigrationPending = true;
-                    setup.Run(setup.PreviewMigration);
-                }
+            Glasswork.Backend.Gw.Heading("Restore from backup");
+            ImGui.TextWrapped("Restore the saved hotbar layout from before the last Accord hotbar operation, including live updates. Turns live mode off; Wrath settings and variants stay as they are. This is not necessarily your layout from before first using Accord.");
+            if (ImGui.Button("Restore previous hotbar layout")) setup.Run(setup.Restore);
+        }
+        ImGui.Separator();
+        Glasswork.Backend.Gw.Heading("Troubleshooting and import");
+        ImGui.TextWrapped("Save Accord and Wrath settings and status to a local file for troubleshooting. Nothing is uploaded.");
+        if (ImGui.Button("Save troubleshooting report")) setup.Run(setup.ExportDiagnostics);
+        foreach (var backup in Directory.EnumerateFiles(Svc.PluginInterface.GetPluginConfigDirectory(), "combined-prototype-*.json").OrderByDescending(File.GetLastWriteTimeUtc))
+            if (ImGui.Button("Review settings from old combined plugin: " + Path.GetFileName(backup)))
+            {
+                Plugin.Instance.MigrationSource = backup;
+                Plugin.Instance.MigrationPending = true;
+                setup.Run(setup.PreviewMigration);
+            }
     }
 
     internal static void DrawClassSelection(SetupController setup)

@@ -12,6 +12,24 @@ internal static class AccordControls
     internal static bool Toggle(string label, ref bool value, string? detail = null)
     {
         ImGui.PushID(label);
+        float room = ImGui.GetContentRegionAvail().X - 80 * Frame.Scale;
+        if (ImGui.CalcTextSize(label).X > room || (detail != null && ImGui.CalcTextSize(detail).X > room))
+        {
+            bool changed = false;
+            if (ImGui.BeginTable("wrapped", 2, ImGuiTableFlags.SizingStretchProp))
+            {
+                ImGui.TableSetupColumn("Text", ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupColumn("Value", ImGuiTableColumnFlags.WidthFixed, 54 * Frame.Scale);
+                ImGui.TableNextColumn();
+                ImGui.TextWrapped(label);
+                if (!string.IsNullOrEmpty(detail)) ImGui.TextWrapped(detail);
+                ImGui.TableNextColumn();
+                changed = Gw.Toggle(ref value, "##value");
+                ImGui.EndTable();
+            }
+            ImGui.PopID();
+            return changed;
+        }
         Gw.BeginRow(label, detail ?? "");
         try { return Gw.Toggle(ref value, "##value"); }
         finally { Gw.EndRow(); ImGui.PopID(); }
@@ -51,16 +69,78 @@ internal static class AccordControls
         });
     }
 
-    internal static void Runner(bool enabled, string status, Action<bool> enable, Action engine,
-        bool follow, string activity, Action<bool> setFollow)
+    internal static void HealingRules(Func<string, bool> read, Action<string, bool> write)
     {
-        Section("Runner", () =>
+        void Rule(string key, string label)
         {
-            if (Toggle("Auto rotation", ref enabled, status)) enable(enabled);
+            bool value = read(key);
+            if (Toggle(label, ref value)) write(key, value);
+        }
+        Section("Healing actions", () =>
+        {
+            Rule("IncludeRaise", "Include resurrection in damage buttons");
+            Rule("HardCastRaise", "Allow resurrection without instant cast");
+            Rule("IncludeCleanse", "Include cleansing in damage buttons");
+            Rule("PreventiveHealing", "Prepare healing before incoming damage");
+            Rule("GroundTargets", "Use target overrides and coverage for ground heals");
+        });
+        Section("Healing targets", () =>
+        {
+            Rule("PartyMouseover", "Party-list mouseover");
+            Rule("WorldMouseover", "World mouseover");
+            Rule("Focus", "Focus target");
+            Rule("AutomaticAllies", "Choose an eligible ally when no override applies");
+            Rule("SwitchAllyTarget", "Let Wrath visibly select the healing target");
+        });
+    }
+
+    internal static void MappingTable(Action<bool> drawRows)
+    {
+        bool stacked = ImGui.GetContentRegionAvail().X < 590 * Frame.Scale;
+        if (!ImGui.BeginTable("Groups", stacked ? 1 : 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp)) return;
+        try
+        {
+            ImGui.TableSetupColumn("Intent / group", ImGuiTableColumnFlags.WidthStretch);
+            if (!stacked)
+            {
+                ImGui.TableSetupColumn("Keep when automated", ImGuiTableColumnFlags.WidthFixed, 145 * Frame.Scale);
+                ImGui.TableSetupColumn("Order / destination", ImGuiTableColumnFlags.WidthFixed, 220 * Frame.Scale);
+            }
+            ImGui.TableHeadersRow();
+            drawRows(stacked);
+        }
+        finally { ImGui.EndTable(); }
+    }
+
+    internal static bool MappingRow(bool stacked, string label, bool keepAll, ref bool keep)
+    {
+        ImGui.TableNextRow();
+        ImGui.TableNextColumn();
+        ImGui.TextWrapped(label);
+        if (!stacked) ImGui.TableNextColumn();
+        ImGui.BeginDisabled(keepAll);
+        bool changed = ImGui.Checkbox(stacked ? "Keep when automated" : "##keep", ref keep);
+        ImGui.EndDisabled();
+        if (keepAll && ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+            ImGui.SetTooltip("Enabled by Keep manual controls when automated.");
+        if (!stacked) ImGui.TableNextColumn();
+        return changed;
+    }
+
+    internal static void Runner(Action engine, bool follow, string activity, Action<bool> setFollow)
+    {
+        Section("Automatic execution", () =>
+        {
             engine();
             if (Toggle("Follow AutoDuty", ref follow, activity)) setFollow(follow);
         });
     }
+
+    internal static void Dock(bool enabled, Action<bool> enable)
+    {
+        if (ImGui.Checkbox("Auto rotation", ref enabled)) enable(enabled);
+    }
+
 }
 
 internal enum Desk { Play, Rules, Bars, Tools }
@@ -69,7 +149,14 @@ internal sealed record Destination(TaskPage Id, Desk Desk, string Group, string 
 
 internal sealed class AccordShell
 {
-    internal static Look Theme() => Look.Liquid();
+    internal static Look Theme() => AccordChrome.Theme();
+
+    internal static void DrawBackground()
+    {
+        var pos = ImGui.GetWindowPos();
+        ImGui.GetWindowDrawList().AddRectFilled(pos, pos + ImGui.GetWindowSize(),
+            ImGui.GetColorU32(Frame.Look.Background.ToVector4()), ImGui.GetStyle().WindowRounding);
+    }
     private static readonly string[] Areas = ["Play", "Rotation rules", "Hotbar studio", "Testing & recovery"];
     private static readonly Destination[] Pages =
     [
@@ -97,72 +184,106 @@ internal sealed class AccordShell
     private Desk area;
     private TaskPage? selected = TaskPage.Home;
     private string search = "";
-    internal void OpenArea(Desk value) { area = value; selected = value == Desk.Play ? TaskPage.Home : null; search = ""; }
-    private void Open(Destination dest) { area = dest.Desk; selected = dest.Id; search = ""; }
-
-    internal void Draw(string job, Action<TaskPage> draw, Action pending)
+    private (Desk Area, TaskPage? Page, string Search)? previous;
+    private string BackLabel => previous is { } p
+        ? p.Search.Length > 0 ? "Search results" : Areas[(int)p.Area]
+        : Areas[(int)area];
+    private void Back()
     {
-        bool compact = ImGui.GetContentRegionAvail().X < 690 * Frame.Scale;
-        if (compact)
+        if (previous is { } p) { (area, selected, search) = p; previous = null; }
+        else OpenArea(area);
+    }
+    internal void OpenArea(Desk value) { previous = null; area = value; selected = value == Desk.Play ? TaskPage.Home : null; search = ""; }
+    private void Open(Destination dest) { previous = (area, selected, search); area = dest.Desk; selected = dest.Id; search = ""; }
+
+    internal void Draw(string job, string engine, Action<TaskPage> draw, Action pending, Action dock, Action close)
+    {
+        AccordChrome.Header(job, engine, close);
+        float footerHeight = ImGui.GetFrameHeightWithSpacing() + ImGui.GetStyle().ItemSpacing.Y + 1;
+        if (ImGui.BeginChild("Accord body", new Vector2(0, -footerHeight), false))
         {
-            int index = (int)area;
-            ImGui.SetNextItemWidth(-1);
-            if (Gw.ComboBox(ref index, Areas, "Workspace")) OpenArea((Desk)index);
-        }
-        else
-        {
-            if (ImGui.BeginChild("Workspace", new Vector2(176 * Frame.Scale, 0), false))
+            if (ImGui.BeginChild("Workspace", new Vector2(48 * Frame.Scale, 0), false))
             {
-                Gw.Heading("Accord");
-                Gw.Badge(job);
-                ImGui.Spacing();
-                Gw.Divider();
                 for (int i = 0; i < Areas.Length; i++)
-                    if (Gw.Button(Areas[i], i == (int)area ? ButtonStyle.Prominent : ButtonStyle.Default, width: ImGui.GetContentRegionAvail().X))
-                        OpenArea((Desk)i);
+                    if (AccordChrome.RailItem((Desk)i, Areas[i], i == (int)area)) OpenArea((Desk)i);
             }
             ImGui.EndChild();
             ImGui.SameLine();
+            DrawWorkspace(draw, pending);
         }
-        if (ImGui.BeginChild($"Desk-{area}-{selected}", Vector2.Zero, false))
+        ImGui.EndChild();
+        ImGui.Separator();
+        dock();
+    }
+
+    private void DrawWorkspace(Action<TaskPage> draw, Action pending)
+    {
+        if (ImGui.BeginChild("Settings workspace", Vector2.Zero, false))
         {
-            ImGui.SetNextItemWidth(-1);
-            Gw.TextField(ref search, "Find a setting");
+            if (area != Desk.Play)
+            {
+                ImGui.SetNextItemWidth(-1);
+                Gw.TextField(ref search, "Find a setting");
+            }
             pending();
-            if (search.Length > 0)
-            {
-                Gw.Heading("Search results");
-                var matches = Pages.Where(p => (p.Name + " " + p.Detail).Contains(search.Trim(), StringComparison.OrdinalIgnoreCase)).ToArray();
-                if (matches.Length == 0) ImGui.TextDisabled("No matching settings.");
-                foreach (var dest in matches) if (Gw.Row(dest.Name, dest.Detail)) Open(dest);
-            }
-            else if (selected is { } id)
-            {
-                if (id != TaskPage.Home && Gw.Button("<  " + Areas[(int)area], ButtonStyle.Plain)) OpenArea(area);
-                var dest = Array.Find(Pages, p => p.Id == id)!;
-                Gw.Heading(dest.Name);
-                ImGui.PushID((int)id);
-                try { draw(id); } finally { ImGui.PopID(); }
-                if (id == TaskPage.Home)
-                    AccordControls.Section("Quick settings", () =>
-                    {
-                        foreach (var link in new[] { TaskPage.Permissions, TaskPage.Enemies, TaskPage.Healing, TaskPage.Mapping })
-                        {
-                            var item = Array.Find(Pages, p => p.Id == link)!;
-                            if (Gw.Row(item.Name, item.Detail)) Open(item);
-                        }
-                    });
-            }
-            else
-            {
-                Gw.Heading(Areas[(int)area]);
-                foreach (var section in Pages.Where(p => p.Desk == area).GroupBy(p => p.Group))
-                    AccordControls.Section(section.Key, () =>
-                    {
-                        foreach (var item in section) if (Gw.Row(item.Name, item.Detail)) Open(item);
-                    });
-            }
+            bool visible = ImGui.BeginChild($"Content-{area}-{selected}-{!string.IsNullOrWhiteSpace(search)}", Vector2.Zero, false);
+            try { if (visible) DrawContent(draw); } finally { ImGui.EndChild(); }
         }
         ImGui.EndChild();
     }
+
+    private void DrawContent(Action<TaskPage> draw)
+    {
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            Gw.Heading("Search results");
+            var words = search.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var matches = Pages.Where(p =>
+            {
+                string terms = $"{Areas[(int)p.Desk]} {p.Group} {p.Name} {p.Detail} {Keywords(p.Id)}";
+                return words.All(word => terms.Contains(word, StringComparison.OrdinalIgnoreCase));
+            }).ToArray();
+            if (matches.Length == 0) ImGui.TextDisabled("No matching settings.");
+            foreach (var dest in matches) if (Gw.Row(dest.Name, dest.Detail)) Open(dest);
+        }
+        else if (selected is { } id)
+        {
+            if ((id != TaskPage.Home || previous.HasValue) && Gw.Button("<  " + BackLabel, ButtonStyle.Default)) { Back(); return; }
+            var dest = Array.Find(Pages, p => p.Id == id)!;
+            Gw.Heading(dest.Name);
+            ImGui.PushID((int)id);
+            try { draw(id); } finally { ImGui.PopID(); }
+            if (id == TaskPage.Home)
+                AccordControls.Section("Quick settings", () =>
+                {
+                    foreach (var link in new[] { TaskPage.Permissions, TaskPage.Enemies, TaskPage.Healing, TaskPage.Mapping })
+                    {
+                        var item = Array.Find(Pages, p => p.Id == link)!;
+                        if (Gw.Row(item.Name, item.Detail)) Open(item);
+                    }
+                });
+        }
+        else
+        {
+            Gw.Heading(Areas[(int)area]);
+            foreach (var section in Pages.Where(p => p.Desk == area).GroupBy(p => p.Group))
+                AccordControls.Section(section.Key, () =>
+                {
+                    foreach (var item in section) if (Gw.Row(item.Name, item.Detail)) Open(item);
+                });
+        }
+    }
+
+    private static string Keywords(TaskPage id) => id switch
+    {
+        TaskPage.Mapping => "joined split single ST AoE damage mechanic placement",
+        TaskPage.Enemies => "ST range retarget focus acquire switch aggro",
+        TaskPage.Healing => "resurrection GCD oGCD mouseover party list focus preventive",
+        TaskPage.Permissions => "auto burst mitigation auto support class actions",
+        TaskPage.JobTuning => "BossMod forecast tank savage downtime",
+        TaskPage.DutyLog => "logging record marker diagnostics export",
+        TaskPage.Trace => "capture rejection recipient debugging",
+        TaskPage.Recovery => "backup import migration logout reset restore",
+        _ => ""
+    };
 }

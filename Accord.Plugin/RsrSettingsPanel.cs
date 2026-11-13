@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using ECommons.DalamudServices;
 using ECommons.GameHelpers;
 using Newtonsoft.Json.Linq;
@@ -13,26 +14,27 @@ internal static class RsrSettingsPanel
     private static long nextCheck;
     private static uint lastJob;
     private static string status = "";
-    private static readonly (string Key, string Label)[] options =
+    private static readonly (string Group, string Key, string Label)[] options =
     [
-        ("AutoBurst", "RSR: initiate burst automatically"),
-        ("UseAbility", "RSR: use abilities between GCDs"),
-        ("UseDefenseAbility", "RSR: permit defensive actions"),
-        ("UseStDefense", "RSR: permit single-target defense"),
-        ("UseAoeDefense", "RSR: permit party defense"),
-        ("UseBmrTimeline", "RSR: use BossMod timelines for prevention"),
-        ("UseDutyActions", "RSR: permit duty actions"),
-        ("AutoTankStance", "RSR: manage tank stance"),
-        ("UseGroundBeneficialAbility", "RSR: place beneficial ground actions automatically"),
-        ("UseGroundBeneficialAbilityWhenMoving", "RSR: allow ground actions while moving"),
-        ("UseGroundBeneficialAbilityOnlySelf", "RSR: center ground actions on self"),
-        ("AutoHeal", "RSR: calculate healing thresholds automatically"),
+        ("Combat actions", "AutoBurst", "initiate burst automatically"),
+        ("Combat actions", "UseAbility", "use abilities between GCDs"),
+        ("Defense and duty actions", "UseDefenseAbility", "permit defensive actions"),
+        ("Defense and duty actions", "UseStDefense", "permit single-target defense"),
+        ("Defense and duty actions", "UseAoeDefense", "permit party defense"),
+        ("Defense and duty actions", "UseBmrTimeline", "use BossMod timelines for prevention"),
+        ("Defense and duty actions", "UseDutyActions", "permit duty actions"),
+        ("Defense and duty actions", "AutoTankStance", "manage tank stance"),
+        ("Ground actions and healing", "UseGroundBeneficialAbility", "place beneficial ground actions automatically"),
+        ("Ground actions and healing", "UseGroundBeneficialAbilityWhenMoving", "allow ground actions while moving"),
+        ("Ground actions and healing", "UseGroundBeneficialAbilityOnlySelf", "center ground actions on self"),
+        ("Ground actions and healing", "AutoHeal", "calculate healing thresholds automatically"),
     ];
+    private static readonly IGrouping<string, (string Group, string Key, string Label)>[] sections = options.GroupBy(o => o.Group).ToArray();
     internal static void ApplyVerified()
     {
         var desired = Plugin.Instance.Settings.RsrPreferences;
         var expected = new JObject { ["TeachingMode"] = false, ["ShowInfoOnDtr"] = false };
-        foreach (var (key, _) in options)
+        foreach (var (_, key, _) in options)
             expected[key] = desired.TryGetValue(key, out var saved) ? saved : Default(key);
         settings = VerifiedSettings.Apply(expected, Read, (key, value) =>
         {
@@ -74,16 +76,21 @@ internal static class RsrSettingsPanel
     internal static void Draw()
     {
         ImGui.TextWrapped("Accord saves these settings automatically and applies them when RSR is available.");
-        foreach (var (key, label) in options)
-        {
-            bool value = Plugin.Instance.Settings.RsrPreferences.TryGetValue(key, out var saved) ? saved : Default(key);
-            if (AccordControls.Toggle(label, ref value))
+        foreach (var section in sections)
+            AccordControls.Section(section.Key, () =>
             {
-                Plugin.Instance.Settings.RsrPreferences[key] = value;
-                Svc.PluginInterface.SavePluginConfig(Plugin.Instance.Settings);
-                nextCheck = 0;
-            }
-        }
+                foreach (var option in section) DrawOption(option.Key, option.Label);
+            });
         ImGui.TextWrapped(status);
+    }
+    private static void DrawOption(string key, string label)
+    {
+        bool value = Plugin.Instance.Settings.RsrPreferences.TryGetValue(key, out var saved) ? saved : Default(key);
+        if (AccordControls.Toggle(label, ref value))
+        {
+            Plugin.Instance.Settings.RsrPreferences[key] = value;
+            Svc.PluginInterface.SavePluginConfig(Plugin.Instance.Settings);
+            nextCheck = 0;
+        }
     }
 }

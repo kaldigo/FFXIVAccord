@@ -16,9 +16,15 @@ internal static class RsrPermissionsPanel
     private static string filter = "";
     internal static void Draw()
     {
+        if (!Plugin.Instance.Automation.RsrAvailable || !Player.Available)
+        {
+            ImGui.TextWrapped("Load the Accord-compatible RSR plugin and log in to edit its per-job permissions.");
+            return;
+        }
         ImGui.TextWrapped("Checked actions are reserved for manual use while Accord controls RSR automation. These settings are separate for each job and PvE/PvP. Your Wrath buttons and their exclusions remain independent.");
+        bool dirty = snapshot is not null && !manual.SetEquals(((JArray?)snapshot["ManualActions"] ?? new JArray()).Values<uint>());
         ImGui.BeginDisabled(pending);
-        if (ImGui.Button("Refresh RSR actions")) Request(new JObject { ["Command"] = "read" });
+        if (ImGui.Button(dirty ? "Discard edits and reload RSR actions" : "Refresh RSR actions")) Request(new JObject { ["Command"] = "read" });
         ImGui.TextWrapped(status);
         bool current = snapshot is not null && snapshot.Value<uint>("Job") == (uint)Player.Job && snapshot.Value<bool>("PvP") == Svc.ClientState.IsPvP;
         if (snapshot is not null && !current) ImGui.TextWrapped("Your job or combat mode changed. Refresh before editing.");
@@ -37,11 +43,14 @@ internal static class RsrPermissionsPanel
                     { if (reserved) manual.Add(id); else manual.Remove(id); }
                 }
             ImGui.EndChild();
+            if (dirty) ImGui.TextWrapped("Unsaved RSR permissions for this job.");
+            ImGui.BeginDisabled(!dirty);
             if (ImGui.Button("Save manual action permissions")) Request(new JObject
             {
                 ["Command"] = "replace", ["Job"] = snapshot["Job"]!.DeepClone(),
                 ["PvP"] = snapshot["PvP"]!.DeepClone(), ["ManualActions"] = JArray.FromObject(manual.OrderBy(id => id)),
             });
+            ImGui.EndDisabled();
         }
         ImGui.EndDisabled();
         ImGui.EndDisabled();

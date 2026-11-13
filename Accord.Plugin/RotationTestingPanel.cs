@@ -28,7 +28,7 @@ internal static class RotationTestingPanel
         ImGui.TextWrapped($"Unchanged selections omitted: {report["RepeatedSelections"]}. Selection means a normal uncached hotbar query, not a key press or successful execution. Send records the outgoing action and recipient; it does not prove server acceptance. Refresh before copying.");
         if (ImGui.BeginChild("TraceEntries", new System.Numerics.Vector2(0, 240), true))
             foreach (var entry in (JArray?)report["Entries"] ?? new JArray())
-                ImGui.TextUnformatted($"{entry["ElapsedMs"]} ms | {entry["Kind"]} | {entry["Input"]} → {entry["Output"]} | recipient {entry["Recipient"]}");
+                ImGui.TextWrapped($"{entry["ElapsedMs"]} ms | {entry["Kind"]} | {entry["Input"]} → {entry["Output"]} | recipient {entry["Recipient"]}");
         ImGui.EndChild();
     }
     private static void Request(string command)

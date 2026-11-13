@@ -59,55 +59,60 @@ internal static class WrathSettingsPanel
     internal static void DrawHealing()
     {
         var options = WrathPreferences.Resolve(Plugin.Instance.Settings.WrathPreferences);
-        Toggle(options, "GroundTargets", "Healing ground actions: target overrides, coverage and retained placement");
-        Toggle(options, "IncludeRaise", "Healers: include resurrection in damage buttons");
-        Toggle(options, "IncludeCleanse", "Healers: include cleansing in damage buttons");
-        Toggle(options, "PreventiveHealing", "Healers: allow preparation and protection before incoming damage");
-        Toggle(options, "HardCastRaise", "Resurrection: allow casting without an instant-cast effect");
-        Toggle(options, "PartyMouseover", "Healing override: party-list mouseover");
-        Toggle(options, "WorldMouseover", "Healing override: world mouseover");
-        Toggle(options, "Focus", "Healing override: focus target");
-        Toggle(options, "AutomaticAllies", "Select an eligible ally automatically when no override exists");
-        Toggle(options, "SwitchAllyTarget", "Allow the Wrath runner to visibly select its ally recipient");
+        AccordControls.HealingRules(key => options.Value<bool>(key), (key, value) => Save(key, value));
         DrawOrder(options, "AllyOverrideOrder", "Ally override order");
         ImGui.TextWrapped(status);
     }
     internal static void DrawJobs()
     {
         var options = WrathPreferences.Resolve(Plugin.Instance.Settings.WrathPreferences);
-        Glasswork.Backend.Gw.Heading("Encounter forecasts");
-        Toggle(options, "Forecasts", "Read BossMod encounter forecasts");
-        Toggle(options, "SpaceMitigation", "Defer forecast party mitigation when an observed defense covers the hit");
-        Glasswork.Backend.Gw.Heading("Tanks");
-        Toggle(options, "Paladin", "PLD: coordinate burst with the planned GCD and active buffs");
-        Toggle(options, "Warrior", "WAR: check buff duration and downtime before burst");
-        Toggle(options, "Gunbreaker", "GNB: use observed No Mercy state and downtime checks");
-        Toggle(options, "DarkKnight", "DRK: reserve shield mana for observed incoming damage");
-        Glasswork.Backend.Gw.Heading("Healers");
-        Toggle(options, "WhiteMage", "WHM: shared healing and preparation");
-        Toggle(options, "Scholar", "SCH: shared healing and retained Deployment recipient");
-        Toggle(options, "Astrologian", "AST: shared healing and prepared spell");
-        Toggle(options, "Sage", "SGE: retain prepared spell and recipient");
-        Glasswork.Backend.Gw.Heading("Melee");
-        Toggle(options, "Monk", "MNK: recover Perfect Balance using accepted chakra rather than press order");
-        Toggle(options, "Drg", "DRG: prepare Life Surge for the planned hit");
-        Toggle(options, "Ninja", "NIN: commit mudra intent only after an accepted action");
-        Toggle(options, "Samurai", "SAM: retain Iaijutsu across ST/AoE changes and use equivalent available positionals");
-        Toggle(options, "Reaper", "RPR: protect combo and known uptime before Enshroud");
-        Toggle(options, "Viper", "VPR: protect buff/combo duration before either Reawaken path");
-        Glasswork.Backend.Gw.Heading("Physical ranged");
-        Toggle(options, "Bard", "BRD: refresh existing DoTs under an expiring buff");
-        Toggle(options, "Machinist", "MCH: match Reassemble to the selected weaponskill");
-        Toggle(options, "Dancer", "DNC: finish accepted dances, protect expiring procs and budget new dances");
-        Glasswork.Backend.Gw.Heading("Casters and limited jobs");
-        Toggle(options, "BlackMage", "BLM: use permitted instant options when a selected cast cannot fit the forecast");
-        Toggle(options, "Summoner", "SMN: bind Swiftcast to its spell and resurrection recipient");
-        Toggle(options, "RedMage", "RDM: reserve Swiftcast/Dualcast and mana for a requested resurrection");
-        Toggle(options, "Pictomancer", "PCT: fit motif preparation into known cast and downtime windows");
-        Toggle(options, "BlueMage", "BLU: bind Bristle to an equipped spell and validate Final Sting before preparation");
-        Toggle(options, "Beastmaster", "BST: bind finisher steps to the current pet and confirmed actions");
-        Glasswork.Backend.Gw.Heading("Diagnostics");
-        Toggle(options, "CompareDrg", "DRG: capture planned-hit comparisons with the original provider");
+        if (ImGui.CollapsingHeader("Encounter forecasts"))
+        {
+            Toggle(options, "Forecasts", "Read BossMod encounter forecasts");
+            Toggle(options, "SpaceMitigation", "Defer forecast party mitigation when an observed defense covers the hit");
+        }
+        if (ImGui.CollapsingHeader("Tanks"))
+        {
+            Toggle(options, "Paladin", "PLD: coordinate burst with the planned GCD and active buffs");
+            Toggle(options, "Warrior", "WAR: check buff duration and downtime before burst");
+            Toggle(options, "Gunbreaker", "GNB: use observed No Mercy state and downtime checks");
+            Toggle(options, "DarkKnight", "DRK: reserve shield mana for observed incoming damage");
+        }
+        if (ImGui.CollapsingHeader("Healers"))
+        {
+            Toggle(options, "WhiteMage", "WHM: shared healing and preparation");
+            Toggle(options, "Scholar", "SCH: shared healing and retained Deployment recipient");
+            Toggle(options, "Astrologian", "AST: shared healing and prepared spell");
+            Toggle(options, "Sage", "SGE: retain prepared spell and recipient");
+        }
+        if (ImGui.CollapsingHeader("Melee"))
+        {
+            Toggle(options, "Monk", "MNK: recover Perfect Balance using accepted chakra rather than press order");
+            Toggle(options, "Drg", "DRG: prepare Life Surge for the planned hit");
+            Toggle(options, "Ninja", "NIN: commit mudra intent only after an accepted action");
+            Toggle(options, "Samurai", "SAM: retain Iaijutsu across ST/AoE changes and use equivalent available positionals");
+            Toggle(options, "Reaper", "RPR: protect combo and known uptime before Enshroud");
+            Toggle(options, "Viper", "VPR: protect buff/combo duration before either Reawaken path");
+        }
+        if (ImGui.CollapsingHeader("Physical ranged"))
+        {
+            Toggle(options, "Bard", "BRD: refresh existing DoTs under an expiring buff");
+            Toggle(options, "Machinist", "MCH: match Reassemble to the selected weaponskill");
+            Toggle(options, "Dancer", "DNC: finish accepted dances, protect expiring procs and budget new dances");
+        }
+        if (ImGui.CollapsingHeader("Casters and limited jobs"))
+        {
+            Toggle(options, "BlackMage", "BLM: use permitted instant options when a selected cast cannot fit the forecast");
+            Toggle(options, "Summoner", "SMN: bind Swiftcast to its spell and resurrection recipient");
+            Toggle(options, "RedMage", "RDM: reserve Swiftcast/Dualcast and mana for a requested resurrection");
+            Toggle(options, "Pictomancer", "PCT: fit motif preparation into known cast and downtime windows");
+            Toggle(options, "BlueMage", "BLU: bind Bristle to an equipped spell and validate Final Sting before preparation");
+            Toggle(options, "Beastmaster", "BST: bind finisher steps to the current pet and confirmed actions");
+        }
+        if (ImGui.CollapsingHeader("Diagnostics"))
+        {
+            Toggle(options, "CompareDrg", "DRG: capture planned-hit comparisons with the original provider");
+        }
         ImGui.TextWrapped(status);
     }
     internal static void DrawPvP()

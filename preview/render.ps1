@@ -27,7 +27,7 @@ try {
     $graphics.FillRectangle($brush, $rect)
     $bitmap.Save($backdrop, [Drawing.Imaging.ImageFormat]::Png)
 } finally { $brush.Dispose(); $graphics.Dispose(); $bitmap.Dispose() }
-foreach ($scene in 'accord-play', 'accord-compact', 'accord-rules', 'accord-targeting') {
+foreach ($scene in 'accord-rail-hover', 'accord-play', 'accord-compact', 'accord-rules', 'accord-targeting', 'accord-hotbars', 'accord-tools', 'accord-healing', 'accord-mapping-compact') {
     & $Renderer --assembly $assembly --scene $scene --out (Join-Path $OutputDirectory "$scene.png") --backdrop $backdrop --warp --deterministic
     if ($LASTEXITCODE) { throw "Preview failed for $scene" }
 }

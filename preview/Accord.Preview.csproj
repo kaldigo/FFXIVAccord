@@ -6,6 +6,10 @@
     <DalamudLibPath Condition="'$(DalamudLibPath)' == ''">$(appdata)/XIVLauncher/addon/Hooks/dev</DalamudLibPath>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Accord.Plugin/RotationEditor.cs" Link="RotationEditor.cs" />
+    <Compile Include="../Contract/RotationPreferences.cs" Link="RotationPreferences.cs" />
+    <Reference Include="Newtonsoft.Json"><HintPath>$(DalamudLibPath)/Newtonsoft.Json.dll</HintPath><Private>true</Private></Reference>
+    <Compile Include="../Accord.Plugin/AccordChrome.cs" Link="AccordChrome.cs" />
     <Compile Include="../Accord.Plugin/AccordShell.cs" Link="AccordShell.cs" />
     <PackageReference Include="Glasswork.Backend" Version="0.1.0-beta.3" />
     <Reference Include="Dalamud.Bindings.ImGui"><HintPath>$(DalamudLibPath)/Dalamud.Bindings.ImGui.dll</HintPath><Private>false</Private></Reference>

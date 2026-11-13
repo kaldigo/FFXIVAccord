@@ -48,6 +48,7 @@ internal sealed class AutomationControl : IDisposable
     private long nextDiscovery, nextAttempt, nextActivityPoll;
     private string settingsError = "", lastStatus = "", activityStatus = "";
     private AccordSettings Settings => Plugin.Instance.Settings;
+    internal bool RsrAvailable => rsrAvailable;
     private AutomaticRunner Selected => EngineAvailability.Resolve(Settings.AutomaticEngine, wrathAvailable, rsrAvailable);
     private string EngineLabel => Selected == AutomaticRunner.Off ? "Waiting for a compatible engine" : Selected.ToString();
     private AutomaticRunner Desired => Settings.EmergencyRotation ? AutomaticRunner.Off : AutomationPreference.Resolve(Settings.AutoRotationEnabled, Settings.FollowAutoDuty, dutyAvailable, dutyRunning, Selected, RunnerPaused);
@@ -64,7 +65,12 @@ internal sealed class AutomationControl : IDisposable
         backupArmed.RegisterFunc(() => Svc.Framework.IsInFrameworkUpdateThread && Settings.EmergencyRotation &&
             handoff.IsCoordinating && handoff.Requested == AutomaticRunner.Off && handoff.Owner == AutomaticRunner.Off);
         backup.Tooltip = "Toggle Wrath backup on your PvE rotation hotbar.";
-        backup.OnClick = args => _ = Svc.Framework.RunOnTick(() =>
+        backup.OnClick = args => ToggleBackup();
+        entry.Shown = true;
+        entry.Text = new SeStringBuilder().AddIcon(BitmapFontIcon.ElementLightning).AddText(" M").Build();
+        entry.OnClick = _ => Queue(Settings.AutoRotationEnabled ? "off" : "on");
+    }
+    private void ToggleBackup() => _ = Svc.Framework.RunOnTick(() =>
         {
             if (!Settings.EmergencyRotation)
             {
@@ -81,10 +87,6 @@ internal sealed class AutomationControl : IDisposable
             nextAttempt = 0;
             AccordDiagnostics.DiagnosticLog.Event("Emergency.Mode", () => new { Enabled = Settings.EmergencyRotation });
         });
-        entry.Shown = true;
-        entry.Text = new SeStringBuilder().AddIcon(BitmapFontIcon.ElementLightning).AddText(" M").Build();
-        entry.OnClick = _ => Queue(Settings.AutoRotationEnabled ? "off" : "on");
-    }
     private void Start(long now)
     {
         used = true;
@@ -212,10 +214,12 @@ internal sealed class AutomationControl : IDisposable
             command == "on" && waitingForCombatJob ? CombatJobStatus :
             command == "on" ? "Auto rotation enabled and saved; waiting for the selected engine." : "Auto rotation disabled and saved.";
     }
+    internal string HeaderEngine => Selected == AutomaticRunner.Off ? "" : Selected == AutomaticRunner.Rsr ? "RSR" : "Wrath";
+    internal void DrawDock() => AccordControls.Dock(Settings.AutoRotationEnabled, value => Queue(value ? "on" : "off"));
     internal void Draw()
     {
-        AccordControls.Runner(Settings.AutoRotationEnabled, Status, value => Queue(value ? "on" : "off"),
-            DrawEngine, Settings.FollowAutoDuty, activityStatus, SetFollow);
+        ImGui.TextWrapped(Settings.EmergencyRotation ? "Wrath backup active. Automatic execution is paused." : Status);
+        AccordControls.Runner(DrawEngine, Settings.FollowAutoDuty, activityStatus, SetFollow);
     }
     private void DrawEngine()
     {

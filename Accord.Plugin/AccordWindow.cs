@@ -3,7 +3,6 @@ using System.Numerics;
 using Dalamud.Interface.Windowing;
 using ECommons.GameHelpers;
 using Glasswork.Backend;
-using Glasswork.Dalamud;
 using Page = Accord.AccordUi.Page;
 
 namespace Accord;
@@ -12,22 +11,20 @@ internal sealed class AccordWindow : Window
 {
     private readonly AccordShell shell = new();
     private readonly SetupController setup;
-    private readonly GlassworkHost glass;
-    internal AccordWindow(SetupController setup, GlassworkHost glass) : base("Accord###Accord", ImGuiWindowFlags.NoBackground)
+    internal AccordWindow(SetupController setup) : base("Accord###Accord", ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoScrollbar)
     {
         this.setup = setup;
-        this.glass = glass;
         Size = new Vector2(980, 680);
         SizeCondition = ImGuiCond.FirstUseEver;
         SizeConstraints = new WindowSizeConstraints { MinimumSize = new(360, 320), MaximumSize = new(5000, 5000) };
     }
     public override void Draw()
     {
-        glass.DrawWindowBackground(16, .5f, false);
-        if (Plugin.Instance.MigrationPending) { Plugin.Instance.DrawMigration(); return; }
+        AccordShell.DrawBackground();
+        if (Plugin.Instance.MigrationPending) { AccordChrome.Header("Import", "", () => IsOpen = false); Plugin.Instance.DrawMigration(); return; }
         LayoutEditor.BeginSession(setup);
         string job = Player.Available ? Player.Job.ToString() : "Offline";
-        shell.Draw(job, DrawTask, () =>
+        shell.Draw(job, Plugin.Instance.Automation.HeaderEngine, DrawTask, () =>
         {
             LayoutEditor.Footer(setup);
             if (!string.IsNullOrWhiteSpace(setup.Status))
@@ -35,22 +32,36 @@ internal sealed class AccordWindow : Window
                 ImGui.TextDisabled(setup.Status.Split('\n')[0]);
                 if (ImGui.IsItemHovered()) ImGui.SetTooltip(setup.Status);
             }
-        });
+        }, Plugin.Instance.Automation.DrawDock, () => IsOpen = false);
     }
     private void Layout(Page page) => LayoutEditor.Draw(setup, page);
     private void DrawTask(TaskPage task)
     {
         switch (task)
         {
-            case TaskPage.Home: Plugin.Instance.Automation.Draw(); break;
+            case TaskPage.Home:
+                Plugin.Instance.Automation.Draw();
+                AccordControls.Section("Action permissions", () =>
+                {
+                    foreach (var definition in VariantDefinitions.All)
+                    {
+                        bool enabled = setup.VariantEnabled(definition.Id);
+                        uint jobId = Player.Available ? setup.Pack.Find((uint)Player.Job)?.JobId ?? 0 : 0;
+                        if (AccordControls.Toggle(definition.Label, ref enabled, setup.Settings.AutomationTarget(definition.Id, jobId, SetupController.IsPvP)))
+                            setup.Run(() => setup.SetVariant(definition.Id, enabled));
+                    }
+                });
+                break;
             case TaskPage.Permissions: AccordUi.DrawPermissions(setup); break;
             case TaskPage.Enemies:
+                Gw.Heading("Wrath preferences · saved automatically");
                 WrathSettingsPanel.DrawTargeting();
-                Gw.Heading("Rotation button rules");
+                Gw.Heading("Rotation button rules · save changes");
                 LayoutEditor.DrawGlobalRotation(LayoutEditor.RotationSection.Targeting); break;
             case TaskPage.Healing:
+                Gw.Heading("Damage buttons · save changes");
                 LayoutEditor.DrawGlobalRotation(LayoutEditor.RotationSection.Healing);
-                Gw.Heading("Ally selection and overrides"); WrathSettingsPanel.DrawHealing(); break;
+                Gw.Heading("Wrath preferences · saved automatically"); WrathSettingsPanel.DrawHealing(); break;
             case TaskPage.Opener: LayoutEditor.DrawGlobalRotation(LayoutEditor.RotationSection.Openers); break;
             case TaskPage.Reserved:
                 Gw.Heading("Wrath rotation buttons"); Layout(Page.Exclusions);

@@ -64,7 +64,7 @@ public sealed class Plugin : IDalamudPlugin
         setup = new SetupController();
         Automation = new AutomationControl();
         glass = new Glasswork.Dalamud.GlassworkHost(pluginInterface, Svc.Log) { Look = AccordShell.Theme() };
-        window = new AccordWindow(setup, glass);
+        window = new AccordWindow(setup);
         windows.AddWindow(window);
         if (MigrationPending) Open();
         DiagnosticCapturePanel.Init();
@@ -91,6 +91,7 @@ public sealed class Plugin : IDalamudPlugin
     }
     internal void DrawMigration()
     {
+        Glasswork.Backend.Gw.Heading("Import personal settings");
         ImGui.TextWrapped(setup.MigrationSummary);
         ImGui.TextWrapped(setup.Status);
         if (ImGui.Button("Preview personal settings import")) setup.Run(setup.PreviewMigration);
