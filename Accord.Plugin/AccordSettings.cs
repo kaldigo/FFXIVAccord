@@ -9,6 +9,7 @@ public enum VariantId { Burst, Protection, Support, ClassMechanics }
 
 public sealed class AccordSettings : Dalamud.Configuration.IPluginConfiguration
 {
+    public bool OpenerHoldMigrated { get; set; }
     public bool HoldWrathOpeners { get; set; }
 
     internal WrathFork.Contract.RotationPreferences EffectiveRotation(uint job)

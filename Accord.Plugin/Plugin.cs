@@ -76,6 +76,8 @@ public sealed class Plugin : IDalamudPlugin
     internal void Open() { window.IsOpen = true; window.BringToFront(); }
     private void Update(IFramework _)
     {
+        AccordDiagnostics.PerformanceTimings.Report();
+        using var timing = AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.Framework);
         DiagnosticCapturePanel.Tick();
         Automation.Tick();
         setup.Run(setup.Tick);

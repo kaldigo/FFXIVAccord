@@ -31,9 +31,27 @@ internal sealed class ManualFallback
     private string Character => NativeHotbars.CharacterKey(Svc.PlayerState.ContentId);
     private string DirectoryName => Path.Combine(Svc.PluginInterface.GetPluginConfigDirectory(), "manual-fallback", Character);
     private string Journal => Path.Combine(DirectoryName, "pending.json");
-    internal bool Pending => Player.Available && Svc.ClientState.IsLoggedIn && Svc.PlayerState.ContentId != 0 && File.Exists(Journal);
+    private ulong observedCharacter;
+    private long checkJournalAt;
+    private bool journalPresent;
+    internal bool Pending
+    {
+        get
+        {
+            if (!Player.Available || !Svc.ClientState.IsLoggedIn || Svc.PlayerState.ContentId == 0) return false;
+            var character = Svc.PlayerState.ContentId;
+            var now = Environment.TickCount64;
+            if (character != observedCharacter || now >= checkJournalAt)
+            {
+                journalPresent = File.Exists(Journal);
+                observedCharacter = character;
+                checkJournalAt = now + 2000;
+            }
+            return journalPresent;
+        }
+    }
     internal bool Holding => hold || ExitPending;
-    internal void Login() { hold = false; ExitPending = false; }
+    internal void Login() { checkJournalAt = 0; hold = false; ExitPending = false; }
 
     internal unsafe void Prepare(IEnumerable<uint> selected, bool exiting = false)
     {
@@ -94,6 +112,7 @@ internal sealed class ManualFallback
         // Keep an immutable original even if a later recovery record is damaged.
         JsonStore.Write(Path.Combine(DirectoryName, "original-" + Guid.NewGuid().ToString("N") + ".json"), record);
         JsonStore.Write(Journal, record);
+        checkJournalAt = 0;
         hold = true; // Also suppress live repair if a failed rollback leaves a pending record.
         try
         {
@@ -137,6 +156,7 @@ internal sealed class ManualFallback
         JsonStore.Write(Journal, record);
         Apply(edits, current, pvp);
         NativeHotbars.Flush(current, pvp);
+        checkJournalAt = 0;
         File.Move(Journal, Path.Combine(DirectoryName, "restored-" + Guid.NewGuid().ToString("N") + ".json"));
         hold = false; ExitPending = false;
         Status = "Normal Accord layouts restored. Deselected classes were left unchanged.";

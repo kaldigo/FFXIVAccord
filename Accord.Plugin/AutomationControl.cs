@@ -46,6 +46,8 @@ internal sealed class AutomationControl : IDisposable
     private const string CombatJobStatus = "Waiting for a combat job";
     private bool RunnerPaused => pvpPaused || waitingForCombatJob;
     private long nextDiscovery, nextAttempt, nextActivityPoll;
+    private (bool Emergency, bool Enabled, AutomaticRunner Owner, AutomaticRunner Selected, string Status)? displayed;
+    private (bool Available, bool Emergency)? backupDisplay;
     private string settingsError = "", lastStatus = "", activityStatus = "";
     private AccordSettings Settings => Plugin.Instance.Settings;
     internal bool RsrAvailable => rsrAvailable;
@@ -89,6 +91,7 @@ internal sealed class AutomationControl : IDisposable
         });
     private void Start(long now)
     {
+        using var timing = AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.RunnerStart);
         used = true;
         handoff.Request(AutomaticRunner.Off, now);
         if (!handoff.IsCoordinating) { settingsError = handoff.Status; return; }
@@ -159,8 +162,13 @@ internal sealed class AutomationControl : IDisposable
             handoff.Stop();
             settingsError = "Auto rotation is enabled; waiting for saved engine settings to be applied and verified.";
         }
-        backup.Shown = wrathAvailable || Settings.EmergencyRotation;
-        backup.Text = Settings.EmergencyRotation ? "Exit backup" : "Wrath backup";
+        var backupState = (wrathAvailable, Settings.EmergencyRotation);
+        if (backupDisplay != backupState)
+        {
+            backupDisplay = backupState;
+            backup.Shown = wrathAvailable || Settings.EmergencyRotation;
+            backup.Text = Settings.EmergencyRotation ? "Exit backup" : "Wrath backup";
+        }
 
         handoff.Tick(now);
         RecordStatus();
@@ -183,6 +191,9 @@ internal sealed class AutomationControl : IDisposable
         }
         RecordStatus();
         string status = Status;
+        var display = (Settings.EmergencyRotation, Settings.AutoRotationEnabled, handoff.Owner, Selected, status);
+        if (displayed == display) return;
+        displayed = display;
         entry.Text = new SeStringBuilder().AddIcon(BitmapFontIcon.ElementLightning)
             .AddText(handoff.Owner != AutomaticRunner.Off ? " A" : Settings.AutoRotationEnabled ? " \u2026" : " M").Build();
         entry.Tooltip = (Settings.EmergencyRotation ? "Wrath backup active. Automatic execution is paused." : status) + "\nAuto rotation setting: " + (Settings.AutoRotationEnabled ? "on" : "off") + ". Selected engine: " + EngineLabel + ". Click to change the saved choice.";

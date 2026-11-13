@@ -18,8 +18,20 @@ internal sealed class EngineClient : IDisposable
     internal bool HasPending => File.Exists(Journal);
     internal JObject Discover() => Decode(Svc.PluginInterface.GetIpcSubscriber<string>("WrathFork.Settings.Discover.v2").InvokeFunc());
     internal JObject Validate(JObject patch) => Decode(Svc.PluginInterface.GetIpcSubscriber<string, string>("WrathFork.Settings.Validate.v2").InvokeFunc(patch.ToString(Formatting.None)));
+    internal JObject Stamp()
+    {
+        using var timing = AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.SettingsStamp);
+        var api = Svc.PluginInterface.GetIpcSubscriber<string>("WrathFork.Settings.Stamp.v1");
+        return api.HasFunction ? Decode(api.InvokeFunc()) : Read();
+    }
+    internal void SetOpenerHold(bool held)
+    {
+        if (Svc.PluginInterface.GetIpcSubscriber<bool, bool>("WrathFork.Openers.Hold.v1").InvokeFunc(held) != held)
+            throw new InvalidOperationException("Wrath did not acknowledge the opener setting.");
+    }
     internal JObject Read()
     {
+        using var timing = AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.SettingsRead);
         if (!Svc.PluginInterface.InstalledPlugins.Any(p => p.InternalName == "WrathCombo" && p.IsLoaded))
             throw new InvalidOperationException("Load the Accord-compatible Wrath Combo build. Behaviour and live hotbar updates are unavailable.");
         var result = Decode(Svc.PluginInterface.GetIpcSubscriber<string>("WrathFork.Settings.Read.v2").InvokeFunc());
@@ -37,6 +49,7 @@ internal sealed class EngineClient : IDisposable
 
     internal void Apply(JObject snapshot, JObject patch, AccordSettings desired)
     {
+        using var timing = AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.SettingsApply);
         if (HasPending) throw new InvalidOperationException("A previous settings operation needs recovery before another update.");
         Validate(patch);
         var current = (JObject)snapshot["Settings"]!;
