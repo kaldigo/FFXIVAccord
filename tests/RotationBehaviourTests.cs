@@ -20,6 +20,10 @@ internal static class RotationBehaviourTests
         settings.Layouts.Global.Rotation = new() { Targeting = EnemySelection.Manual, AoeTargets = 3, Openers = true, OpenerPotions = false };
         settings.Layouts.Roles[JobRole.Healer] = new() { Rotation = new() { Targeting = EnemySelection.PartyCombat } };
         settings.Layouts.Classes[40] = new() { Rotation = new() { AoeTargets = 2, Openers = false } };
+        settings.HoldWrathOpeners = true;
+        Check(Clone(settings).EffectiveRotation(24).Openers == false && settings.Layouts.Resolve(24).Rotation.Openers == true, "Holding openers must survive reload without overwriting profiles");
+        settings.HoldWrathOpeners = false;
+        Check(settings.EffectiveRotation(24).Openers == true && settings.EffectiveRotation(40).Openers == false, "Releasing openers must restore each job's preference");
         var sage = settings.Layouts.Resolve(40).Rotation;
         Check(sage.Targeting == EnemySelection.PartyCombat && sage.AoeTargets == 2 && sage.Openers == false && sage.OpenerPotions == false, "Global/role/class precedence");
         settings.Layouts.Global.Rotation.AoeTargets = 5;

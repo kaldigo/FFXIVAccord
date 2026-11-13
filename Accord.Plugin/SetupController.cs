@@ -22,6 +22,7 @@ internal sealed class SetupController : IDisposable
     internal SetupPack Pack { get; } = new();
     private readonly HotbarSetup hotbars = new();
     private readonly List<IDtrBarEntry> entries = new();
+    private readonly IDtrBarEntry openers = Svc.DtrBar.Get("Accord Wrath openers");
     private readonly LiveUpdateState updates = new();
     private string status = "Waiting for a character.";
     internal string Status { get => status; private set => status=value; }
@@ -181,6 +182,8 @@ internal sealed class SetupController : IDisposable
             entry.Tooltip = definition.Label + ": click to switch A/M.\n" + definition.Description;
             entries.Add(entry);
         }
+        openers.Shown = false;
+        openers.OnClick = _ => Run(ToggleWrathOpeners);
         Settings.ActiveJobs ??= Pack.SelectedJobs(Settings).Select(j => j.JobId).ToHashSet();
         // Plugin construction may run off the framework thread. Tick updates
         // visibility and text once player state can safely be read.
@@ -430,7 +433,7 @@ internal sealed class SetupController : IDisposable
         ApplySettings(Pack.SelectedJobs(Settings), CloneSettings());
         if (!IsPvP)
         {
-            var expected = JObject.FromObject(Settings.Layouts.Resolve(job.JobId).Rotation);
+            var expected = JObject.FromObject(Settings.EffectiveRotation(job.JobId));
             var actual = engine.Read()["Settings"]?["RotationPreferences"]?[job.JobId.ToString()];
             if (!JToken.DeepEquals(expected, actual))
                 throw new InvalidOperationException("Wrath's rotation preferences did not match Accord after applying settings.");
@@ -506,7 +509,7 @@ internal sealed class SetupController : IDisposable
             if (FeatureScope.Supports(job.JobId, Feature.RunnerAutomation))
             {
                 if (changes["RotationPreferences"] is not JObject) changes["RotationPreferences"] = new JObject();
-                changes["RotationPreferences"]![job.JobId.ToString()] = JObject.FromObject(desired.Layouts.Resolve(job.JobId).Rotation);
+                changes["RotationPreferences"]![job.JobId.ToString()] = JObject.FromObject(desired.EffectiveRotation(job.JobId));
             }
             if (job.JobId >= 19)
             {
@@ -710,8 +713,36 @@ internal sealed class SetupController : IDisposable
         Status = "Diagnostics saved to " + path;
     }
 
+    private void ToggleWrathOpeners()
+    {
+        if (!Player.Available || IsPvP || !Pack.IsActive((uint)Player.Job, Settings) ||
+            !FeatureScope.Supports((uint)Player.Job, Feature.RunnerAutomation)) return;
+
+        var desired = CloneSettings();
+        desired.HoldWrathOpeners = !desired.HoldWrathOpeners;
+        var rotations = new JObject();
+        foreach (var job in Pack.SelectedJobs(desired).Where(j => FeatureScope.Supports(j.JobId, Feature.RunnerAutomation)))
+            rotations[job.JobId.ToString()] = JObject.FromObject(desired.EffectiveRotation(job.JobId));
+
+        var patch = new JObject { ["Settings"] = new JObject { ["RotationPreferences"] = rotations },
+            ["Enable"] = new JArray(), ["Disable"] = new JArray() };
+        engine.Apply(engine.Read(), patch, desired);
+        if (pendingChoices != null) pendingChoices.HoldWrathOpeners = desired.HoldWrathOpeners;
+        UpdateEntries();
+    }
+
     private void UpdateEntries()
     {
+        openers.Shown = Player.Available && !IsPvP && Pack.IsActive((uint)Player.Job, Settings) &&
+            FeatureScope.Supports((uint)Player.Job, Feature.RunnerAutomation);
+        if (openers.Shown)
+        {
+            openers.Text = new SeStringBuilder().AddIcon(BitmapFontIcon.Alarm)
+                .AddText(Settings.HoldWrathOpeners ? " M" : " A").Build();
+            openers.Tooltip = Settings.HoldWrathOpeners
+                ? "Wrath job openers held. Click to restore each job's opener settings."
+                : "Wrath job openers follow each job's settings. Click to hold openers for all managed PvE jobs.";
+        }
         for (int i = 0; i < entries.Count; i++)
         {
             entries[i].Shown = Player.Available && (IsPvP ? PvP.Active((uint)Player.Job) : Pack.IsActive((uint)Player.Job, Settings));
@@ -732,6 +763,7 @@ internal sealed class SetupController : IDisposable
         logout.Dispose();
         engine.Dispose();
         foreach (var definition in VariantDefinitions.All) Svc.DtrBar.Remove("Accord " + definition.Label);
+        openers.Remove();
         Instance = null;
     }
 }
