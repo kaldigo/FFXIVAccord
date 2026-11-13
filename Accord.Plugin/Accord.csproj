@@ -13,6 +13,9 @@
     <AetherglassUIProject Condition="'$(AetherglassUIProject)' == '' and Exists('../../../../AetherglassUI/Library/AetherglassUI.csproj')">../../../../AetherglassUI/Library/AetherglassUI.csproj</AetherglassUIProject>
     <AetherglassUIProject Condition="'$(AetherglassUIProject)' == ''">../.dependencies/AetherglassUI/Library/AetherglassUI.csproj</AetherglassUIProject>
   </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="../assets/mark.png" LogicalName="Accord.mark.png" />
+  </ItemGroup>
   <ItemGroup><ProjectReference Include="$(AetherglassUIProject)" /></ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="../assets/icon.png" LogicalName="Accord.icon.png" />

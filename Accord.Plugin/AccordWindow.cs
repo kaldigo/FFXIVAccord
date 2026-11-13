@@ -25,7 +25,7 @@ internal sealed class AccordWindow : Window
     {
         if (Plugin.Instance.MigrationPending){
             importShell.Close=()=>IsOpen=false;
-            importShell.Draw("Accord","Import",[new AetherglassUI.Destination("import","Personal settings import","I",Plugin.Instance.DrawMigration)],AccordChrome.Mark);
+            importShell.Draw("Accord","Import",[new AetherglassUI.Destination("import","Personal settings import","I",Plugin.Instance.DrawMigration)],DrawHeaderMark);
             return;
         }
         LayoutEditor.BeginSession(setup);
@@ -38,8 +38,20 @@ internal sealed class AccordWindow : Window
                 ImGui.TextDisabled(setup.Status.Split('\n')[0]);
                 if (ImGui.IsItemHovered()) ImGui.SetTooltip(setup.Status);
             }
-        }, Plugin.Instance.Automation.DrawDock, () => IsOpen = false, Topics);
+        }, Plugin.Instance.Automation.DrawDock, () => IsOpen = false, Topics, DrawHeaderMark);
     }
+    private static void DrawHeaderMark(Vector2 headerPosition, float size)
+    {
+        var texture = ECommons.DalamudServices.Svc.Texture
+            .GetFromManifestResource(typeof(AccordWindow).Assembly, "Accord.mark.png")
+            .GetWrapOrDefault();
+        if (texture == null) return;
+
+        // Reserve space for the shell's close button at the right edge.
+        var position = new Vector2(ImGui.GetWindowPos().X + ImGui.GetWindowWidth() - 3 * size, headerPosition.Y);
+        ImGui.GetWindowDrawList().AddImage(texture.Handle, position, position + new Vector2(size));
+    }
+
     private void Layout(Page page) => LayoutEditor.Draw(setup, page);
     private Topic Permissions(bool global)
     {

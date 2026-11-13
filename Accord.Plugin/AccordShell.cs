@@ -181,7 +181,7 @@ internal sealed class AccordShell
         state.ScrollToGroup(task.ToString());
     }
     internal void Draw(string job,string engine,Action<TaskPage> draw,Action pending,Action dock,Action close,
-        Func<TaskPage,Topic[]?>? topics=null)
+        Func<TaskPage,Topic[]?>? topics=null, Action<Vector2,float>? drawMark=null)
     {
         Initialize();
         window.Close=close; window.Dock=dock;
@@ -197,7 +197,7 @@ internal sealed class AccordShell
             }).ToArray();
             states[(int)desk].Draw("workspace-"+desk,groups,searchable:desk!=Desk.Play,inlineTopics:true);
         }){DrawIcon=(pos,size,ink)=>AccordChrome.Glyph(desk,pos,size,ink)}).ToArray();
-        window.Draw("Accord",string.IsNullOrEmpty(engine)?job:job+" / "+engine,rail,AccordChrome.Mark);
+        window.Draw("Accord",string.IsNullOrEmpty(engine)?job:job+" / "+engine,rail,drawMark ?? AccordChrome.Mark);
     }
     private static string Keywords(TaskPage id) => id switch
     {
