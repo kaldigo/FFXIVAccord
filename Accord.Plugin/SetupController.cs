@@ -115,20 +115,23 @@ internal sealed class SetupController : IDisposable
 
     private AccordSettings? pendingChoices;
     private long pendingRetry;
-    private void ApplyChoices(AccordSettings desired, JobPreset[]? affected = null)
+    private bool pendingVariantsOnly;
+    private void ApplyChoices(AccordSettings desired, bool variantsOnly = false)
     {
         RequireNormalLayouts();
-        var jobs = affected ?? Pack.SelectedJobs(desired);
+        var jobs = variantsOnly ? Pack.CurrentVariantJobs(Settings, desired, Player.Available ? (uint)Player.Job : 0) : Pack.SelectedJobs(desired);
         if (!desired.LiveMode || !Player.Available)
         {
             ApplySettings(jobs, desired);
+            pendingChoices = null;
             PvP.Invalidate();
-            if (affected == null) updates.Request(); else updates.Wake();
+            if (!variantsOnly) updates.Request(); else updates.Wake();
             return;
         }
         if (Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas] ||
             Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas51])
         {
+            pendingVariantsOnly = variantsOnly;
             pendingChoices = desired;
             Status = "Settings and layout change pending until loading finishes.";
             updates.Request();
@@ -137,19 +140,20 @@ internal sealed class SetupController : IDisposable
         var previous = CloneSettings();
         if (IsPvP)
         {
-            if (affected != null && !affected.Any(j => j.JobId == Pack.Find((uint)Player.Job)?.JobId))
+            if (variantsOnly && jobs.Length == 0)
                 ApplySettings(jobs, desired);
             else PvP.ApplyChoices(desired, () => ApplySettings(jobs, desired));
+            pendingChoices = null;
             return;
         }
         var snapshot = engine.Read();
-        CombinedUpdate.Apply(() => ApplySettings(jobs, desired), () =>
+        CombinedUpdate.Apply(() => ApplySettings(jobs, desired, snapshot: snapshot), () =>
         {
             var valid = jobs.Where(j => j.JobId < 19 || LayoutPlan(j, Settings, true).Valid).ToArray();
-            if (affected != null) valid = valid.Where(j => VariantLayoutNeedsRefresh(j, desired)).ToArray();
+            if (variantsOnly) valid = valid.Where(j => VariantLayoutNeedsRefresh(j, desired)).ToArray();
             if (valid.Length > 0) ApplyHotbars(valid, null, prepareSettings: false);
             pendingChoices = null;
-            if (affected == null) updates.Request(); else updates.Wake();
+            if (!variantsOnly) updates.Request(); else updates.Wake();
             PvP.Invalidate();
         }, () => engine.RestoreSettings(snapshot, previous));
     }
@@ -224,7 +228,7 @@ internal sealed class SetupController : IDisposable
         {
             if (Environment.TickCount64 < pendingRetry) return;
             pendingRetry = Environment.TickCount64 + 2000;
-            try { ApplyChoices(pendingChoices); }
+            try { ApplyChoices(pendingChoices, pendingVariantsOnly); }
             catch (AggregateException) { pendingChoices = null; throw; }
             catch (Exception ex) { Status = "Settings and layout update pending: " + ex.Message; return; }
         }
@@ -521,7 +525,7 @@ internal sealed class SetupController : IDisposable
     private void Prepare(IEnumerable<JobPreset> jobs, bool reset = false) => ApplySettings(jobs, CloneSettings(), reset);
     private AccordSettings CloneSettings() => JsonConvert.DeserializeObject<AccordSettings>(JsonConvert.SerializeObject(Settings))!;
 
-    private void ApplySettings(IEnumerable<JobPreset> jobs, AccordSettings desired, bool reset = false)
+    private void ApplySettings(IEnumerable<JobPreset> jobs, AccordSettings desired, bool reset = false, JObject? snapshot = null)
     {
         RequireNormalLayouts();
         if (Plugin.Instance.MigrationPending) throw new InvalidOperationException("Open /accord to complete separate setup first.");
@@ -549,7 +553,7 @@ internal sealed class SetupController : IDisposable
             Mutate(() => Plugin.Instance.Settings = desired);
             return;
         }
-        var snapshot = engine.Read();
+        snapshot ??= engine.Read();
         if (desired.EngineConfigurationId != snapshot.Value<string>("ConfigurationId"))
         {
             desired.PreparedJobs.Clear();
@@ -668,11 +672,10 @@ internal sealed class SetupController : IDisposable
     }
     internal void SetVariant(VariantId id, bool enabled, bool global = false)
     {
+        using var timing = AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.VariantChange);
         var desired = pendingChoices is null ? CloneSettings() : ConfiguredLayout.Clone(pendingChoices);
         desired.SetAutomation(id, enabled, !global && Player.Available ? Pack.Find((uint)Player.Job)?.JobId ?? 0 : 0, !global && IsPvP);
-        var changed = Pack.SelectedJobs(desired).Where(j => Settings.Enabled(id, j.JobId) != desired.Enabled(id, j.JobId) ||
-            Settings.Enabled(id, j.JobId, true) != desired.Enabled(id, j.JobId, true)).ToArray();
-        ApplyChoices(desired, pendingChoices == null ? changed : null);
+        ApplyChoices(desired, variantsOnly: pendingChoices == null || pendingVariantsOnly);
         PvP.Invalidate();
         if (!Settings.LiveMode) Status = "Variant saved. Static hotbars unchanged; use setup to restore any needed manual buttons.";
     }

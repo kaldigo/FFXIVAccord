@@ -11,6 +11,16 @@ internal static class RotationBehaviourTests
         int count = 0;
         void Check(bool condition, string reason) { count++; if (!condition) throw new Exception("Rotation behaviour: " + reason); }
         T Clone<T>(T value) => JsonConvert.DeserializeObject<T>(JsonConvert.SerializeObject(value))!;
+        var pack = new SetupPack();
+        var before = new AccordSettings { ActiveJobs = pack.Data.Jobs.Select(j => j.JobId).ToHashSet() };
+        var after = Clone(before);
+        after.SetAutomation(VariantId.Burst, true);
+        Check(before.ActiveJobs.Count >= 32 && pack.CurrentVariantJobs(before, after, 38).Select(j => j.JobId).SequenceEqual(new uint[] { 38 }),
+            "Global Burst click on Dancer must apply only Dancer even with all jobs selected");
+        Check(pack.CurrentVariantJobs(before, after, 0).Length == 0, "Logged-out variant change must not apply inactive jobs");
+        Check(Clone(after).Enabled(VariantId.Burst, 41), "Viper must inherit the saved burst choice on switch or reload");
+        after.Layouts.Classes[38] = new() { Automation = new() { [VariantId.Burst] = false } };
+        Check(pack.CurrentVariantJobs(before, after, 38).Length == 0, "Unaffected Dancer override must skip engine application");
         var settings = new AccordSettings { ActiveJobs = [24, 28, 40, 37, 35] };
         Check(!settings.Layouts.Resolve(24).Rotation.Empty && settings.Layouts.Resolve(24).Rotation.Targeting == EnemySelection.PartyCombat, "Accord must supply defaults for old sparse configurations");
         settings.Layouts.Roles[JobRole.Healer] = new() { Rotation = new() { IncludeHealing = true } };

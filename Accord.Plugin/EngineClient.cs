@@ -68,8 +68,11 @@ internal sealed class EngineClient : IDisposable
         Directory.CreateDirectory(Svc.PluginInterface.GetPluginConfigDirectory());
         var journal = new JObject { ["Request"] = request, ["Desired"] = JObject.FromObject(desired) };
         var temporary = Journal + ".tmp";
-        File.WriteAllText(temporary, journal.ToString());
-        File.Move(temporary, Journal, true);
+        using (AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.JournalWrite))
+        {
+            File.WriteAllText(temporary, journal.ToString());
+            File.Move(temporary, Journal, true);
+        }
         Recover();
     }
 

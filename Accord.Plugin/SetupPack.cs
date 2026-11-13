@@ -48,6 +48,15 @@ internal sealed class SetupPack
         return Data.Jobs.Where(job => ids.Contains(job.JobId)).ToArray();
     }
 
+    internal JobPreset[] CurrentVariantJobs(AccordSettings before, AccordSettings after, uint current)
+    {
+        var job = Find(current);
+        if (job is null || !IsActive(current, after)) return [];
+        return Enum.GetValues<VariantId>().Any(id =>
+            before.Enabled(id, job.JobId) != after.Enabled(id, job.JobId) ||
+            before.Enabled(id, job.JobId, true) != after.Enabled(id, job.JobId, true)) ? [job] : [];
+    }
+
     internal bool IsActive(uint job, AccordSettings settings) =>
         SelectedJobs(settings).Any(selected => selected.JobId == Find(job)?.JobId);
 
