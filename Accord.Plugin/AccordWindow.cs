@@ -49,9 +49,7 @@ internal sealed class AccordWindow : Window
             .GetWrapOrDefault();
         if (texture == null) return;
 
-        // Reserve space for the shell's close button at the right edge.
-        var position = new Vector2(ImGui.GetWindowPos().X + ImGui.GetWindowWidth() - 3 * size, headerPosition.Y);
-        ImGui.GetWindowDrawList().AddImage(texture.Handle, position, position + new Vector2(size));
+        ImGui.GetWindowDrawList().AddImage(texture.Handle, headerPosition, headerPosition + new Vector2(size));
     }
 
     private void Layout(Page page) => LayoutEditor.Draw(setup, page);
