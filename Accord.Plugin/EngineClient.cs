@@ -51,14 +51,15 @@ internal sealed class EngineClient : IDisposable
     {
         using var timing = AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.SettingsApply);
         if (HasPending) throw new InvalidOperationException("A previous settings operation needs recovery before another update.");
-        Validate(patch);
+        var compact = Svc.PluginInterface.GetIpcSubscriber<string, string>("WrathFork.Settings.Commit.v1");
+        if (!compact.HasFunction) Validate(patch);
         var current = (JObject)snapshot["Settings"]!;
         var projected = SettingsPatch.Apply(current, patch, snapshot["KnownPresets"]!.Values<int>().ToHashSet());
-        if (SettingsTransaction.Hash(current) == SettingsTransaction.Hash(projected))
+        if (snapshot.Value<string>("Revision") == SettingsTransaction.Hash(projected))
         {
             desired.EngineConfigurationId = snapshot.Value<string>("ConfigurationId")!;
             desired.LastEngineRevision = snapshot.Value<string>("Revision")!;
-            Svc.PluginInterface.SavePluginConfig(desired);
+            AccordDiagnostics.PerformanceTimings.SaveConfig(desired);
             Plugin.Instance.Settings = desired;
             return;
         }
@@ -73,7 +74,10 @@ internal sealed class EngineClient : IDisposable
             File.WriteAllText(temporary, journal.ToString());
             File.Move(temporary, Journal, true);
         }
-        Recover();
+        string payload = request.ToString(Formatting.None);
+        var result = Decode(compact.HasFunction ? compact.InvokeFunc(payload) :
+            Svc.PluginInterface.GetIpcSubscriber<string, string>("WrathFork.Settings.Apply.v2").InvokeFunc(payload));
+        Acknowledge(desired, result);
     }
 
     internal void RestoreSettings(JObject before, AccordSettings choices)
@@ -92,6 +96,12 @@ internal sealed class EngineClient : IDisposable
         var result = Decode(Svc.PluginInterface.GetIpcSubscriber<string, string>("WrathFork.Settings.Apply.v2")
             .InvokeFunc(journal["Request"]!.ToString(Formatting.None)));
         var desired = journal["Desired"]!.ToObject<AccordSettings>()!;
+        Acknowledge(desired, result);
+        return true;
+    }
+
+    private void Acknowledge(AccordSettings desired, JObject result)
+    {
         // Recovery acknowledges the old engine transaction, not newer independent UI choices.
         var latest = Plugin.Instance.Settings;
         desired.AutoRotationEnabled = latest.AutoRotationEnabled;
@@ -104,12 +114,11 @@ internal sealed class EngineClient : IDisposable
         desired.EngineConfigurationId = result.Value<string>("ConfigurationId")!;
         desired.LastEngineRevision = result["Receipt"]!.Value<string>("CommittedRevision")!;
         // Persist acknowledgement before removing the replay record. If saving fails, retry the same operation ID.
-        Svc.PluginInterface.SavePluginConfig(desired);
+        AccordDiagnostics.PerformanceTimings.SaveConfig(desired);
         Plugin.Instance.Settings = desired;
         File.Delete(Journal);
         Plugin.Instance.MigrationPending = false;
         Plugin.Instance.RequiresMigration = false;
-        return true;
     }
 
     internal void ReviewRejectedOperation()

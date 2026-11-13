@@ -127,16 +127,17 @@ internal sealed class HotbarSetup
         if (backup.Edits.Select(e => (e.Job, e.Position)).Distinct().Count() != backup.Edits.Count)
             throw new InvalidDataException("Duplicate backup destinations.");
         HotbarLayoutStore.Ready(false);
+        using (AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.SlotVerify))
         foreach (var edit in backup.Edits)
         {
             if (NativeHotbars.Ready(current)->IsHotbarShared((uint)edit.Position.Bar))
                 throw new InvalidOperationException("A backup destination is now shared. Restore was blocked to protect shared controls.");
+            if (NativeHotbars.Read(edit.Job, edit.Position) != edit.Before) throw new InvalidOperationException("Hotbars changed while preparing the operation.");
         }
         var directory = Path.Combine(Svc.PluginInterface.GetPluginConfigDirectory(), "hotbar-backups", backup.Character);
         var path = Path.Combine(directory, $"{DateTime.UtcNow:yyyyMMdd-HHmmss-ffff}-{Guid.NewGuid():N}.json");
-        foreach (var edit in backup.Edits)
-            if (NativeHotbars.Read(edit.Job, edit.Position) != edit.Before) throw new InvalidOperationException("Hotbars changed while preparing the operation.");
-        JsonStore.Write(path, backup);
+        using (AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.BackupWrite))
+            JsonStore.Write(path, backup);
         try
         {
             HotbarTransaction.Apply(backup.Edits,

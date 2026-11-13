@@ -142,16 +142,15 @@ internal sealed class SetupController : IDisposable
         {
             if (variantsOnly && jobs.Length == 0)
                 ApplySettings(jobs, desired);
-            else PvP.ApplyChoices(desired, () => ApplySettings(jobs, desired));
+            else PvP.ApplyChoices(desired, before => ApplySettings(jobs, desired, snapshot: before));
             pendingChoices = null;
             return;
         }
         var snapshot = engine.Read();
-        CombinedUpdate.Apply(() => ApplySettings(jobs, desired, snapshot: snapshot), () =>
+        JobPreset[] valid = [];
+        CombinedUpdate.Apply(() => valid = ApplySettings(jobs, desired, snapshot: snapshot), () =>
         {
-            var valid = jobs.Where(j => j.JobId < 19 || LayoutPlan(j, Settings, true).Valid).ToArray();
-            if (variantsOnly) valid = valid.Where(j => VariantLayoutNeedsRefresh(j, desired)).ToArray();
-            if (valid.Length > 0) ApplyHotbars(valid, null, prepareSettings: false);
+            if (valid.Length > 0) ApplyHotbars(valid, null, prepareSettings: false, validated: true);
             pendingChoices = null;
             if (!variantsOnly) updates.Request(); else updates.Wake();
             PvP.Invalidate();
@@ -174,7 +173,7 @@ internal sealed class SetupController : IDisposable
             if (previousLayouts.DefaultsInitialized || previousLayouts.Global.Mapping.Areas.Count > 0)
                 File.WriteAllText(Path.Combine(Svc.PluginInterface.GetPluginConfigDirectory(),
                     $"layout-before-global-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid():N}.json"), JsonConvert.SerializeObject(Settings, Formatting.Indented));
-            try { Settings.Layouts = migrated.Layouts; Svc.PluginInterface.SavePluginConfig(Settings); }
+            try { Settings.Layouts = migrated.Layouts; AccordDiagnostics.PerformanceTimings.SaveConfig(Settings); }
             catch { Settings.Layouts = previousLayouts; throw; }
         }
         engine = new EngineClient(() => {updates.Wake(); PvP?.Invalidate();});
@@ -490,7 +489,7 @@ internal sealed class SetupController : IDisposable
         displayedEntries = null; layoutKey = null; verifiedJob = null;
         if (engine.HasPending) throw new InvalidOperationException("Resolve the pending settings operation before changing Accord choices.");
         var before = JsonConvert.SerializeObject(Settings);
-        try { mutation(); Svc.PluginInterface.SavePluginConfig(Settings); }
+        try { mutation(); AccordDiagnostics.PerformanceTimings.SaveConfig(Settings); }
         catch { Plugin.Instance.Settings = JsonConvert.DeserializeObject<AccordSettings>(before)!; throw; }
         UpdateEntries();
     }
@@ -525,7 +524,7 @@ internal sealed class SetupController : IDisposable
     private void Prepare(IEnumerable<JobPreset> jobs, bool reset = false) => ApplySettings(jobs, CloneSettings(), reset);
     private AccordSettings CloneSettings() => JsonConvert.DeserializeObject<AccordSettings>(JsonConvert.SerializeObject(Settings))!;
 
-    private void ApplySettings(IEnumerable<JobPreset> jobs, AccordSettings desired, bool reset = false, JObject? snapshot = null)
+    private JobPreset[] ApplySettings(IEnumerable<JobPreset> jobs, AccordSettings desired, bool reset = false, JObject? snapshot = null)
     {
         RequireNormalLayouts();
         if (Plugin.Instance.MigrationPending) throw new InvalidOperationException("Open /accord to complete separate setup first.");
@@ -551,7 +550,7 @@ internal sealed class SetupController : IDisposable
         if (managedJobs.Length == 0)
         {
             Mutate(() => Plugin.Instance.Settings = desired);
-            return;
+            return managedJobs;
         }
         snapshot ??= engine.Read();
         if (desired.EngineConfigurationId != snapshot.Value<string>("ConfigurationId"))
@@ -615,10 +614,9 @@ internal sealed class SetupController : IDisposable
         enable.UnionWith(pvpPatch["Enable"]!.Values<int>());
         disable.UnionWith(pvpPatch["Disable"]!.Values<int>());
         var patch = new JObject { ["Settings"] = changes, ["Enable"] = new JArray(enable.Order()), ["Disable"] = new JArray(disable.Order()) };
-        // Validate locally using the engine's published setting shape, then let the engine validate again.
-        WrathFork.Contract.SettingsPatch.Apply((JObject)snapshot["Settings"]!, patch, snapshot["KnownPresets"]!.Values<int>().ToHashSet());
         engine.Apply(snapshot, patch, desired);
         UpdateEntries();
+        return managedJobs;
     }
 
     private JObject? migrationSnapshot;
@@ -661,15 +659,6 @@ internal sealed class SetupController : IDisposable
     internal bool HasPendingOperation => engine.HasPending;
     internal void AbandonPendingOperation() { engine.ReviewRejectedOperation(); migrationPatch = null; Status = "Previous request retained for diagnosis. Review settings before reapplying."; }
 
-    private bool VariantLayoutNeedsRefresh(JobPreset job, AccordSettings desired)
-    {
-        var preset = Pack.Resolve(job, desired);
-        if (job.JobId < 19) return hotbars.NeedsRefresh(job.JobId, preset, desired.ClearOtherActions);
-        var controls = LayoutPlan(job, desired, false).Controls.ToDictionary(c => c.Position, c => c.Action.Value);
-        var bars = desired.Layouts.ManagedBars.ToHashSet();
-        return new[] { job.JobId }.Concat(job.BaseClasses).Any(id =>
-            hotbars.NeedsConfiguredRefresh(id, preset, desired.ClearOtherActions, controls, bars));
-    }
     internal void SetVariant(VariantId id, bool enabled, bool global = false)
     {
         using var timing = AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.VariantChange);
@@ -727,14 +716,14 @@ internal sealed class SetupController : IDisposable
         if (Pack.IsActive(job, Settings)) ApplyHotbars([Pack.Find(job)!], job, prepareSettings);
     }
 
-    private unsafe void ApplyHotbars(JobPreset[] selected, uint? currentClass, bool prepareSettings = true)
+    private unsafe void ApplyHotbars(JobPreset[] selected, uint? currentClass, bool prepareSettings = true, bool validated = false)
     {
         using var timing = AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.HotbarApply);
         if (selected.Length == 0) throw new InvalidOperationException("Select at least one active class first.");
         if (!Player.Available || Svc.PlayerState.ContentId == 0) throw new InvalidOperationException("Log in before applying hotbars.");
         uint job = (uint)Player.Job;
         NativeHotbars.Ready(job);
-        selected = selected.Where(p => p.JobId < 19 || LayoutPlan(p, Settings, true).Valid).ToArray();
+        if (!validated) selected = selected.Where(p => p.JobId < 19 || LayoutPlan(p, Settings, true).Valid).ToArray();
         if (selected.Length == 0) throw new InvalidOperationException("Layout update blocked. Resolve the layout warnings first.");
         var previousChoices = prepareSettings ? CloneSettings() : null;
         var previousEngine = prepareSettings ? engine.Read() : null;
@@ -828,7 +817,7 @@ internal sealed class SetupController : IDisposable
         {
             desired.OpenerHoldMigrated = true;
             engine.SetOpenerHold(desired.HoldWrathOpeners);
-            try { Svc.PluginInterface.SavePluginConfig(desired); Plugin.Instance.Settings = desired; }
+            try { AccordDiagnostics.PerformanceTimings.SaveConfig(desired); Plugin.Instance.Settings = desired; }
             catch { engine.SetOpenerHold(!desired.HoldWrathOpeners); throw; }
             if (pendingChoices != null) { pendingChoices.OpenerHoldMigrated = true; pendingChoices.HoldWrathOpeners = desired.HoldWrathOpeners; }
             UpdateEntries();

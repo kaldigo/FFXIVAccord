@@ -120,6 +120,7 @@ internal sealed class PvPHotbars
         HotbarLayoutStore.Ready(true);
         if(!backup.PvP || backup.Character!=NativeHotbars.CharacterKey(Svc.PlayerState.ContentId))throw new InvalidOperationException("Wrong mode or character for this backup.");
         if(backup.Edits.Select(e=>(e.Job,e.Position)).Distinct().Count()!=backup.Edits.Count)throw new InvalidDataException("Duplicate backup destinations.");
+        using (AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.SlotVerify))
         foreach(var e in backup.Edits)
         {
             if(e.Job!=current && !Initialized(e.Job))throw new InvalidOperationException("Visit PvP on this class before restoring its saved layout.");
@@ -127,7 +128,8 @@ internal sealed class PvPHotbars
             if(NativeHotbars.Read(e.Job,e.Position,pvp:true)!=e.Before)throw new InvalidOperationException("PvP hotbars changed during setup.");
         }
         var path=Path.Combine(Svc.PluginInterface.GetPluginConfigDirectory(),"hotbar-backups-pvp",backup.Character,$"{DateTime.UtcNow:yyyyMMdd-HHmmss-ffff}-{Guid.NewGuid():N}.json");
-        JsonStore.Write(path,backup);
+        using (AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.BackupWrite))
+            JsonStore.Write(path,backup);
         try
         {
             HotbarTransaction.Apply(backup.Edits,(e,undo)=>NativeHotbars.Write(current,e.Job,e.Position,undo?e.Before:e.After,pvp:true),
