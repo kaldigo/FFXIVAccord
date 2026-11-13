@@ -13,7 +13,7 @@ internal sealed class AccordWindow : Window
 {
     private readonly AccordShell shell = new();
     private readonly SetupController setup;
-    internal AccordWindow(SetupController setup) : base("Accord###Accord", ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoScrollbar)
+    internal AccordWindow(SetupController setup) : base("Accord###Accord", AetherglassUI.WindowShell.HostFlags)
     {
         this.setup = setup;
         Size = new Vector2(980, 680);
@@ -21,6 +21,8 @@ internal sealed class AccordWindow : Window
         SizeConstraints = new WindowSizeConstraints { MinimumSize = new(360, 320), MaximumSize = new(5000, 5000) };
     }
     private readonly WindowShell importShell=new();
+    public override void PreDraw() => AetherglassUI.WindowShell.PushHostStyle();
+    public override void PostDraw() => AetherglassUI.WindowShell.PopHostStyle();
     public override void Draw()
     {
         if (Plugin.Instance.MigrationPending){
