@@ -17,6 +17,8 @@ internal static class PersistentRotationTests
         Check(old.WrathPreferences.Value<bool>("RaiseNearbyPlayers") && old.WrathPreferences.Value<bool?>("AllowPhantomKick") == false,
             "Default field settings should allow rescue and keep the dash manual");
         Check(old.WrathPreferences.Value<bool?>("HealEncounterPlayers") == false, "Encounter healing must be opt-in");
+        Check(old.WrathPreferences.Value<bool?>("AllowPhantomRage") == false, "Rage should be manual on upgrade");
+        old.WrathPreferences["AllowPhantomRage"] = true;
         old.WrathPreferences["HealEncounterPlayers"] = true;
         old.WrathPreferences["AcquireVisibleEnemy"] = false;
         old.WrathPreferences["SwitchEnemyTarget"] = true;
@@ -60,6 +62,7 @@ internal static class PersistentRotationTests
         engine.Remove("HealEncounterPlayers");
         engine.Remove("RaiseNearbyPlayers");
         engine.Remove("AllowPhantomKick");
+        engine.Remove("AllowPhantomRage");
         engine.Remove("AcquireVisibleEnemy");
         WrathPreferences.Apply(desired, () => (JObject)engine.DeepClone(), Write);
         Check(writes == 1 && desired.Value<bool?>("AcquireVisibleEnemy") == false, "Older engine changed saved acquisition preference");

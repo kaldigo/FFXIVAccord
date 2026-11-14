@@ -91,7 +91,8 @@ internal static class WrathSettingsPanel
                 new("Wrath · priority",Order("AllyOverrideOrder","Ally override order")),
             ],
             TaskPage.JobTuning=>[
-                new("Wrath · Occult Crescent", Flag("AllowPhantomKick","Include Phantom Kick in rotation","Off keeps the dash manual. Enabling it uses the normal distance check.")),
+                new("Wrath · Occult Crescent", Flag("AllowPhantomKick","Include Phantom Kick in rotation","Off keeps the dash manual. Enabling it uses the normal distance check."),
+                    Flag("AllowPhantomRage","Include Rage in rotation","Off keeps Rage manual. Enable to use it when your enemy is within Enraged Strike’s reach and in front of you.")),
                 new("Wrath · Encounter forecasts · saved automatically",
                     Flag("Forecasts","Read BossMod encounter forecasts"),
                     Flag("SpaceMitigation","Defer forecast party mitigation when an observed defense covers the hit")),

@@ -40,6 +40,7 @@ internal static class WrathPreferences
             ["WhiteMage"] = true,
             ["Forecasts"] = true,
             ["AllowPhantomKick"] = false,
+            ["AllowPhantomRage"] = false,
             ["HealEncounterPlayers"] = false,
             ["RaiseNearbyPlayers"] = true,
             ["IncludeRaise"] = false,
@@ -73,7 +74,7 @@ internal static class WrathPreferences
         var before = read();
         // Older Wrath builds can still verify and apply the rest of the profile during an update.
         desired = (JObject)desired.DeepClone();
-        foreach (string optional in new[] { "AcquireVisibleEnemy", "AllowPhantomKick", "RaiseNearbyPlayers", "HealEncounterPlayers" })
+        foreach (string optional in new[] { "AcquireVisibleEnemy", "AllowPhantomKick", "AllowPhantomRage", "RaiseNearbyPlayers", "HealEncounterPlayers" })
             if (!before.ContainsKey(optional)) desired.Remove(optional);
         var changes = new JObject();
         foreach (var item in desired.Properties())
