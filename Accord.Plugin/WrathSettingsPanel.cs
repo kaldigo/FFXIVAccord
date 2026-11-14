@@ -75,6 +75,7 @@ internal static class WrathSettingsPanel
             ],
             TaskPage.Healing=>[
                 new("Wrath · Healing actions · saved automatically",
+                    Flag("RaiseNearbyPlayers","Raise nearby players outside my party","PvE resurrection fallback when no eligible party target is available."),
                     Flag("IncludeRaise","Include resurrection in damage buttons"),
                     Flag("HardCastRaise","Allow resurrection without instant cast"),
                     Flag("IncludeCleanse","Include cleansing in damage buttons"),
@@ -89,6 +90,7 @@ internal static class WrathSettingsPanel
                 new("Wrath · priority",Order("AllyOverrideOrder","Ally override order")),
             ],
             TaskPage.JobTuning=>[
+                new("Wrath · Occult Crescent", Flag("AllowPhantomKick","Include Phantom Kick in rotation","Off keeps the dash manual. Enabling it uses the normal distance check.")),
                 new("Wrath · Encounter forecasts · saved automatically",
                     Flag("Forecasts","Read BossMod encounter forecasts"),
                     Flag("SpaceMitigation","Defer forecast party mitigation when an observed defense covers the hit")),
