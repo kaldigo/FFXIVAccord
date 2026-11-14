@@ -75,6 +75,7 @@ internal static class WrathSettingsPanel
             ],
             TaskPage.Healing=>[
                 new("Wrath · Healing actions · saved automatically",
+                    Flag("HealEncounterPlayers","Heal other players in my Critical Encounter","Occult Crescent only. Use direct heals below 50% HP when living party members are above 70%."),
                     Flag("RaiseNearbyPlayers","Raise nearby players outside my party","PvE resurrection fallback when no eligible party target is available."),
                     Flag("IncludeRaise","Include resurrection in damage buttons"),
                     Flag("HardCastRaise","Allow resurrection without instant cast"),

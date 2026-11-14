@@ -16,6 +16,8 @@ internal static class PersistentRotationTests
         Check(old.WrathPreferences.Value<bool>("AcquireVisibleEnemy") && !old.WrathPreferences.Value<bool>("SwitchEnemyTarget"), "Existing installs should acquire empty/self and preserve selected enemies");
         Check(old.WrathPreferences.Value<bool>("RaiseNearbyPlayers") && old.WrathPreferences.Value<bool?>("AllowPhantomKick") == false,
             "Default field settings should allow rescue and keep the dash manual");
+        Check(old.WrathPreferences.Value<bool?>("HealEncounterPlayers") == false, "Encounter healing must be opt-in");
+        old.WrathPreferences["HealEncounterPlayers"] = true;
         old.WrathPreferences["AcquireVisibleEnemy"] = false;
         old.WrathPreferences["SwitchEnemyTarget"] = true;
         old.WrathPreferences["BlackMage"] = false;
@@ -55,6 +57,7 @@ internal static class PersistentRotationTests
         Check(failed, "A genuine write failure was ignored");
         Check(JToken.DeepEquals(WrathPreferences.Apply(edit, () => engine, Write, active), edit), "Latest combat edits were not applied when the engine became ready");
         engine = (JObject)active.DeepClone(); writes = 1;
+        engine.Remove("HealEncounterPlayers");
         engine.Remove("RaiseNearbyPlayers");
         engine.Remove("AllowPhantomKick");
         engine.Remove("AcquireVisibleEnemy");
