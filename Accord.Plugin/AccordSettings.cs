@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -20,6 +21,7 @@ public sealed class AccordSettings : Dalamud.Configuration.IPluginConfiguration
     public bool LiveMode { get; set; }
     public bool ClearOtherActions { get; set; }
     public bool ManualLogoutFallback { get; set; } = true;
+    public BossModMovementSettings BossModMovement { get; set; } = new();
     public string LastHotbarBackup { get; set; } = "";
     public bool Enabled(VariantId id) => Variants.GetValueOrDefault(id);
     public bool Enabled(VariantId id, uint job) => Layouts.Classes.TryGetValue(job, out var over) && over.Automation.TryGetValue(id, out var value)
@@ -57,6 +59,31 @@ public sealed class AccordSettings : Dalamud.Configuration.IPluginConfiguration
         PvP.PendingLayouts.IntersectWith(PvP.ActiveJobs);
         return PvP;
     }
+}
+
+public sealed record BossModMovementSettings(
+    bool UseRoleDistances = false,
+    bool FollowWrathPositionals = false,
+    float MeleeMaximum = 2.6f,
+    float RangedMinimum = 4f,
+    float RangedMaximum = 10f)
+{
+    internal const float MinimumBand = 0.1f;
+    internal const float MinimumMaximum = 1.1f;
+
+    internal (float Minimum, float Maximum)? Distances(JobRole role)
+    {
+        if (!UseRoleDistances || role == JobRole.Noncombat) return null;
+        // A nonzero minimum enables BossMod's target-centered distance band.
+        if (role is JobRole.Melee or JobRole.Tank)
+            return (MinimumBand, Normalize(MeleeMaximum, MinimumMaximum, 3, 2.6f));
+
+        float max = Normalize(RangedMaximum, MinimumMaximum, 25, 10);
+        return (Normalize(RangedMinimum, MinimumBand, max - MinimumBand, 4), max);
+    }
+
+    private static float Normalize(float value, float lower, float upper, float fallback)
+        => MathF.Round(Math.Clamp(float.IsFinite(value) ? value : fallback, lower, upper), 1);
 }
 
 internal sealed record VariantDefinition(VariantId Id, string Label, string Icon, string Description);

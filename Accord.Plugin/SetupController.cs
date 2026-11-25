@@ -340,6 +340,13 @@ internal sealed class SetupController : IDisposable
         UpdateEntries();
     }
 
+    internal void SetBossModMovement(BossModMovementSettings movement)
+    {
+        Mutate(() => Settings.BossModMovement = movement);
+        if (pendingChoices is not null)
+            pendingChoices.BossModMovement = movement;
+    }
+
     private void Prepare(IEnumerable<JobPreset> jobs, bool reset = false) => ApplySettings(jobs, CloneSettings(), reset);
     private AccordSettings CloneSettings() => JsonConvert.DeserializeObject<AccordSettings>(JsonConvert.SerializeObject(Settings))!;
 

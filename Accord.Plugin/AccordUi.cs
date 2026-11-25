@@ -15,7 +15,7 @@ internal static class AccordUi
     private static Page page;
     private static string search = "";
     private static readonly string[] titles = ["General", "Global automation", "Active classes", "Global mapping", "Global role actions", "Global exclusions", "Personal groups", "Mapping overrides", "PvP Global", "PvP overrides", "Preview", "Recovery & tools", "Rotation behaviour"];
-    private static readonly string[] keywords = ["live mode bars shared", "burst protection support mechanics", "jobs enable", "layout slots position manual defaults override", "important role", "exclude manual wrath", "potions roulette items extras", "role class overrides add edit inheritance", "pvp global automation mapping rotation one two", "pvp role class overrides", "preview class result inherited", "backup restore logout diagnostics", "target enemy range aoe activities combat opener potions"];
+    private static readonly string[] keywords = ["live mode bars shared", "burst protection support mechanics bossmod movement distance ranged melee positional wrath", "jobs enable", "layout slots position manual defaults override", "important role", "exclude manual wrath", "potions roulette items extras", "role class overrides add edit inheritance", "pvp global automation mapping rotation one two", "pvp role class overrides", "preview class result inherited", "backup restore logout diagnostics", "target enemy range aoe activities combat opener potions"];
 
     internal static void Draw()
     {
@@ -79,6 +79,45 @@ internal static class AccordUi
                 ImGui.Unindent();
             }
         }
+
+        DrawBossModMovement(setup);
+    }
+
+    private static void DrawBossModMovement(SetupController setup)
+    {
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.TextUnformatted("BossMod Reborn movement");
+        var saved = setup.Settings.BossModMovement;
+        var movement = saved;
+        bool useRoleDistances = saved.UseRoleDistances;
+        if (ImGui.Checkbox("Use target distances by role", ref useRoleDistances))
+            movement = movement with { UseRoleDistances = useRoleDistances };
+
+        if (useRoleDistances)
+        {
+            var editable = movement with { UseRoleDistances = true };
+            float meleeMax = editable.Distances(JobRole.Melee)!.Value.Maximum;
+            var (rangedMin, rangedMax) = editable.Distances(JobRole.PhysicalRanged)!.Value;
+            const float gap = BossModMovementSettings.MinimumBand;
+            const float lowerMax = BossModMovementSettings.MinimumMaximum;
+            if (ImGui.SliderFloat("Melee and tank max (yalms)", ref meleeMax, lowerMax, 3, "%.1f"))
+                movement = movement with { MeleeMaximum = meleeMax };
+            if (ImGui.SliderFloat("Ranged and healer min (yalms)", ref rangedMin, gap, rangedMax - gap, "%.1f"))
+                movement = movement with { RangedMinimum = rangedMin };
+            if (ImGui.SliderFloat("Ranged and healer max (yalms)", ref rangedMax, Math.Max(lowerMax, rangedMin + gap), 25, "%.1f"))
+                movement = movement with { RangedMaximum = rangedMax };
+        }
+
+        bool followPositionals = saved.FollowWrathPositionals;
+        if (ImGui.Checkbox("Follow Wrath's rear and flank hints", ref followPositionals))
+            movement = movement with { FollowWrathPositionals = followPositionals };
+        if (movement != saved)
+            setup.Run(() => setup.SetBossModMovement(movement));
+
+        ImGui.TextWrapped("Applies to selected PvE classes. Follow target uses the distance band. Movement presets use the maximum through Stay within range of target and Wrath hints through Goes to specified positional.");
+        if (Plugin.Instance.BossModMovementStatus is { Length: > 0 } status)
+            ImGui.TextWrapped(status);
     }
 
     private static void DrawGeneral(SetupController setup)

@@ -23,6 +23,8 @@ public sealed class Plugin : IDalamudPlugin
     internal string MigrationSource = "";
     internal AccordSettings Settings;
     private readonly SetupController setup;
+    private readonly BossModMovement bossModMovement;
+    internal string BossModMovementStatus => bossModMovement.Status;
 
     public Plugin(IDalamudPluginInterface pluginInterface)
     {
@@ -61,6 +63,7 @@ public sealed class Plugin : IDalamudPlugin
             pluginInterface.SavePluginConfig(Settings);
         }
         setup = new SetupController();
+        bossModMovement = new BossModMovement();
         Svc.Commands.AddHandler("/accord", new Dalamud.Game.Command.CommandInfo((_, args) => setup.Run(() => AccordUi.Command(args))) { HelpMessage = "Open Accord setup and hotbar controls." });
         pluginInterface.UiBuilder.Draw += Draw;
         pluginInterface.UiBuilder.OpenConfigUi += Open;
@@ -69,7 +72,11 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     private void Open() => IsOpen = true;
-    private void Update(IFramework _) => setup.Run(setup.Tick);
+    private void Update(IFramework _)
+    {
+        setup.Run(setup.Tick);
+        bossModMovement.Tick(setup);
+    }
     private void Draw()
     {
         if (!IsOpen) return;
@@ -103,6 +110,7 @@ public sealed class Plugin : IDalamudPlugin
         Svc.PluginInterface.UiBuilder.OpenConfigUi -= Open;
         Svc.PluginInterface.UiBuilder.OpenMainUi -= Open;
         Svc.Commands.RemoveHandler("/accord");
+        bossModMovement.Dispose();
         setup.Dispose();
         ClassIcons.Dispose();
         HotbarLayoutStore.Reset();
