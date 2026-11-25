@@ -66,10 +66,48 @@ internal sealed class AccordWindow : Window
     }
     private static Topic Editor(string title,string label,Action draw,string keywords="")=>
         new(title,new Setting("editor",label,()=>{},keywords){ExpandedContent=draw});
+    private Topic BossModMovementRows() => new("BossMod Reborn movement",
+        AccordControls.Flag("role-distances", "Use target distances by role",
+            () => setup.Settings.BossModMovement.UseRoleDistances,
+            value => setup.Run(() => setup.SetBossModMovement(setup.Settings.BossModMovement with { UseRoleDistances = value })),
+            "Apply to selected PvE combat jobs."),
+        new Setting("target-distances", "Target distances by role (yalms)", () => {}, "melee tank ranged healer minimum maximum")
+        {
+            Visible = () => setup.Settings.BossModMovement.UseRoleDistances,
+            ExpandedContent = DrawBossModDistances,
+        },
+        AccordControls.Flag("wrath-positionals", "Follow Wrath's rear and flank hints",
+            () => setup.Settings.BossModMovement.FollowWrathPositionals,
+            value => setup.Run(() => setup.SetBossModMovement(setup.Settings.BossModMovement with { FollowWrathPositionals = value })),
+            "Uses Goes to specified positional in the active BossMod Reborn movement preset."),
+        new Setting("bossmod-status", "Movement status", () => ImGui.TextWrapped(Plugin.Instance.BossModMovementStatus))
+        {
+            Visible = () => Plugin.Instance.BossModMovementStatus.Length > 0,
+        });
+
+    private void DrawBossModDistances()
+    {
+        var saved = setup.Settings.BossModMovement;
+        var movement = saved;
+        float meleeMax = saved.Distances(JobRole.Melee)!.Value.Maximum;
+        var (rangedMin, rangedMax) = saved.Distances(JobRole.PhysicalRanged)!.Value;
+        const float gap = BossModMovementSettings.MinimumBand;
+        const float lowerMax = BossModMovementSettings.MinimumMaximum;
+        if (ImGui.SliderFloat("Melee and tank max", ref meleeMax, lowerMax, 3, "%.1f"))
+            movement = movement with { MeleeMaximum = meleeMax };
+        if (ImGui.SliderFloat("Ranged and healer min", ref rangedMin, gap, rangedMax - gap, "%.1f"))
+            movement = movement with { RangedMinimum = rangedMin };
+        if (ImGui.SliderFloat("Ranged and healer max", ref rangedMax, Math.Max(lowerMax, rangedMin + gap), 25, "%.1f"))
+            movement = movement with { RangedMaximum = rangedMax };
+        if (movement != saved)
+            setup.Run(() => setup.SetBossModMovement(movement));
+        ImGui.TextWrapped("Follow target uses the full range. Movement presets use the maximum through Stay within range of target.");
+    }
+
     private Topic[]? Topics(TaskPage task)=>task switch {
         TaskPage.Home=>[Plugin.Instance.Automation.PlaySettings(),Permissions(false)],
         TaskPage.Permissions=>[Permissions(true)],
-        TaskPage.Enemies=>[..WrathSettingsPanel.Rows(task),LayoutEditor.RotationRows(LayoutEditor.RotationSection.Targeting)],
+        TaskPage.Enemies=>[..WrathSettingsPanel.Rows(task),LayoutEditor.RotationRows(LayoutEditor.RotationSection.Targeting),BossModMovementRows()],
         TaskPage.Healing=>[LayoutEditor.RotationRows(LayoutEditor.RotationSection.Healing),..WrathSettingsPanel.Rows(task)],
         TaskPage.Opener=>[LayoutEditor.RotationRows(LayoutEditor.RotationSection.Openers)],
         TaskPage.JobTuning=>WrathSettingsPanel.Rows(task),

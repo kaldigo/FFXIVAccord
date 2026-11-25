@@ -51,6 +51,7 @@ internal sealed class AutomationControl : IDisposable
     private string settingsError = "", lastStatus = "", activityStatus = "";
     private AccordSettings Settings => Plugin.Instance.Settings;
     internal bool RsrAvailable => rsrAvailable;
+    internal bool UsesRsrPositionals => handoff.Owner == AutomaticRunner.Rsr || handoff.Requested == AutomaticRunner.Rsr;
     private AutomaticRunner Selected => EngineAvailability.Resolve(Settings.AutomaticEngine, wrathAvailable, rsrAvailable);
     private string EngineLabel => Selected == AutomaticRunner.Off ? "Waiting for a compatible engine" : Selected.ToString();
     private AutomaticRunner Desired => Settings.EmergencyRotation ? AutomaticRunner.Off : AutomationPreference.Resolve(Settings.AutoRotationEnabled, Settings.FollowAutoDuty, dutyAvailable, dutyRunning, Selected, RunnerPaused);

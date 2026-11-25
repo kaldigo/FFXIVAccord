@@ -23,6 +23,8 @@ public sealed class Plugin : IDalamudPlugin
     internal string MigrationSource = "";
     internal AccordSettings Settings;
     private readonly SetupController setup;
+    private readonly BossModMovement bossModMovement;
+    internal string BossModMovementStatus => bossModMovement.Status;
     internal readonly AutomationControl Automation;
 
     public Plugin(IDalamudPluginInterface pluginInterface)
@@ -61,6 +63,7 @@ public sealed class Plugin : IDalamudPlugin
             pluginInterface.SavePluginConfig(Settings);
         }
         setup = new SetupController();
+        bossModMovement = new BossModMovement();
         Automation = new AutomationControl();
         window = new AccordWindow(setup);
         windows.AddWindow(window);
@@ -81,6 +84,7 @@ public sealed class Plugin : IDalamudPlugin
         DiagnosticCapturePanel.Tick();
         Automation.Tick();
         setup.Run(setup.Tick);
+        bossModMovement.Tick(setup, Automation.UsesRsrPositionals);
     }
     private void Draw()
     {
@@ -106,6 +110,7 @@ public sealed class Plugin : IDalamudPlugin
         Svc.PluginInterface.UiBuilder.OpenConfigUi -= Open;
         Svc.PluginInterface.UiBuilder.OpenMainUi -= Open;
         Svc.Commands.RemoveHandler("/accord");
+        bossModMovement.Dispose();
         setup.Dispose();
         windows.RemoveAllWindows();
         ClassIcons.Dispose();

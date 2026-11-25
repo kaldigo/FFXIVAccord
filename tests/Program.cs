@@ -37,6 +37,18 @@ foreach(var sprint in new[]{new SlotValue(1,3),new SlotValue(1,29057),new SlotVa
 }
 Check(!ModeActions.IsSprint(new SlotValue(10,3)) && !ModeActions.IsSprint(new SlotValue(9,4)),"Other general actions or macros mistaken for Sprint.");
 var pack = new SetupPack();
+var bossModMovement = new AccordSettings().BossModMovement;
+Check(!bossModMovement.FollowWrathPositionals && bossModMovement.Distances(JobRole.Melee) is null,
+    "BossMod movement must be opt-in.");
+bossModMovement = bossModMovement with { UseRoleDistances = true };
+Check(bossModMovement.Distances(JobRole.Melee) == (0.1f, 2.6f) &&
+    bossModMovement.Distances(JobRole.Tank) == bossModMovement.Distances(JobRole.Melee) &&
+    bossModMovement.Distances(JobRole.PhysicalRanged) == (4f, 10f) &&
+    bossModMovement.Distances(JobRole.MagicalRanged) == bossModMovement.Distances(JobRole.PhysicalRanged) &&
+    bossModMovement.Distances(JobRole.Healer) == bossModMovement.Distances(JobRole.PhysicalRanged) &&
+    bossModMovement.Distances(JobRole.Noncombat) is null, "BossMod movement must use the appropriate role band.");
+Check((bossModMovement with { RangedMinimum = 20, RangedMaximum = 5 }).Distances(JobRole.Healer) == (4.9f, 5f),
+    "BossMod movement must keep the minimum below the maximum.");
 checks += GatheringTests.Run();
 var sharedChoices=new AccordSettings {ActiveJobs=[19,38],LiveMode=true,ClearOtherActions=true};
 sharedChoices.Variants[VariantId.Burst]=true;

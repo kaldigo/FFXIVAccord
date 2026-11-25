@@ -494,6 +494,13 @@ internal sealed class SetupController : IDisposable
         UpdateEntries();
     }
 
+    internal void SetBossModMovement(BossModMovementSettings movement)
+    {
+        Mutate(() => Settings.BossModMovement = movement);
+        if (pendingChoices is not null)
+            pendingChoices.BossModMovement = movement;
+    }
+
     private (uint Job, ulong Character, string? Instance, string? Revision, AccordSettings Settings)? verifiedJob;
     internal void ApplyAutomationSettings()
     {
