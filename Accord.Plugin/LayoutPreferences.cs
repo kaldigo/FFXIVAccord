@@ -8,7 +8,7 @@ namespace Accord;
 // Intent/group definitions have no keyboard or controller coordinates. Only the
 // mapping owns destinations, so a future controller editor can reuse the content.
 public enum JobRole { Tank, Healer, Melee, PhysicalRanged, MagicalRanged, Noncombat }
-public enum ControlIntent { SingleTarget, AreaDamage, Burst, Protection, Support, Mechanics, Movement, Cleanse, ImportantRole, OtherRole, Exclusions, Travel, SingleHealing, AreaHealing, Raise, Knockback, Invulnerability, Enmity, Stance, Shirk, Other, Sprint, PartyProtection, PersonalProtection, TargetedProtection, Recovery, Rescue, Preparation, Interrupt, HealingProtection, AdditionalBurst, PrimaryMechanics, LimitBreak }
+public enum ControlIntent { SingleTarget, AreaDamage, Burst, Protection, Support, Mechanics, Movement, Cleanse, ImportantRole, OtherRole, Exclusions, Travel, SingleHealing, AreaHealing, Raise, Knockback, Invulnerability, Enmity, Stance, Shirk, Other, Sprint, PartyProtection, PersonalProtection, TargetedProtection, Recovery, Rescue, Preparation, Interrupt, HealingProtection, AdditionalBurst, PrimaryMechanics, LimitBreak, Pull }
 
 public sealed class ActionChoice
 {

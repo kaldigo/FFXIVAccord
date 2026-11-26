@@ -125,6 +125,16 @@ internal static class LayoutPreferencesTests
             Check(PveLayoutPlan.DamageValue(resolved, new PresetSlot { LogicalSlot = 5 }, new(1, 789)).Id == 789,
                 "Joined damage must preserve manual defense controls");
         }
+        var migratedPull = new LayoutPreferences { MappingVersion = 3 };
+        migratedPull.Global.Mapping = configured.CreateDefaults();
+        migratedPull.Global.Mapping.Areas.ForEach(area => area.Entries.RemoveAll(e => e.Intent == ControlIntent.Pull));
+        Check(configured.InitializeDefaults(migratedPull), "Pull migration was skipped");
+        var mainPull = migratedPull.Global.Mapping.Areas.First(area => area.Entries.Any(e => e.Intent == ControlIntent.AreaDamage));
+        Check(mainPull.Entries.FindIndex(e => e.Intent == ControlIntent.Pull) ==
+            mainPull.Entries.FindIndex(e => e.Intent == ControlIntent.AreaDamage) + 1, "Pull was not inserted next to rotation controls");
+        mainPull.Entries.RemoveAll(e => e.Intent == ControlIntent.Pull);
+        configured.InitializeDefaults(migratedPull);
+        Check(!mainPull.Entries.Any(e => e.Intent == ControlIntent.Pull), "User removal of Pull did not persist");
         bool Available(JobPreset job, ActionChoice a) => a.Name switch
         {
             "Second Wind" => LayoutPreferences.Role(job.JobId) is JobRole.Melee or JobRole.PhysicalRanged,
@@ -170,7 +180,7 @@ internal static class LayoutPreferencesTests
                         var originalSettings = new AccordSettings();
                         foreach (var variant in Enum.GetValues<VariantId>()) originalSettings.Variants[variant] = (mask & (1 << (int)variant)) != 0;
                         return pack.Resolve(job, originalSettings).Slots.Select(s => s.Action);
-                    }).Append("Sprint").ToHashSet();
+                    }).Append("Sprint").Concat(LayoutPreferences.Role(job.JobId) == JobRole.Tank ? new[] { "Pull" } : Array.Empty<string>()).ToHashSet();
                     Check(envelope.Controls.All(c => originalNames.Contains(c.Action.Name)), job.Job + " default added unrequested controls");
                 }
                 bool expectedOverflow = split && job.JobId == 33;
@@ -227,7 +237,7 @@ internal static class LayoutPreferencesTests
             "explicit legacy class mapping was not converted");
         var explicitEmpty = JsonConvert.DeserializeObject<LayoutPreferences>(JsonConvert.SerializeObject(new LayoutPreferences
             { MappingVersion = 3, PvP = new() { DefaultsVersion = 1 }, Classes = new() { [23] = new() } }))!;
-        Check(!configured.InitializeDefaults(explicitEmpty) && explicitEmpty.Classes.ContainsKey(23), "explicitly added empty override disappeared");
+        Check(configured.InitializeDefaults(explicitEmpty) && explicitEmpty.Classes.ContainsKey(23), "explicitly added empty override disappeared");
         // Fixture mirrors the shipped v2 mapping, not the new default factory.
         List<MappingEntry> OldEntries(params ControlIntent[] intents) => intents.Select(i => new MappingEntry
             { Intent = i, Priority = i == ControlIntent.ImportantRole ? 20 : 10 }).ToList();
@@ -242,8 +252,11 @@ internal static class LayoutPreferencesTests
         var customized = JsonConvert.DeserializeObject<LayoutPreferences>(JsonConvert.SerializeObject(shipped))!;
         customized.Global.Mapping.Areas[0].Entries[0].KeepManual = true;
         string customMapping = JsonConvert.SerializeObject(customized.Global.Mapping);
-        Check(configured.InitializeDefaults(shipped) && shipped.MappingVersion == 3 && shipped.Global.Mapping.Areas.All(a => a.Bar < 3 && a.First == 1 && a.Last == 12), "unedited shipped default was not repaired into edges");
-        Check(configured.InitializeDefaults(customized) && JsonConvert.SerializeObject(customized.Global.Mapping) == customMapping, "repair overwrote a user-customized mapping");
+        Check(configured.InitializeDefaults(shipped) && shipped.MappingVersion == 4 && shipped.Global.Mapping.Areas.All(a => a.Bar < 3 && a.First == 1 && a.Last == 12), "unedited shipped default was not repaired into edges");
+        Check(configured.InitializeDefaults(customized), "custom layout migration was skipped");
+        var migratedCustom = JsonConvert.DeserializeObject<IntentMapping>(JsonConvert.SerializeObject(customized.Global.Mapping))!;
+        migratedCustom.Areas.ForEach(area => area.Entries.RemoveAll(e => e.Intent == ControlIntent.Pull));
+        Check(JsonConvert.SerializeObject(migratedCustom) == customMapping, "Pull migration changed existing custom entries");
         Check(!configured.InitializeDefaults(shipped), "migration repeated");
         var customSettings = new AccordSettings { Layouts = customized };
         Check(configured.Contents(pack.Find(24)!, customSettings)[ControlIntent.Protection].Any(c => c.Action.Name == "Asylum"), "custom mapping lost its old protection membership");

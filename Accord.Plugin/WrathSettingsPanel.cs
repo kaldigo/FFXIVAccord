@@ -97,6 +97,7 @@ internal static class WrathSettingsPanel
                     Flag("Forecasts","Read BossMod encounter forecasts"),
                     Flag("SpaceMitigation","Defer forecast party mitigation when an observed defense covers the hit")),
                 new("Wrath · Tanks · saved automatically",
+                    Flag("AutoRoleMechanics","Auto role mechanics","Pick up loose adds and use basic AoE for grouped pairs. Respects other tanks and excludes automatic boss pickup."),
                     Flag("Paladin","PLD: coordinate burst with the planned GCD and active buffs"),
                     Flag("Warrior","WAR: check buff duration and downtime before burst"),
                     Flag("Gunbreaker","GNB: use observed No Mercy state and downtime checks"),

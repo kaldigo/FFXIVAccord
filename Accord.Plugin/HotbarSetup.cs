@@ -69,7 +69,8 @@ internal sealed class HotbarSetup
             var effectiveMaps = maps;
             bool existingSprint = ModeActions.HasSharedSprint(Protected, p=>NativeHotbars.Read(job,p));
             designActions.Add(new SlotValue(1,3));
-            foreach (var entry in PveLayoutPlan.Create(job, preset, effectiveMaps, Protected, sprint:!existingSprint))
+            var plannedLayout = PveLayoutPlan.Create(job, preset, effectiveMaps, Protected, sprint:!existingSprint);
+            foreach (var entry in plannedLayout)
             {
                 var slot = entry.Slot;
                 var value = slot is null ? default : slot.Action == "Sprint" ? new SlotValue(1,3) : actions.ResolveSlot(preset.Job, slot.Action);
@@ -80,6 +81,22 @@ internal sealed class HotbarSetup
                 if (configured is null) Add(entry.Regular, value, retired, true);
                 if (entry.Cross is { } cross) Add(cross, value, retired);
                 else if (value != default) Notice = " Some controls are keyboard-only because their controller slots are shared or unavailable. Shared bars were preserved.";
+            }
+            var pull = new SlotValue(1, 1000019);
+            if (LayoutPreferences.Role(job) == JobRole.Tank && (configured == null || configured.Values.Contains(pull)))
+            {
+                var rotation = plannedLayout.LastOrDefault(e => e.Slot?.LogicalSlot == 2)?.Cross;
+                if (rotation is { } anchor)
+                    foreach (int offset in Enumerable.Range(1, 16).OrderBy(offset =>
+                        NativeHotbars.Read(job, new Position(anchor.Bar, (anchor.Slot + offset) % 16)) == pull ? 0 : 1))
+                    {
+                        var position = new Position(anchor.Bar, (anchor.Slot + offset) % 16);
+                        if (keep.Contains(position) || Protected(position)) continue;
+                        var previous = NativeHotbars.Read(job, position);
+                        if (previous != default && previous != pull) continue;
+                        Add(position, pull, default);
+                        break;
+                    }
             }
             // Clear recognised assignments at vacated destinations, including
             // positions used by an earlier compact layout or Sprint fallback.
