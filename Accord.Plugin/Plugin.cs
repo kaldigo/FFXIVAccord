@@ -62,6 +62,7 @@ public sealed class Plugin : IDalamudPlugin
             Settings.Version = 2;
             pluginInterface.SavePluginConfig(Settings);
         }
+        if (Settings.MigrateRoleMechanics()) pluginInterface.SavePluginConfig(Settings);
         setup = new SetupController();
         bossModMovement = new BossModMovement();
         Automation = new AutomationControl();

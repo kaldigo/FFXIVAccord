@@ -10,6 +10,13 @@ internal static class PersistentRotationTests
         int checks = 0;
         void Check(bool ok, string reason) { checks++; if (!ok) throw new Exception(reason); }
         Check(new AccordSettings().AutomaticEngine == null && JsonConvert.DeserializeObject<AccordSettings>("{}")!.AutomaticEngine == null, "Missing engine preference became explicit");
+        var roles = new AccordSettings();
+        roles.WrathPreferences["AutoRoleMechanics"] = true;
+        Check(roles.MigrateRoleMechanics() && roles.Enabled(VariantId.RoleMechanics), "Existing role mechanics choice was lost");
+        roles.SetAutomation(VariantId.RoleMechanics, false);
+        Check(!roles.MigrateRoleMechanics() && !roles.Enabled(VariantId.RoleMechanics), "Migration overwrote a later toggle");
+        roles.Layouts.Roles[JobRole.Tank] = new() { Automation = new() { [VariantId.RoleMechanics] = true } };
+        Check(roles.EffectiveRoleMechanics(19) && !roles.EffectiveRoleMechanics(24), "Role mechanics inheritance failed");
         var old = JsonConvert.DeserializeObject<AccordSettings>("{\"AutomaticEngine\":0}")!;
         Check(old.AutomaticEngine == AutomationEngine.Wrath, "Existing saved engine preference lost on upgrade");
         Check(old.WrathPreferences.Value<bool>("BlackMage") && old.WrathPreferences.Value<bool>("Forecasts") && old.WrathPreferences.Value<bool>("EnemyTargeting"), "Existing installs did not receive enabled rotation improvements");

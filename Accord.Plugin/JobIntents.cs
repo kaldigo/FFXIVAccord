@@ -36,7 +36,9 @@ internal static class JobIntents
         [42] = ["Starry Muse initiation; native portrait, hammer and palette handling.", "Conditional Addle and Tempera Coat / Grassa on ST/AoE. Coat retains deliberate shield conversion/release.", Targeted, "Motif preparation remains native. Hammer and movement retain deliberate controls."],
     };
 
-    internal static string Describe(uint job, VariantId variant) => Jobs.TryGetValue(job, out var descriptions)
+    internal static string Describe(uint job, VariantId variant) => variant == VariantId.RoleMechanics
+        ? "Automatic tank pulling and loose-add pickup with party and alliance ownership checks."
+        : Jobs.TryGetValue(job, out var descriptions)
         ? descriptions[(int)variant]
         : "Manual noncombat layout; this variant has no additional effect.";
 }

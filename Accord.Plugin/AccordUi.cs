@@ -110,7 +110,7 @@ internal static class AccordUi
         var id = parts[0] switch
         {
             "burst" => VariantId.Burst, "protection" => VariantId.Protection,
-            "support" => VariantId.Support, "mechanics" => VariantId.ClassMechanics,
+            "support" => VariantId.Support, "mechanics" => VariantId.ClassMechanics, "role" => VariantId.RoleMechanics,
             _ => throw new ArgumentException("Use /accord manual, normal, selected, restore, live, burst, protection, support or mechanics."),
         };
         setup.SetVariant(id, Value(setup.VariantEnabled(id)));

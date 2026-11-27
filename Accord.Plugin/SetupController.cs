@@ -672,6 +672,14 @@ internal sealed class SetupController : IDisposable
         using var timing = AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.VariantChange);
         var desired = pendingChoices is null ? CloneSettings() : ConfiguredLayout.Clone(pendingChoices);
         desired.SetAutomation(id, enabled, !global && Player.Available ? Pack.Find((uint)Player.Job)?.JobId ?? 0 : 0, !global && IsPvP);
+        if (id == VariantId.RoleMechanics && pendingChoices == null)
+        {
+            AccordDiagnostics.PerformanceTimings.SaveConfig(desired);
+            Plugin.Instance.Settings = desired;
+            WrathSettingsPanel.Invalidate();
+            UpdateEntries();
+            return;
+        }
         ApplyChoices(desired, variantsOnly: pendingChoices == null || pendingVariantsOnly);
         PvP.Invalidate();
         if (!Settings.LiveMode) Status = "Variant saved. Static hotbars unchanged; use setup to restore any needed manual buttons.";
