@@ -86,7 +86,7 @@ internal static class AutomationHandoffTests
             {
                 left.Now = right.Now = now;
                 paused = AutomationPreference.PvPPaused(paused, pvp, loading);
-                var desired = AutomationPreference.Resolve(enabled, false, false, false, selected, paused || AutomationPreference.WaitingForCombatJob(job));
+                var desired = AutomationPreference.Resolve(enabled, selected, paused || AutomationPreference.WaitingForCombatJob(job));
                 if (desired != pvpControl.Requested) pvpControl.Request(desired, now);
                 pvpControl.Tick(now);
             }

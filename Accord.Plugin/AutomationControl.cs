@@ -42,7 +42,8 @@ internal sealed class AutomationControl : IDisposable
     private readonly ICallGateProvider<string, string> api = Svc.PluginInterface.GetIpcProvider<string, string>("Accord.AutomationRunner.v1");
     private readonly IDtrBarEntry entry = Svc.DtrBar.Get("Accord Auto rotation");
     private bool wrathAvailable, rsrAvailable, initialized, used;
-    private bool dutyAvailable, dutyRunning, pvpPaused, waitingForCombatJob;
+    private bool pvpPaused, waitingForCombatJob;
+    private readonly AutoDutyStart autoDutyStart = new();
     private const string CombatJobStatus = "Waiting for a combat job";
     private bool RunnerPaused => pvpPaused || waitingForCombatJob;
     private long nextDiscovery, nextAttempt, nextActivityPoll;
@@ -54,7 +55,7 @@ internal sealed class AutomationControl : IDisposable
     internal bool UsesRsrPositionals => handoff.Owner == AutomaticRunner.Rsr || handoff.Requested == AutomaticRunner.Rsr;
     private AutomaticRunner Selected => EngineAvailability.Resolve(Settings.AutomaticEngine, wrathAvailable, rsrAvailable);
     private string EngineLabel => Selected == AutomaticRunner.Off ? "Waiting for a compatible engine" : Selected.ToString();
-    private AutomaticRunner Desired => Settings.EmergencyRotation ? AutomaticRunner.Off : AutomationPreference.Resolve(Settings.AutoRotationEnabled, Settings.FollowAutoDuty, dutyAvailable, dutyRunning, Selected, RunnerPaused);
+    private AutomaticRunner Desired => Settings.EmergencyRotation ? AutomaticRunner.Off : AutomationPreference.Resolve(Settings.AutoRotationEnabled, Selected, RunnerPaused);
     private string Status => pvpPaused && Settings.AutoRotationEnabled && handoff.IsCoordinating
         ? "Auto rotation paused in PvP." : waitingForCombatJob && Settings.AutoRotationEnabled && !Settings.EmergencyRotation
         ? CombatJobStatus : Settings.AutoRotationEnabled && Selected == AutomaticRunner.Off ? EngineLabel : settingsError.Length > 0 ? settingsError : handoff.Status;
@@ -136,20 +137,28 @@ internal sealed class AutomationControl : IDisposable
         if (now >= nextActivityPoll)
         {
             nextActivityPoll = now + 500;
-            dutyAvailable = dutyRunning = false;
+            bool? dutyRunning = null;
             if (Settings.FollowAutoDuty)
             {
                 try
                 {
                     bool stopped = Svc.PluginInterface.GetIpcSubscriber<bool>("AutoDuty.IsStopped").InvokeFunc();
                     bool navigating = Svc.PluginInterface.GetIpcSubscriber<bool>("AutoDuty.IsNavigating").InvokeFunc();
-                    dutyAvailable = true;
                     dutyRunning = !stopped && navigating;
-                    activityStatus = dutyRunning ? "Following AutoDuty navigation." : "Waiting for AutoDuty navigation.";
+                    activityStatus = dutyRunning.Value
+                        ? "AutoDuty is active. The normal auto rotation toggle remains available."
+                        : "Auto-start when AutoDuty begins. Manual automation works while AutoDuty is idle; automation stays on after the run.";
                 }
-                catch { activityStatus = "Waiting for AutoDuty to become available."; }
+                catch { activityStatus = "AutoDuty is unavailable. The normal auto rotation toggle still works."; }
             }
-            else activityStatus = "AutoDuty does not control when Accord runs the selected engine.";
+            else activityStatus = "AutoDuty does not start Accord automation.";
+            if (autoDutyStart.Observe(Settings.FollowAutoDuty, dutyRunning) && !Settings.AutoRotationEnabled)
+            {
+                // Persist the same preference as a manual on request. Completion,
+                // pauses and IPC loss must not switch it off or repeat this request.
+                Request("on");
+                AccordDiagnostics.DiagnosticLog.Event("Automation.AutoDutyStart", () => new { Enabled = Settings.AutoRotationEnabled });
+            }
         }
         bool verified = true;
         if (wrathAvailable) verified &= WrathSettingsPanel.Tick();
