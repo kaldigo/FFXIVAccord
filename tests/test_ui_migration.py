@@ -22,6 +22,24 @@ class UiMigrationTests(unittest.TestCase):
             with self.subTest(file=file):
                 actual=hashlib.sha256((ROOT/file).read_bytes().replace(b'\r\n',b'\n')).hexdigest()
                 self.assertEqual(expected,actual,'Review any scope, setting or controller changes explicitly')
+        for file,review in inventory.get('reviewedSources',{}).items():
+            self.assertTrue(review['reason'])
+            self.assertEqual(review['sha256'],hashlib.sha256((ROOT/file).read_bytes().replace(b'\r\n',b'\n')).hexdigest(),file)
+
+    def test_override_editor_uses_hotbar_sections_and_shared_draft(self):
+        editor=(ROOT/'Accord.Plugin/LayoutEditor.Overrides.cs').read_text()
+        for operation in ['OverrideSections','OverrideFlag','DrawAssignments(setup, mapping','DrawAssignmentDetails(setup, mapping)',
+                          'over.Mapping = v ? Copy(parent.Mapping) : null','over.RoleActions = v ? Copy(parent.RoleActions) : null',
+                          'over.Exclusions = v ? Copy(parent.Exclusions) : null','over.Automation.Remove','OverrideRotation(over.Rotation']:
+            self.assertIn(operation,editor)
+        self.assertNotIn('BeginTabBar',editor)
+        self.assertNotIn('ImGui.Checkbox',editor)
+        registry=(ROOT/'Accord.Plugin/AccordNavigation.cs').read_text()
+        self.assertNotIn('CombatOverrides',registry)
+        collections=(ROOT/'Accord.Plugin/LayoutEditor.Collections.cs').read_text()
+        self.assertIn('OverrideSections(setup, draft.PvP.Global',collections)
+        self.assertIn('group.Classes.Remove',collections)
+        self.assertIn('group.Roles.Remove',collections)
 
     def test_all_old_editors_have_an_entry_point(self):
         window=(ROOT/'Accord.Plugin/AccordWindow.cs').read_text()

@@ -15,6 +15,8 @@
   <ItemGroup>
     <Compile Include="../Accord.Plugin/RotationEditor.cs" Link="RotationEditor.cs" />
     <Compile Include="../Accord.Plugin/LayoutEditor.Studio.cs" Link="LayoutEditor.Studio.cs" />
+    <Compile Include="../Accord.Plugin/LayoutEditor.Overrides.cs" Link="LayoutEditor.Overrides.cs" />
+    <Compile Include="../Accord.Plugin/LayoutEditor.Collections.cs" Link="LayoutEditor.Collections.cs" />
     <Compile Include="../Accord.Plugin/LayoutPreferences.cs" Link="LayoutPreferences.cs" />
     <Compile Include="../Accord.Plugin/Hotbars/Models.cs" Link="HotbarModels.cs" />
     <Compile Include="../Contract/RotationPreferences.cs" Link="RotationPreferences.cs" />

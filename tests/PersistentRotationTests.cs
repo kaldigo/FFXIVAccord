@@ -25,6 +25,8 @@ internal static class PersistentRotationTests
             "Default field settings should allow rescue and keep the dash manual");
         Check(old.WrathPreferences.Value<bool?>("HealEncounterPlayers") == false, "Encounter healing must be opt-in");
         Check(old.WrathPreferences.Value<bool?>("AllowPhantomRage") == false, "Rage should be manual on upgrade");
+        Check(old.WrathPreferences.Value<bool>("TankAoeRangedFallback"), "Upgrade changed Warrior AoE ranged uptime");
+        old.WrathPreferences["TankAoeRangedFallback"] = false;
         old.WrathPreferences["AllowPhantomRage"] = true;
         old.WrathPreferences["HealEncounterPlayers"] = true;
         old.WrathPreferences["AcquireVisibleEnemy"] = false;
@@ -71,6 +73,12 @@ internal static class PersistentRotationTests
         engine.Remove("AllowPhantomKick");
         engine.Remove("AllowPhantomRage");
         engine.Remove("AcquireVisibleEnemy");
+        engine.Remove("TankAoeRangedFallback");
+        bool unsupported = false;
+        try { WrathPreferences.Apply(desired, () => (JObject)engine.DeepClone(), Write); }
+        catch (InvalidOperationException ex) { unsupported = ex.Message.Contains("Update Wrath"); }
+        Check(unsupported && writes == 1, "Older engine silently accepted disabled AoE Tomahawk");
+        desired["TankAoeRangedFallback"] = true;
         WrathPreferences.Apply(desired, () => (JObject)engine.DeepClone(), Write);
         Check(writes == 1 && desired.Value<bool?>("AcquireVisibleEnemy") == false, "Older engine changed saved acquisition preference");
         engine["AcquireVisibleEnemy"] = false;
