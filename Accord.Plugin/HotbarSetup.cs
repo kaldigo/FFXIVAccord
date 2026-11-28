@@ -112,7 +112,10 @@ internal sealed class HotbarSetup
                     for (int slot = 0; slot < 12; slot++)
                     {
                         var position = new Position(bar - 1, slot);
-                        var value = configured.GetValueOrDefault(position);
+                        // Use the same Sprint representation as SprintHotbars.
+                        // Otherwise an exported General Action Sprint is repaired
+                        // back after every mode refresh, causing writes and saves.
+                        var value = ModeActions.ForMode(configured.GetValueOrDefault(position), false);
                         var old = NativeHotbars.Read(job, position);
                         if (old != value) edits[(job, position)] = new(job, position, old, value);
                     }
