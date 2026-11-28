@@ -34,13 +34,13 @@ internal sealed class AccordWindow : Window
         string job = Player.Available ? Player.Job.ToString() : "Offline";
         shell.Draw(job, Plugin.Instance.Automation.HeaderEngine, DrawTask, () =>
         {
-            LayoutEditor.Footer(setup);
             if (!string.IsNullOrWhiteSpace(setup.Status))
             {
                 ImGui.TextDisabled(setup.Status.Split('\n')[0]);
                 if (ImGui.IsItemHovered()) ImGui.SetTooltip(setup.Status);
             }
-        }, Plugin.Instance.Automation.DrawDock, () => IsOpen = false, Topics, DrawHeaderMark);
+        }, Plugin.Instance.Automation.DrawDock, () => IsOpen = false, Topics, DrawHeaderMark,
+            LayoutEditor.PendingChanges(setup,()=>shell.OpenTask(TaskPage.Preview)));
     }
     private static void DrawHeaderMark(Vector2 headerPosition, float size)
     {
@@ -107,7 +107,8 @@ internal sealed class AccordWindow : Window
     private Topic[]? Topics(TaskPage task)=>task switch {
         TaskPage.Home=>[Plugin.Instance.Automation.PlaySettings(),Permissions(false)],
         TaskPage.Permissions=>[Permissions(true)],
-        TaskPage.Enemies=>[..WrathSettingsPanel.Rows(task),LayoutEditor.RotationRows(LayoutEditor.RotationSection.Targeting),BossModMovementRows()],
+        TaskPage.Enemies=>[..WrathSettingsPanel.Rows(task),LayoutEditor.RotationRows(LayoutEditor.RotationSection.Targeting)],
+        TaskPage.Integrations=>[BossModMovementRows()],
         TaskPage.Healing=>[LayoutEditor.RotationRows(LayoutEditor.RotationSection.Healing),..WrathSettingsPanel.Rows(task)],
         TaskPage.Opener=>[LayoutEditor.RotationRows(LayoutEditor.RotationSection.Openers)],
         TaskPage.JobTuning=>WrathSettingsPanel.Rows(task),
@@ -125,12 +126,16 @@ internal sealed class AccordWindow : Window
     {
         switch(task){
             case TaskPage.Jobs: AccordUi.DrawClassSelection(setup); break;
-            case TaskPage.Mapping: Layout(Page.Hotbars); break;
+            case TaskPage.Mapping: LayoutEditor.DrawStudio(setup,shell.ConsumeReveal(TaskPage.Mapping)!=null); break;
             case TaskPage.RoleActions: Layout(Page.RoleActions); break;
             case TaskPage.Groups: Layout(Page.Groups); break;
             case TaskPage.Overrides: Layout(Page.Overrides); break;
+            case TaskPage.CombatOverrides: Layout(Page.Overrides); break;
             case TaskPage.PvPOverrides: Layout(Page.PvPOverrides); break;
-            case TaskPage.Preview: Layout(Page.Preview); break;
+            case TaskPage.Preview:
+                Layout(Page.Preview);
+                if(AetherglassUI.Controls.ActionButton("Open hotbar update and apply controls"))shell.OpenTask(TaskPage.Managed);
+                break;
         }
     }
 }

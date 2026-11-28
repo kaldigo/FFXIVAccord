@@ -1,0 +1,161 @@
+{
+  "baseline": "72b5a1debbf903a108c026b698fa8b23ec3f5127",
+  "destinations": [
+    {
+      "id": "Home",
+      "oldArea": "Play",
+      "oldGroup": "",
+      "oldTitle": "Play controls",
+      "capability": "Auto rotation, engine selection and AutoDuty"
+    },
+    {
+      "id": "Permissions",
+      "oldArea": "Rules",
+      "oldGroup": "Action selection",
+      "oldTitle": "Automation permissions",
+      "capability": "Burst, support, protection and class mechanics"
+    },
+    {
+      "id": "Enemies",
+      "oldArea": "Rules",
+      "oldGroup": "Action selection",
+      "oldTitle": "Enemy targeting",
+      "capability": "Single target, AoE threshold, mouseover and visible targets"
+    },
+    {
+      "id": "Healing",
+      "oldArea": "Rules",
+      "oldGroup": "Action selection",
+      "oldTitle": "Healing and allies",
+      "capability": "Weave healing, raise, cleanse and choose recipients"
+    },
+    {
+      "id": "Reserved",
+      "oldArea": "Rules",
+      "oldGroup": "Action selection",
+      "oldTitle": "Reserve actions for manual use",
+      "capability": "Wrath button exclusions and RSR action permissions"
+    },
+    {
+      "id": "Opener",
+      "oldArea": "Rules",
+      "oldGroup": "Job and engine behaviour",
+      "oldTitle": "Pulls and openers",
+      "capability": "Combat-only actions, job openers and potions"
+    },
+    {
+      "id": "JobTuning",
+      "oldArea": "Rules",
+      "oldGroup": "Job and engine behaviour",
+      "oldTitle": "Job improvements",
+      "capability": "Per-job rotation choices, forecasts and mitigation"
+    },
+    {
+      "id": "Rsr",
+      "oldArea": "Rules",
+      "oldGroup": "Job and engine behaviour",
+      "oldTitle": "RSR automation rules",
+      "capability": "Defense, healing thresholds, ground actions and burst"
+    },
+    {
+      "id": "Jobs",
+      "oldArea": "Bars",
+      "oldGroup": "Setup",
+      "oldTitle": "Choose managed jobs",
+      "capability": "Enable Accord for combat, crafting and gathering jobs"
+    },
+    {
+      "id": "Managed",
+      "oldArea": "Bars",
+      "oldGroup": "Setup",
+      "oldTitle": "Choose managed bars",
+      "capability": "Live updates, shared bars and controller cleanup"
+    },
+    {
+      "id": "Mapping",
+      "oldArea": "Bars",
+      "oldGroup": "Layout",
+      "oldTitle": "Place rotation buttons",
+      "capability": "Map actions and intents to hotbar slots"
+    },
+    {
+      "id": "RoleActions",
+      "oldArea": "Bars",
+      "oldGroup": "Layout",
+      "oldTitle": "Place role actions",
+      "capability": "Choose role actions for managed slots"
+    },
+    {
+      "id": "Groups",
+      "oldArea": "Bars",
+      "oldGroup": "Layout",
+      "oldTitle": "Personal action groups",
+      "capability": "Items, potions and extra actions"
+    },
+    {
+      "id": "Overrides",
+      "oldArea": "Bars",
+      "oldGroup": "Exceptions and review",
+      "oldTitle": "Role and job overrides",
+      "capability": "Override inherited mappings, automation and rotation rules"
+    },
+    {
+      "id": "PvP",
+      "oldArea": "Bars",
+      "oldGroup": "Exceptions and review",
+      "oldTitle": "PvP setup",
+      "capability": "Compact bars, Guard, rotation buttons and action selection"
+    },
+    {
+      "id": "PvPOverrides",
+      "oldArea": "Bars",
+      "oldGroup": "Exceptions and review",
+      "oldTitle": "PvP overrides",
+      "capability": "Role and job exceptions for PvP"
+    },
+    {
+      "id": "Preview",
+      "oldArea": "Bars",
+      "oldGroup": "Exceptions and review",
+      "oldTitle": "Preview resolved hotbars",
+      "capability": "Inspect the layout a job inherits before applying it"
+    },
+    {
+      "id": "DutyLog",
+      "oldArea": "Tools",
+      "oldGroup": "Record a problem",
+      "oldTitle": "Latest duty log",
+      "capability": "Arm logging, mark a moment and export the duty ZIP"
+    },
+    {
+      "id": "Trace",
+      "oldArea": "Tools",
+      "oldGroup": "Record a problem",
+      "oldTitle": "Inspect rotation decisions",
+      "capability": "Capture a short trace of actions and targets"
+    },
+    {
+      "id": "Recovery",
+      "oldArea": "Tools",
+      "oldGroup": "Restore a setup",
+      "oldTitle": "Hotbar recovery",
+      "capability": "Manual fallback, backup restore and troubleshooting report"
+    }
+  ],
+  "unchangedSources": {
+    "Accord.Plugin/AccordSettings.cs": "3aa5a1324b61509a210ee36422371f5e5444075408f5760316214f70fa25db3f",
+    "Accord.Plugin/LayoutPreferences.cs": "fbec2c2b6a8d4487af5ad0a084b0f22c7df0c2fb3888f5e8a7b0c577a9e820ee",
+    "Contract/RotationPreferences.cs": "96e54f5f346c0e7a170b8622d7581efd8be755ac48cc665e71ed24820e42f962",
+    "Accord.Plugin/WrathPreferences.cs": "249bf07f3aa6d114b1aeebce16207d34f596dee5f436a443990ca03444f21097",
+    "Accord.Plugin/AccordUi.cs": "7265282d6c9ddf01803825846ff14a5674d25481bcae70ba4e8ee7e735efbfde",
+    "Accord.Plugin/WrathSettingsPanel.cs": "a05a232d60e504ce0632bf9363d5c90488365bf67cde0bd169ab48db64a6d461",
+    "Accord.Plugin/RsrSettingsPanel.cs": "29001a1275cdcc233b13e67c0f15ea694950947822aab74350531540c430ee88",
+    "Accord.Plugin/RsrPermissionsPanel.cs": "106b386b90dfeae24f3914ea7e83b17320e1f486a8b2a2460e33b9fc34f580c5",
+    "Accord.Plugin/RotationTestingPanel.cs": "41dbfb812884075e15c24fac3dbcaa7acf0fd618476791ea2057f354c054bbf6",
+    "Accord.Plugin/DiagnosticCapturePanel.cs": "2837a91d7ae105ea0b4ac2af14354056026d115f7521e427cc2ab6f06f39d3f8",
+    "Accord.Plugin/SetupController.cs": "9e7c76bc10e0f3e28215fad1b99ea7baad1d36767e48dce7b6dd6dbfd0bdb226",
+    "Accord.Plugin/ConfiguredLayout.cs": "a83f2e8345d77e1cbbfe51c7fbe20e00f354b4f62d65f6e9b4cec5894b01558d",
+    "Accord.Plugin/PvPConfiguredLayout.cs": "ceade0ac3b67f83bbcf8f75a304e8e08c9efc07ef38b6ac81ac11ef43f6af135",
+    "Accord.Plugin/ManualFallback.cs": "9662cb69b41f783a50ff95d43edb4a3e6cfe045961f886a650d7671a5ad854e1"
+  }
+}

@@ -49,6 +49,11 @@ internal static class AccordChrome
             case Desk.Tools:
                 Line(1,13,6,13); Line(6,13,10,5); Line(10,5,14,19); Line(14,19,18,11); Line(18,11,23,11);
                 break;
+            case Desk.Setup:
+                dl.AddCircle(Pt(12,12),7*s,stroke,16,1.5f*s);
+                dl.AddCircle(Pt(12,12),2*s,stroke,12,1.5f*s);
+                Line(12,1,12,5);Line(12,19,12,23);Line(1,12,5,12);Line(19,12,23,12);
+                break;
         }
     }
 }

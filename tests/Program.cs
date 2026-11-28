@@ -7,6 +7,7 @@ using Newtonsoft.Json.Linq;
 using WrathFork.Contract;
 
 int checks = 0;
+checks += UiNavigationTests.Run();
 if (args.Length == 2 && args[0] == "--replay-capture")
 {
     Console.WriteLine($"Replayed {DecisionReplay.Run(JObject.Parse(File.ReadAllText(args[1])))} decision samples without game execution.");

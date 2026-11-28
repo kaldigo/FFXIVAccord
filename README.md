@@ -18,6 +18,10 @@ This standalone repository was extracted from the Accord companion source at com
 
 ## Testing window
 
-Open `/accord` for Play, Rotation rules, Hotbar studio and Testing & recovery. Search filters the current workspace, including settings in collapsed groups. Wrath and RSR preference edits save immediately. Changes to rotation-button rules and hotbar layouts stay in the shared draft until you save or discard them. Import and stopped-operation recovery continue through Accord’s existing controllers.
+Open `/accord` for Play, Combat, Hotbars, Setup and Help & recovery. The labelled sidebar exposes each workspace's pages; compact windows retain the icon rail and a page picker. Search finds pages and individual settings across the window. Wrath and RSR preference edits save immediately. Rotation-button rules and hotbar layouts retain their shared draft, with Save and Discard in a persistent bar. The layout studio keeps assignment editing beside the existing resolved preview; compact windows use separate views. Import and stopped-operation recovery continue through Accord's existing controllers.
 
 Builds reference the [AetherglassUI source project](https://github.com/kaldigo/FFXIV-AetherglassUI). Standalone builds can set `AetherglassUIProject` to the library project path. The testing workflow checks out its pinned revision and packages `AetherglassUI.dll` with Accord.
+
+The layout migration uses the updated Aetherglass navigation/layout components.
+See [migration coverage and validation](docs/ui-layout-migration.md), including
+the shared-library pin required before a remote testing release.

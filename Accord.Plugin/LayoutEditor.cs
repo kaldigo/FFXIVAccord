@@ -63,6 +63,7 @@ internal static partial class LayoutEditor
     private static bool groupPvP;
     private static LayoutResult? preview;
     private static string previewKey = "";
+    private static string? selectedPreviewSlot;
     internal static void BeginSession(SetupController setup)
     {
         string current = JsonConvert.SerializeObject(setup.Settings.Layouts);
@@ -354,20 +355,18 @@ internal static partial class LayoutEditor
         foreach (int bar in preferences.ManagedBars)
         {
             ImGui.PushID(bar); ImGui.TextUnformatted($"Bar {bar}");
-            if (ImGui.BeginTable("Slots", ImGui.GetContentRegionAvail().X < 600 * ImGuiHelpers.GlobalScale ? 6 : 12, ImGuiTableFlags.SizingStretchSame))
-            {
-                for (int slot = 1; slot <= 12; slot++)
-                {
-                    ImGui.TableNextColumn();
-                    var control = preview.Controls.FirstOrDefault(c => c.Position == new Position(bar - 1, slot - 1));
-                    string name = control?.Action.Name ?? "Empty";
-                    string shortened = name.Length > 7 ? name[..6] + "..." : name;
-                    ImGui.Button($"{slot}\n{shortened}##slot{slot}", new Vector2(-1, 42 * ImGuiHelpers.GlobalScale));
-                    if (ImGui.IsItemHovered()) ImGui.SetTooltip($"Bar {bar}, slot {slot}: {name}");
-                }
-                ImGui.EndTable();
-            }
+            var slots=Enumerable.Range(1,12).Select(slot=>{
+                var control=preview.Controls.FirstOrDefault(c=>c.Position==new Position(bar-1,slot-1));
+                return new AetherglassUI.SlotCell($"{bar}/{slot}",control?.Action.Name??"",slot,control?.Source??"Empty")
+                    {Emphasized=control!=null};
+            }).ToArray();
+            selectedPreviewSlot=AetherglassUI.SlotGrid.Draw("resolved-slots",slots,selectedPreviewSlot);
             ImGui.PopID();
+        }
+        if(selectedPreviewSlot is {} selected)
+        {
+            var control=preview.Controls.FirstOrDefault(c=>$"{c.Position.Bar+1}/{c.Position.Slot+1}"==selected);
+            ImGui.TextWrapped(control==null?"Selected slot is empty.":$"{control.Position}: {control.Action.Name} · {control.Source}");
         }
         foreach (var issue in preview.Issues) ImGui.TextWrapped(issue.Message);
         if (ImGui.CollapsingHeader("Resolved controls"))

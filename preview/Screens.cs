@@ -11,6 +11,7 @@ namespace AccordPreview;
 public abstract class Screen : IPreviewScreen
 {
     private readonly AccordShell shell = new();
+    private readonly SetupController setup=new();
     private bool enabled = true, follow;
     private int engine;
     private readonly string[] names = ["Single target (ST)", "Area damage (AoE)", "Healing protection"];
@@ -46,7 +47,7 @@ public abstract class Screen : IPreviewScreen
                 for (int i=0;i<labels.Length;i++) AccordControls.Toggle(labels[i], ref permissions[i], "Global");
             });
         }
-        else if (task == TaskPage.Mapping) DrawMapping();
+        else if (task == TaskPage.Mapping) LayoutEditor.DrawStudio(setup);
         else if (task == TaskPage.Healing)
         {
             Gw.Heading("Damage buttons · save changes");
@@ -55,7 +56,8 @@ public abstract class Screen : IPreviewScreen
             AccordControls.HealingRules(key => ruleset.TryGetValue(key, out bool value) && value, (key, value) => ruleset[key] = value);
         }
         else if (task == TaskPage.Enemies) AccordControls.EnemyRules(key => ruleset.TryGetValue(key, out bool value) && value, (key, value) => ruleset[key] = value);
-        }, () => { }, () => AccordControls.Dock(enabled, value => enabled = value), () => { });
+        }, () => { }, () => AccordControls.Dock(enabled, value => enabled = value), () => { },
+            changes:LayoutEditor.PendingChanges(setup,()=>shell.OpenTask(TaskPage.Preview)));
     }
     private void DrawMapping()
     {
@@ -103,7 +105,7 @@ public sealed class Hotbars : Screen
 {
     public Hotbars() : base(false) => StartIn(Desk.Bars);
     public override string Name => "accord-hotbars";
-    public override Vector2 WindowSize => new(960, 770);
+    public override Vector2 WindowSize => new(1400, 1000);
 }
 public sealed class Tools : Screen
 {
