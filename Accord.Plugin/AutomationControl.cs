@@ -18,8 +18,9 @@ internal sealed class AutomationControl : IDisposable
             if (!Loaded) return false;
             try
             {
-                var response = JObject.Parse(Svc.PluginInterface.GetIpcSubscriber<string, string>(name)
-                    .InvokeFunc(new JObject { ["Command"] = "status" }.ToString()));
+                var response = JObject.Parse(AccordDiagnostics.IntegrationTrace.Call(name,
+                    () => Svc.PluginInterface.GetIpcSubscriber<string, string>(name).InvokeFunc(new JObject { ["Command"] = "status" }.ToString()),
+                    input: new { Command = "status" }));
                 return EngineAvailability.Compatible(Loaded, response);
             }
             catch { return false; }
@@ -29,7 +30,9 @@ internal sealed class AutomationControl : IDisposable
             if (!Loaded) return new(false, false, false, false, "", Absent: true);
             var request = new JObject { ["Command"] = command, ["Token"] = token.ToString() };
             AccordDiagnostics.DiagnosticLog.Event("Handoff.Request", () => new { Endpoint = name, Command = command, Token = token });
-            var response = JObject.Parse(Svc.PluginInterface.GetIpcSubscriber<string, string>(name).InvokeFunc(request.ToString()));
+            var response = JObject.Parse(AccordDiagnostics.IntegrationTrace.Call(name,
+                () => Svc.PluginInterface.GetIpcSubscriber<string, string>(name).InvokeFunc(request.ToString()),
+                write: command != "status", input: new { Command = command }));
             AccordDiagnostics.DiagnosticLog.Event("Handoff.Response", () => new { Endpoint = name, Response = response });
             return new(response.Value<bool>("Success") && response.Value<int>("Version") == 1,
                 response.Value<bool>("Owned"), response.Value<bool>("Allowed"), response.Value<bool>("Busy"), response.Value<string>("Build") ?? "", Running: response.Value<bool>("Running"));
@@ -142,8 +145,8 @@ internal sealed class AutomationControl : IDisposable
             {
                 try
                 {
-                    bool stopped = Svc.PluginInterface.GetIpcSubscriber<bool>("AutoDuty.IsStopped").InvokeFunc();
-                    bool navigating = Svc.PluginInterface.GetIpcSubscriber<bool>("AutoDuty.IsNavigating").InvokeFunc();
+                    bool stopped = AccordDiagnostics.IntegrationTrace.Call("AutoDuty.IsStopped", Svc.PluginInterface.GetIpcSubscriber<bool>("AutoDuty.IsStopped").InvokeFunc);
+                    bool navigating = AccordDiagnostics.IntegrationTrace.Call("AutoDuty.IsNavigating", Svc.PluginInterface.GetIpcSubscriber<bool>("AutoDuty.IsNavigating").InvokeFunc);
                     dutyRunning = !stopped && navigating;
                     activityStatus = dutyRunning.Value
                         ? "AutoDuty is active. The normal auto rotation toggle remains available."
