@@ -8,7 +8,7 @@ namespace Accord;
 // Intent/group definitions have no keyboard or controller coordinates. Only the
 // mapping owns destinations, so a future controller editor can reuse the content.
 public enum JobRole { Tank, Healer, Melee, PhysicalRanged, MagicalRanged, Noncombat }
-public enum ControlIntent { SingleTarget, AreaDamage, Burst, Protection, Support, Mechanics, Movement, Cleanse, ImportantRole, OtherRole, Exclusions, Travel, SingleHealing, AreaHealing, Raise, Knockback, Invulnerability, Enmity, Stance, Shirk, Other, Sprint, PartyProtection, PersonalProtection, TargetedProtection, Recovery, Rescue, Preparation, Interrupt, HealingProtection, AdditionalBurst, PrimaryMechanics, LimitBreak }
+public enum ControlIntent { SingleTarget, AreaDamage, Burst, Protection, Support, Mechanics, Movement, Cleanse, ImportantRole, OtherRole, Exclusions, Travel, SingleHealing, AreaHealing, Raise, Knockback, Invulnerability, Enmity, Stance, Shirk, Other, Sprint, PartyProtection, PersonalProtection, TargetedProtection, Recovery, Rescue, Preparation, Interrupt, HealingProtection, AdditionalBurst, PrimaryMechanics, LimitBreak, Pull }
 
 public sealed class ActionChoice
 {
@@ -101,6 +101,7 @@ public sealed class LayoutValues
     public IntentMapping Mapping { get; set; } = new();
     public bool KeepManual { get; set; }
     public bool SplitMechanics { get; set; }
+    public bool JoinedDamage { get; set; }
     public RoleActionSelection RoleActions { get; set; } = new();
     public List<ActionExclusion> Exclusions { get; set; } = new();
 }
@@ -121,6 +122,8 @@ public sealed class LayoutOverride
     [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
     public bool? SplitMechanics { get; set; }
     [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+    public bool? JoinedDamage { get; set; }
+    [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
     public RoleActionSelection? RoleActions { get; set; }
     [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
     public List<ActionExclusion>? Exclusions { get; set; }
@@ -130,6 +133,7 @@ public sealed class LayoutOverride
         Rotation = Rotation.Over(parent.Rotation),
         Mapping = Mapping ?? parent.Mapping, KeepManual = KeepManual ?? parent.KeepManual,
         SplitMechanics = SplitMechanics ?? parent.SplitMechanics,
+        JoinedDamage = JoinedDamage ?? parent.JoinedDamage,
         RoleActions = RoleActions ?? parent.RoleActions, Exclusions = Exclusions ?? parent.Exclusions,
     };
 }
@@ -148,7 +152,7 @@ public sealed class LayoutPreferences
     public IEnumerable<int> ManagedBars => new[] { 1, 2, 3 }.Concat(AdditionalBars).Distinct().Order();
     public LayoutValues Resolve(uint job)
     {
-        var result = Global;
+        var result = new LayoutOverride { Rotation = Global.Rotation.Over(WrathFork.Contract.RotationPreferences.Defaults()) }.Over(Global);
         if (Roles.TryGetValue(Role(job), out var role)) result = role.Over(result);
         if (Classes.TryGetValue(job, out var cls)) result = cls.Over(result);
         return result;
@@ -186,7 +190,7 @@ public sealed class LayoutPreferences
 
     internal void PruneUnusedOverrides()
     {
-        static bool Empty(LayoutOverride o) => o.Rotation.Empty && o.Automation.Count == 0 && o.Mapping is null && o.KeepManual is null && o.SplitMechanics is null && o.RoleActions is null && o.Exclusions is null;
+        static bool Empty(LayoutOverride o) => o.Rotation.Empty && o.Automation.Count == 0 && o.Mapping is null && o.KeepManual is null && o.SplitMechanics is null && o.JoinedDamage is null && o.RoleActions is null && o.Exclusions is null;
         foreach (var role in Roles.Where(p => Empty(p.Value)).Select(p => p.Key).ToArray()) Roles.Remove(role);
         foreach (var job in Classes.Where(p => Empty(p.Value)).Select(p => p.Key).ToArray()) Classes.Remove(job);
         foreach (var role in PvP.Roles.Where(p => Empty(p.Value)).Select(p => p.Key).ToArray()) PvP.Roles.Remove(role);

@@ -16,12 +16,13 @@ internal static class HotbarLayoutStore
     private static Dictionary<string, HashSet<uint>> Observed => observed ??=
         File.Exists(PathName) ? JsonSerializer.Deserialize<Dictionary<string, HashSet<uint>>>(File.ReadAllText(PathName))
             ?? throw new InvalidDataException("Invalid PvP initialization record.") : new();
+    internal static bool Loading => Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas] ||
+        Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas51];
     internal static unsafe void Ready(bool pvp)
     {
         if (!Player.Available || !Svc.ClientState.IsLoggedIn) throw new InvalidOperationException("Wait for a character.");
         NativeHotbars.Ready((uint)Player.Job, pvp);
-        if (Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas] ||
-            Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas51])
+        if (Loading)
             throw new InvalidOperationException("Hotbar updates wait for loading to finish.");
         if (Svc.PluginInterface.InstalledPlugins.Any(p => p.InternalName == "HotbarBridge" && p.IsLoaded))
             throw new InvalidOperationException("Disable or uninstall retired Hotbar Bridge before Accord changes hotbars.");

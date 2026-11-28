@@ -16,8 +16,8 @@ namespace Accord;
 public sealed class Plugin : IDalamudPlugin
 {
     internal static Plugin Instance = null!;
-    internal bool IsOpen;
-    private bool firstOpen = true;
+    private readonly Dalamud.Interface.Windowing.WindowSystem windows = new("Accord");
+    private readonly AccordWindow window;
     internal bool MigrationPending;
     internal bool RequiresMigration;
     internal string MigrationSource = "";
@@ -25,6 +25,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly SetupController setup;
     private readonly BossModMovement bossModMovement;
     internal string BossModMovementStatus => bossModMovement.Status;
+    internal readonly AutomationControl Automation;
 
     public Plugin(IDalamudPluginInterface pluginInterface)
     {
@@ -48,7 +49,6 @@ public sealed class Plugin : IDalamudPlugin
             Settings.LiveMode = false;
             MigrationPending = true;
             RequiresMigration = true;
-            IsOpen = true;
         }
         else Settings = pluginInterface.GetPluginConfig() as AccordSettings ?? new AccordSettings();
         if (Settings.Version < 2 && !MigrationPending)
@@ -62,8 +62,14 @@ public sealed class Plugin : IDalamudPlugin
             Settings.Version = 2;
             pluginInterface.SavePluginConfig(Settings);
         }
+        if (Settings.MigrateRoleMechanics()) pluginInterface.SavePluginConfig(Settings);
         setup = new SetupController();
         bossModMovement = new BossModMovement();
+        Automation = new AutomationControl();
+        window = new AccordWindow(setup);
+        windows.AddWindow(window);
+        if (MigrationPending) Open();
+        DiagnosticCapturePanel.Init();
         Svc.Commands.AddHandler("/accord", new Dalamud.Game.Command.CommandInfo((_, args) => setup.Run(() => AccordUi.Command(args))) { HelpMessage = "Open Accord setup and hotbar controls." });
         pluginInterface.UiBuilder.Draw += Draw;
         pluginInterface.UiBuilder.OpenConfigUi += Open;
@@ -71,47 +77,43 @@ public sealed class Plugin : IDalamudPlugin
         Svc.Framework.Update += Update;
     }
 
-    private void Open() => IsOpen = true;
+    internal void Open() { window.IsOpen = true; window.BringToFront(); }
     private void Update(IFramework _)
     {
+        AccordDiagnostics.PerformanceTimings.Report();
+        using var timing = AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.Framework);
+        DiagnosticCapturePanel.Tick();
+        Automation.Tick();
         setup.Run(setup.Tick);
-        bossModMovement.Tick(setup);
+        bossModMovement.Tick(setup, Automation.UsesRsrPositionals);
     }
     private void Draw()
     {
-        if (!IsOpen) return;
-        var display = ImGui.GetIO().DisplaySize;
-        var maximum = Vector2.Max(new Vector2(320, 260), display - new Vector2(40, 60));
-        ImGui.SetNextWindowSizeConstraints(Vector2.Min(new Vector2(800, 520) * ImGuiHelpers.GlobalScale, maximum), maximum);
-        if (firstOpen)
-        {
-            ImGui.SetNextWindowSize(Vector2.Min(new Vector2(1100, 760) * ImGuiHelpers.GlobalScale, maximum), ImGuiCond.Always);
-            firstOpen = false;
-        }
-        if (ImGui.Begin("Accord###Accord", ref IsOpen))
-        {
-            if (MigrationPending)
-            {
-                ImGui.TextWrapped(setup.MigrationSummary);
-                ImGui.TextWrapped(setup.Status);
-                if (ImGui.Button("Preview personal settings import")) setup.Run(setup.PreviewMigration);
-                if (setup.MigrationReady && ImGui.Button("Import these personal settings")) setup.Run(setup.ImportMigration);
-                if (!RequiresMigration && !setup.HasPendingOperation && ImGui.Button("Cancel import")) MigrationPending = false;
-                if (setup.HasPendingOperation && ImGui.Button("Keep recovery record and review again")) setup.Run(setup.AbandonPendingOperation);
-            }
-            else AccordUi.Draw();
-        }
-        ImGui.End();
+        if (!window.IsOpen) return;
+        windows.Draw();
+    }
+    internal void DrawMigration()
+    {
+        ImGui.TextUnformatted("Import personal settings");
+        ImGui.TextWrapped(setup.MigrationSummary);
+        ImGui.TextWrapped(setup.Status);
+        if (ImGui.Button("Preview personal settings import")) setup.Run(setup.PreviewMigration);
+        if (setup.MigrationReady && ImGui.Button("Import these personal settings")) setup.Run(setup.ImportMigration);
+        if (!RequiresMigration && !setup.HasPendingOperation && ImGui.Button("Cancel import")) MigrationPending = false;
+        if (setup.HasPendingOperation && ImGui.Button("Keep recovery record and review again")) setup.Run(setup.AbandonPendingOperation);
     }
     public void Dispose()
     {
         Svc.Framework.Update -= Update;
+        DiagnosticCapturePanel.Dispose();
+        Automation.Dispose();
         Svc.PluginInterface.UiBuilder.Draw -= Draw;
         Svc.PluginInterface.UiBuilder.OpenConfigUi -= Open;
         Svc.PluginInterface.UiBuilder.OpenMainUi -= Open;
         Svc.Commands.RemoveHandler("/accord");
         bossModMovement.Dispose();
         setup.Dispose();
+        windows.RemoveAllWindows();
         ClassIcons.Dispose();
         HotbarLayoutStore.Reset();
         ECommonsMain.Dispose();

@@ -18,8 +18,20 @@ internal sealed class EngineClient : IDisposable
     internal bool HasPending => File.Exists(Journal);
     internal JObject Discover() => Decode(Svc.PluginInterface.GetIpcSubscriber<string>("WrathFork.Settings.Discover.v2").InvokeFunc());
     internal JObject Validate(JObject patch) => Decode(Svc.PluginInterface.GetIpcSubscriber<string, string>("WrathFork.Settings.Validate.v2").InvokeFunc(patch.ToString(Formatting.None)));
+    internal JObject Stamp()
+    {
+        using var timing = AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.SettingsStamp);
+        var api = Svc.PluginInterface.GetIpcSubscriber<string>("WrathFork.Settings.Stamp.v1");
+        return api.HasFunction ? Decode(api.InvokeFunc()) : Read();
+    }
+    internal void SetOpenerHold(bool held)
+    {
+        if (Svc.PluginInterface.GetIpcSubscriber<bool, bool>("WrathFork.Openers.Hold.v1").InvokeFunc(held) != held)
+            throw new InvalidOperationException("Wrath did not acknowledge the opener setting.");
+    }
     internal JObject Read()
     {
+        using var timing = AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.SettingsRead);
         if (!Svc.PluginInterface.InstalledPlugins.Any(p => p.InternalName == "WrathCombo" && p.IsLoaded))
             throw new InvalidOperationException("Load the Accord-compatible Wrath Combo build. Behaviour and live hotbar updates are unavailable.");
         var result = Decode(Svc.PluginInterface.GetIpcSubscriber<string>("WrathFork.Settings.Read.v2").InvokeFunc());
@@ -37,17 +49,35 @@ internal sealed class EngineClient : IDisposable
 
     internal void Apply(JObject snapshot, JObject patch, AccordSettings desired)
     {
+        using var timing = AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.SettingsApply);
         if (HasPending) throw new InvalidOperationException("A previous settings operation needs recovery before another update.");
-        Validate(patch);
+        var compact = Svc.PluginInterface.GetIpcSubscriber<string, string>("WrathFork.Settings.Commit.v1");
+        if (!compact.HasFunction) Validate(patch);
+        var current = (JObject)snapshot["Settings"]!;
+        var projected = SettingsPatch.Apply(current, patch, snapshot["KnownPresets"]!.Values<int>().ToHashSet());
+        if (snapshot.Value<string>("Revision") == SettingsTransaction.Hash(projected))
+        {
+            desired.EngineConfigurationId = snapshot.Value<string>("ConfigurationId")!;
+            desired.LastEngineRevision = snapshot.Value<string>("Revision")!;
+            AccordDiagnostics.PerformanceTimings.SaveConfig(desired);
+            Plugin.Instance.Settings = desired;
+            return;
+        }
         var request = new JObject { ["Instance"] = snapshot["Instance"]!.DeepClone(),
             ["ConfigurationId"] = snapshot["ConfigurationId"]!.DeepClone(), ["OperationId"] = Guid.NewGuid().ToString(),
             ["ExpectedRevision"] = snapshot["Revision"]!.DeepClone(), ["ExpectedSequence"] = snapshot["OperationSequence"]!.DeepClone(), ["Patch"] = patch.DeepClone() };
         Directory.CreateDirectory(Svc.PluginInterface.GetPluginConfigDirectory());
         var journal = new JObject { ["Request"] = request, ["Desired"] = JObject.FromObject(desired) };
         var temporary = Journal + ".tmp";
-        File.WriteAllText(temporary, journal.ToString());
-        File.Move(temporary, Journal, true);
-        Recover();
+        using (AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.JournalWrite))
+        {
+            File.WriteAllText(temporary, journal.ToString());
+            File.Move(temporary, Journal, true);
+        }
+        string payload = request.ToString(Formatting.None);
+        var result = Decode(compact.HasFunction ? compact.InvokeFunc(payload) :
+            Svc.PluginInterface.GetIpcSubscriber<string, string>("WrathFork.Settings.Apply.v2").InvokeFunc(payload));
+        Acknowledge(desired, result);
     }
 
     internal void RestoreSettings(JObject before, AccordSettings choices)
@@ -66,15 +96,29 @@ internal sealed class EngineClient : IDisposable
         var result = Decode(Svc.PluginInterface.GetIpcSubscriber<string, string>("WrathFork.Settings.Apply.v2")
             .InvokeFunc(journal["Request"]!.ToString(Formatting.None)));
         var desired = journal["Desired"]!.ToObject<AccordSettings>()!;
+        Acknowledge(desired, result);
+        return true;
+    }
+
+    private void Acknowledge(AccordSettings desired, JObject result)
+    {
+        // Recovery acknowledges the old engine transaction, not newer independent UI choices.
+        var latest = Plugin.Instance.Settings;
+        desired.AutoRotationEnabled = latest.AutoRotationEnabled;
+        desired.EmergencyRotation = latest.EmergencyRotation;
+        desired.ContinuousDiagnostics = latest.ContinuousDiagnostics;
+        desired.AutomaticEngine = latest.AutomaticEngine;
+        desired.FollowAutoDuty = latest.FollowAutoDuty;
+        desired.WrathPreferences = (JObject)latest.WrathPreferences.DeepClone();
+        desired.RsrPreferences = new(latest.RsrPreferences);
         desired.EngineConfigurationId = result.Value<string>("ConfigurationId")!;
         desired.LastEngineRevision = result["Receipt"]!.Value<string>("CommittedRevision")!;
         // Persist acknowledgement before removing the replay record. If saving fails, retry the same operation ID.
-        Svc.PluginInterface.SavePluginConfig(desired);
+        AccordDiagnostics.PerformanceTimings.SaveConfig(desired);
         Plugin.Instance.Settings = desired;
         File.Delete(Journal);
         Plugin.Instance.MigrationPending = false;
         Plugin.Instance.RequiresMigration = false;
-        return true;
     }
 
     internal void ReviewRejectedOperation()

@@ -36,7 +36,7 @@ internal sealed class BossModMovement : IDisposable
 
     internal string Status { get; private set; } = "";
 
-    internal void Tick(SetupController setup)
+    internal void Tick(SetupController setup, bool usesRsrPositionals)
     {
         long now = Environment.TickCount64;
         if (now < nextUpdate) return;
@@ -93,7 +93,8 @@ internal sealed class BossModMovement : IDisposable
 
             bool wrathAvailable = wrathPositional.HasFunction;
             string? desired = null;
-            if (preferences.FollowWrathPositionals && wrathAvailable && role == JobRole.Melee && preset is not null && !autoDuty &&
+            if (preferences.FollowWrathPositionals && !usesRsrPositionals && wrathAvailable &&
+                role == JobRole.Melee && preset is not null && !autoDuty &&
                 Svc.Condition[ConditionFlag.InCombat] && player is { TargetObjectId: > 0 })
             {
                 desired = wrathPositional.InvokeFunc(player.TargetObjectId) switch
@@ -112,6 +113,8 @@ internal sealed class BossModMovement : IDisposable
                 (_, true, _, _) => "AutoDuty is managing this movement preset.",
                 (_, _, false, _) => "Add Stay within range of target to this BossMod Reborn preset to use role distances.",
                 (_, _, _, false) => "Add Goes to specified positional to this BossMod Reborn preset to follow Wrath.",
+                (JobRole.Melee, _, _, _) when preferences.FollowWrathPositionals && usesRsrPositionals =>
+                    "RotationSolver Reborn is providing positional hints for automatic rotation.",
                 (JobRole.Melee, _, _, _) when preferences.FollowWrathPositionals && !wrathAvailable =>
                     "Wrath's movement positional IPC is unavailable.",
                 (JobRole.Melee, _, _, _) when preferences.FollowWrathPositionals && preset is null =>

@@ -22,6 +22,7 @@ internal sealed class SetupController : IDisposable
     internal SetupPack Pack { get; } = new();
     private readonly HotbarSetup hotbars = new();
     private readonly List<IDtrBarEntry> entries = new();
+    private readonly IDtrBarEntry openers = Svc.DtrBar.Get("Accord Wrath openers");
     private readonly LiveUpdateState updates = new();
     private string status = "Waiting for a character.";
     internal string Status { get => status; private set => status=value; }
@@ -50,6 +51,8 @@ internal sealed class SetupController : IDisposable
 
     private bool ActionAvailable(JobPreset job, ActionChoice action)
     {
+        if (action.Type == 1 && action.Selector && action.Id == 1000019) return LayoutPreferences.Role(job.JobId) == JobRole.Tank;
+        if (action.Type == 1 && action.Selector && action.Id == 1000016) return ConfiguredLayout.SupportsJoinedDamage(job.JobId);
         if (action.Type != 1) return true; // Inventory count never affects placement.
         var row = Svc.Data.GetExcelSheet<Lumina.Excel.Sheets.Action>().GetRowOrDefault(action.Id);
         if (row is null || !row.Value.IsPlayerAction || row.Value.IsPvP) return false;
@@ -63,6 +66,7 @@ internal sealed class SetupController : IDisposable
 
     private unsafe LayoutResult LayoutPlan(JobPreset job, AccordSettings settings, bool manual)
     {
+        using var timing = AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.Plan);
         var module = FFXIVClientStructs.FFXIV.Client.UI.Misc.RaptureHotbarModule.Instance();
         bool sharedSprint = module != null && module->ModuleReady && ModeActions.HasSharedSprint(
             p => module->IsHotbarShared((uint)p.Bar), p => NativeHotbars.Read(job.JobId, p));
@@ -112,18 +116,23 @@ internal sealed class SetupController : IDisposable
 
     private AccordSettings? pendingChoices;
     private long pendingRetry;
-    private void ApplyChoices(AccordSettings desired)
+    private bool pendingVariantsOnly;
+    private void ApplyChoices(AccordSettings desired, bool variantsOnly = false)
     {
         RequireNormalLayouts();
+        var jobs = variantsOnly ? Pack.CurrentVariantJobs(Settings, desired, Player.Available ? (uint)Player.Job : 0) : Pack.SelectedJobs(desired);
         if (!desired.LiveMode || !Player.Available)
         {
-            ApplySettings(Pack.SelectedJobs(desired), desired);
-            PvP.Invalidate(); updates.Request();
+            ApplySettings(jobs, desired);
+            pendingChoices = null;
+            PvP.Invalidate();
+            if (!variantsOnly) updates.Request(); else updates.Wake();
             return;
         }
         if (Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas] ||
             Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas51])
         {
+            pendingVariantsOnly = variantsOnly;
             pendingChoices = desired;
             Status = "Settings and layout change pending until loading finishes.";
             updates.Request();
@@ -132,16 +141,20 @@ internal sealed class SetupController : IDisposable
         var previous = CloneSettings();
         if (IsPvP)
         {
-            PvP.ApplyChoices(desired, () => ApplySettings(Pack.SelectedJobs(desired), desired));
+            if (variantsOnly && jobs.Length == 0)
+                ApplySettings(jobs, desired);
+            else PvP.ApplyChoices(desired, before => ApplySettings(jobs, desired, snapshot: before));
+            pendingChoices = null;
             return;
         }
         var snapshot = engine.Read();
-        CombinedUpdate.Apply(() => ApplySettings(Pack.SelectedJobs(desired), desired), () =>
+        JobPreset[] valid = [];
+        CombinedUpdate.Apply(() => valid = ApplySettings(jobs, desired, snapshot: snapshot), () =>
         {
-            var valid = Pack.SelectedJobs(Settings).Where(j => j.JobId < 19 || LayoutPlan(j, Settings, true).Valid).ToArray();
-            if (valid.Length > 0) ApplyHotbars(valid, null, prepareSettings: false);
+            if (valid.Length > 0) ApplyHotbars(valid, null, prepareSettings: false, validated: true);
             pendingChoices = null;
-            updates.Request(); PvP.Invalidate();
+            if (!variantsOnly) updates.Request(); else updates.Wake();
+            PvP.Invalidate();
         }, () => engine.RestoreSettings(snapshot, previous));
     }
     private readonly EngineClient engine;
@@ -161,7 +174,7 @@ internal sealed class SetupController : IDisposable
             if (previousLayouts.DefaultsInitialized || previousLayouts.Global.Mapping.Areas.Count > 0)
                 File.WriteAllText(Path.Combine(Svc.PluginInterface.GetPluginConfigDirectory(),
                     $"layout-before-global-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid():N}.json"), JsonConvert.SerializeObject(Settings, Formatting.Indented));
-            try { Settings.Layouts = migrated.Layouts; Svc.PluginInterface.SavePluginConfig(Settings); }
+            try { Settings.Layouts = migrated.Layouts; AccordDiagnostics.PerformanceTimings.SaveConfig(Settings); }
             catch { Settings.Layouts = previousLayouts; throw; }
         }
         engine = new EngineClient(() => {updates.Wake(); PvP?.Invalidate();});
@@ -180,6 +193,8 @@ internal sealed class SetupController : IDisposable
             entry.Tooltip = definition.Label + ": click to switch A/M.\n" + definition.Description;
             entries.Add(entry);
         }
+        openers.Shown = false;
+        openers.OnClick = _ => Run(ToggleWrathOpeners);
         Settings.ActiveJobs ??= Pack.SelectedJobs(Settings).Select(j => j.JobId).ToHashSet();
         // Plugin construction may run off the framework thread. Tick updates
         // visibility and text once player state can safely be read.
@@ -196,6 +211,7 @@ internal sealed class SetupController : IDisposable
         try { operation(); }
         catch (Exception ex)
         {
+            AccordDiagnostics.DiagnosticLog.Event("Error.Setup", () => new { Error = ex.ToString() });
             if (Status != ex.Message) Svc.Log.Error(ex, "Accord setup operation failed");
             Status = ex.Message;
         }
@@ -203,13 +219,16 @@ internal sealed class SetupController : IDisposable
 
     internal void Tick()
     {
-        if (pendingChoices is not null && Player.Available &&
-            !Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas] &&
-            !Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas51])
+        if (HotbarLayoutStore.Loading)
+        {
+            Status = "Live layout waiting for loading to finish.";
+            return;
+        }
+        if (pendingChoices is not null && Player.Available)
         {
             if (Environment.TickCount64 < pendingRetry) return;
             pendingRetry = Environment.TickCount64 + 2000;
-            try { ApplyChoices(pendingChoices); }
+            try { ApplyChoices(pendingChoices, pendingVariantsOnly); }
             catch (AggregateException) { pendingChoices = null; throw; }
             catch (Exception ex) { Status = "Settings and layout update pending: " + ex.Message; return; }
         }
@@ -238,6 +257,7 @@ internal sealed class SetupController : IDisposable
     {
         if (Plugin.Instance.MigrationPending || engine.HasPending)
             throw new InvalidOperationException("Complete the pending settings operation before preparing manual layouts.");
+        SyncEmergencyPlacement(restoreOnly: true);
         fallback.Prepare(Pack.SelectedJobs(Settings).Select(j => j.JobId), exiting);
         Status = fallback.Status;
         updates.Invalidate();
@@ -259,8 +279,120 @@ internal sealed class SetupController : IDisposable
         if (fallback.Pending) throw new InvalidOperationException("Manual fallback is active. Use Restore Accord hotbars before changing Accord layouts or settings.");
     }
 
+    private string EmergencyJournal => Path.Combine(Svc.PluginInterface.GetPluginConfigDirectory(),
+        "emergency-hotbars", NativeHotbars.CharacterKey(Svc.PlayerState.ContentId) + ".json");
+    private unsafe List<SlotEdit> EmergencyPlan()
+    {
+        HotbarLayoutStore.Ready(false);
+        if (!Svc.PluginInterface.GetIpcSubscriber<bool>("WrathCombo.EmergencyHotbars.v1").InvokeFunc())
+            throw new InvalidOperationException("Update the Wrath testing plugin before enabling hotbar backup.");
+        uint job = (uint)Player.Job;
+        if (fallback.Pending || !Pack.IsActive(job, Settings) || !ConfiguredLayout.SupportsJoinedDamage(job))
+            throw new InvalidOperationException("Choose an active PvE combat job with its Accord layout.");
+        var preset = Pack.Find(job)!;
+        var contents = Layouts.Contents(preset, Settings);
+        var st = contents[ControlIntent.SingleTarget].Select(c => c.Action.Value).ToHashSet();
+        var aoe = contents[ControlIntent.AreaDamage].Select(c => c.Action.Value).ToHashSet();
+        var anchors = new List<(Position Position, SlotValue Expected, bool Area)>();
+        foreach (var c in LayoutPlan(preset, Settings, false).Controls)
+            if (st.Contains(c.Action.Value) || aoe.Contains(c.Action.Value))
+                anchors.Add((c.Position, c.Action.Value, aoe.Contains(c.Action.Value)));
+        foreach (var slot in preset.Slots.Where(s => s.LogicalSlot is 1 or 2))
+        {
+            var source = new Position(slot.RegularBar-1, slot.RegularSlot-1);
+            var map = Defaults.Maps().FirstOrDefault(m => m.Applies(job) && m.Regular == source && !m.SharedAcrossJobs);
+            if (map == null) continue;
+            foreach (var value in slot.LogicalSlot == 1 ? st : aoe)
+                anchors.Add((map.Cross, value, slot.LogicalSlot == 2));
+        }
+        return EmergencyBarPlacement.Plan(job, anchors, p => NativeHotbars.Read(job,p),
+            p => NativeHotbars.Ready(job)->IsHotbarShared((uint)p.Bar));
+    }
+    internal void CheckEmergencyPlacement() => EmergencyPlan();
+    internal unsafe bool SyncEmergencyPlacement(bool restoreOnly = false)
+    {
+        if (!Player.Available || IsPvP || Svc.PlayerState.ContentId == 0) return false;
+        var path = EmergencyJournal;
+        bool active = Settings.EmergencyRotation && !restoreOnly;
+        if (!active && !File.Exists(path)) return false;
+        HotbarLayoutStore.Ready(false);
+        uint current = (uint)Player.Job;
+        List<SlotEdit>? edits = null;
+        if (File.Exists(path))
+        {
+            edits = System.Text.Json.JsonSerializer.Deserialize<List<SlotEdit>>(File.ReadAllText(path), JsonStore.Options);
+            if (edits is not {Count: > 0} || edits.Any(e => !e.Position.Valid || e.Job != edits[0].Job ||
+                    e.After != EmergencyBarPlacement.Single && e.After != EmergencyBarPlacement.Area))
+                throw new InvalidDataException("Invalid emergency hotbar restore record.");
+            if (!active || edits[0].Job != current)
+            {
+                foreach (var e in edits)
+                {
+                    if (NativeHotbars.Ready(current)->IsHotbarShared((uint)e.Position.Bar))
+                        throw new InvalidOperationException("Unshare the backup bar before restoring it.");
+                    if (NativeHotbars.Read(e.Job,e.Position) == e.After) NativeHotbars.Write(current,e.Job,e.Position,e.Before);
+                }
+                NativeHotbars.Flush(current);
+                File.Delete(path);
+                edits = null;
+            }
+        }
+        if (!active || !Pack.IsActive(current, Settings) || !ConfiguredLayout.SupportsJoinedDamage(current)) return false;
+        if (edits == null)
+        {
+            edits = EmergencyPlan();
+            JsonStore.Write(path, edits);
+            if (edits.GroupBy(e => e.Position.Bar >= 10).Any(group => group.Select(e => e.After).Distinct().Count() < 2))
+                Svc.Chat.Print("Wrath backup replaced the existing rotation button. That bar has no empty slot for the second backup button.");
+        }
+        bool changed = false;
+        foreach (var e in edits)
+            if (!NativeHotbars.Ready(current)->IsHotbarShared((uint)e.Position.Bar) && NativeHotbars.Read(e.Job,e.Position) == e.Before)
+            {
+                NativeHotbars.Write(current,e.Job,e.Position,e.After);
+                changed = true;
+            }
+        if (changed) NativeHotbars.Flush(current);
+        Status = "Wrath backup is active on the rotation hotbar.";
+        return true;
+    }
+
+    private string? lastEngineInstance;
+    private (AccordSettings Settings, uint Job, ulong Character, int Shared, bool Sprint)? layoutKey;
+    private Dictionary<Position, SlotValue>? cachedControls;
+    private JobPreset? cachedPreset;
+    private HashSet<int>? cachedBars;
+    private readonly SlotValue[] observedSlots = new SlotValue[10 * 12 + 8 * 16];
+    private bool slotsVerified;
+
+    private bool ManagedSlotsChanged(uint job, int sharedMask)
+    {
+        bool changed = !slotsVerified;
+        int index = 0;
+        for (int bar = 0; bar < 18; bar++)
+        {
+            if ((sharedMask & (1 << bar)) != 0) continue;
+            for (int slot = 0; slot < (bar < 10 ? 12 : 16); slot++)
+            {
+                var actual = NativeHotbars.Read(job, new Position(bar, slot));
+                changed |= observedSlots[index] != actual;
+                observedSlots[index++] = actual;
+            }
+        }
+        return changed;
+    }
+    private unsafe (int Shared, bool Sprint) LayoutEnvironment(uint job)
+    {
+        var module = NativeHotbars.Ready(job);
+        int mask = 0;
+        for (int bar = 0; bar < 18; bar++)
+            if (module->IsHotbarShared((uint)bar)) mask |= 1 << bar;
+        return (mask, ModeActions.HasSharedSprint(p => (mask & (1 << p.Bar)) != 0, p => NativeHotbars.Read(job, p)));
+    }
     private void TickReady()
     {
+        using var timing = AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.LiveLayout);
+        if (SyncEmergencyPlacement()) { UpdateEntries(); return; }
         if (engine.HasPending)
         {
             if (engine.Recover()) { updates.Invalidate(); UpdateEntries(); Status = "Settings operation recovered. Layout updates will resume after state verification."; }
@@ -285,19 +417,27 @@ internal sealed class SetupController : IDisposable
         }
 
         JObject snapshot;
-        try { snapshot = engine.Read(); }
+        try { snapshot = engine.Stamp(); }
         catch { updates.Invalidate(); throw; }
         // Re-read current settings on each transition. ApplySettings changes only Accord-owned
         // switches for prepared jobs; unrelated personal edits must not freeze live layouts.
-        if (Settings.EngineConfigurationId != snapshot.Value<string>("ConfigurationId")) updates.Invalidate();
+        if (Settings.EngineConfigurationId != snapshot.Value<string>("ConfigurationId") ||
+            lastEngineInstance != snapshot.Value<string>("Instance")) updates.Invalidate();
+        lastEngineInstance = snapshot.Value<string>("Instance");
+        if (snapshot["Hold"] != null)
+        {
+            if (!Settings.OpenerHoldMigrated && Settings.HoldWrathOpeners)
+            {
+                var migrated = CloneSettings();
+                migrated.OpenerHoldMigrated = true;
+                engine.SetOpenerHold(true);
+                ApplySettings(Pack.SelectedJobs(migrated), migrated);
+            }
+            if (snapshot.Value<bool>("Hold") != Settings.HoldWrathOpeners)
+                engine.SetOpenerHold(Settings.HoldWrathOpeners);
+        }
         uint job = (uint)Player.Job;
         ulong contentId = Svc.PlayerState.ContentId;
-        if (Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas] ||
-            Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.BetweenAreas51])
-        {
-            Status = "Live layout waiting for loading to finish.";
-            return;
-        }
         if (updates.Applied)
         {
             if (Settings.LiveMode)
@@ -308,11 +448,25 @@ internal sealed class SetupController : IDisposable
                     if (hotbars.NeedsRefresh(job, Pack.Resolve(preset, Settings), Settings.ClearOtherActions)) ApplyCurrentHotbars(prepareSettings: false);
                     return;
                 }
-                var validation = LayoutPlan(preset, Settings, true);
-                if (!validation.Valid) { LayoutStatus = string.Join("\n", validation.Issues.Select(i => $"{preset.Job}, bar {i.Bar}: {i.Message}")); Status = LayoutStatus; return; }
-                var regular = LayoutPlan(preset, Settings, false).Controls.ToDictionary(c => c.Position, c => c.Action.Value);
-                if (hotbars.NeedsConfiguredRefresh(job, Pack.Resolve(preset, Settings), Settings.ClearOtherActions, regular, Settings.Layouts.ManagedBars.ToHashSet()))
-                    ApplyCurrentHotbars(prepareSettings: false);
+                var environment = LayoutEnvironment(job);
+                var key = (Settings, job, contentId, environment.Shared, environment.Sprint);
+                if (layoutKey != key)
+                {
+                    var validation = LayoutPlan(preset, Settings, true);
+                    if (!validation.Valid) { LayoutStatus = string.Join("\n", validation.Issues.Select(i => $"{preset.Job}, bar {i.Bar}: {i.Message}")); Status = LayoutStatus; return; }
+                    cachedControls = LayoutPlan(preset, Settings, false).Controls.ToDictionary(c => c.Position, c => c.Action.Value);
+                    cachedPreset = Pack.Resolve(preset, Settings);
+                    cachedBars = Settings.Layouts.ManagedBars.ToHashSet();
+                    layoutKey = key;
+                    slotsVerified = false;
+                }
+                if (ManagedSlotsChanged(job, environment.Shared))
+                {
+                    slotsVerified = false;
+                    if (hotbars.NeedsConfiguredRefresh(job, cachedPreset!, Settings.ClearOtherActions, cachedControls!, cachedBars!))
+                        ApplyCurrentHotbars(prepareSettings: false);
+                    else slotsVerified = true;
+                }
                 else Status = "Live layout up to date; watching for hotbar changes." + hotbars.Notice;
             }
             return;
@@ -333,9 +487,10 @@ internal sealed class SetupController : IDisposable
 
     private void Mutate(Action mutation)
     {
+        displayedEntries = null; layoutKey = null; verifiedJob = null;
         if (engine.HasPending) throw new InvalidOperationException("Resolve the pending settings operation before changing Accord choices.");
         var before = JsonConvert.SerializeObject(Settings);
-        try { mutation(); Svc.PluginInterface.SavePluginConfig(Settings); }
+        try { mutation(); AccordDiagnostics.PerformanceTimings.SaveConfig(Settings); }
         catch { Plugin.Instance.Settings = JsonConvert.DeserializeObject<AccordSettings>(before)!; throw; }
         UpdateEntries();
     }
@@ -347,17 +502,44 @@ internal sealed class SetupController : IDisposable
             pendingChoices.BossModMovement = movement;
     }
 
+    private (uint Job, ulong Character, string? Instance, string? Revision, AccordSettings Settings)? verifiedJob;
+    internal void ApplyAutomationSettings()
+    {
+        if (engine.HasPending) engine.Recover();
+        if (!Player.Available || !Pack.IsActive((uint)Player.Job, Settings))
+            throw new InvalidOperationException("Select the current class in Accord before enabling automation.");
+        var job = Pack.Find((uint)Player.Job)!;
+        var stamp = engine.Stamp();
+        var character = Svc.PlayerState.ContentId;
+        var identity = stamp.Value<string>("Instance");
+        var revision = stamp.Value<string>("Revision");
+        if (!IsPvP && revision == Settings.LastEngineRevision &&
+            verifiedJob == (job.JobId, character, identity, revision, Settings)) return;
+        if (!IsPvP && !LayoutPlan(job, Settings, true).Valid)
+            throw new InvalidOperationException("Resolve the current class's layout issues before enabling automation.");
+        ApplySettings([job], CloneSettings());
+        if (!IsPvP)
+        {
+            var expected = JObject.FromObject(stamp["Hold"] != null ? Settings.Layouts.Resolve(job.JobId).Rotation : Settings.EffectiveRotation(job.JobId));
+            var actual = engine.Read()["Settings"]?["RotationPreferences"]?[job.JobId.ToString()];
+            if (!JToken.DeepEquals(expected, actual))
+                throw new InvalidOperationException("Wrath's rotation preferences did not match Accord after applying settings.");
+            verifiedJob = (job.JobId, character, identity, Settings.LastEngineRevision, Settings);
+            AccordDiagnostics.DiagnosticLog.Event("Settings.WrathVerified", () => new { Job = job.JobId, Preferences = actual });
+        }
+    }
+
     private void Prepare(IEnumerable<JobPreset> jobs, bool reset = false) => ApplySettings(jobs, CloneSettings(), reset);
     private AccordSettings CloneSettings() => JsonConvert.DeserializeObject<AccordSettings>(JsonConvert.SerializeObject(Settings))!;
 
-    private void ApplySettings(IEnumerable<JobPreset> jobs, AccordSettings desired, bool reset = false)
+    private JobPreset[] ApplySettings(IEnumerable<JobPreset> jobs, AccordSettings desired, bool reset = false, JObject? snapshot = null)
     {
         RequireNormalLayouts();
         if (Plugin.Instance.MigrationPending) throw new InvalidOperationException("Open /accord to complete separate setup first.");
         var selectedJobs = jobs.Where(j => Pack.IsActive(j.JobId, desired)).ToArray();
         var invalid = new List<LayoutIssue>();
         var rejected = new HashSet<uint>();
-        foreach (var j in Pack.SelectedJobs(desired))
+        foreach (var j in selectedJobs)
         {
             if (IsPvP || j.JobId < 19) continue;
             var validation = LayoutPlan(j, desired, true);
@@ -376,14 +558,15 @@ internal sealed class SetupController : IDisposable
         if (managedJobs.Length == 0)
         {
             Mutate(() => Plugin.Instance.Settings = desired);
-            return;
+            return managedJobs;
         }
-        var snapshot = engine.Read();
+        snapshot ??= engine.Read();
         if (desired.EngineConfigurationId != snapshot.Value<string>("ConfigurationId"))
         {
             desired.PreparedJobs.Clear();
             desired.SharedSettingsPrepared = false;
         }
+        bool nativeHold = engine.Stamp()["Hold"] != null;
         var changes = new JObject();
         var enable = new HashSet<int>();
         var disable = new HashSet<int>();
@@ -415,7 +598,7 @@ internal sealed class SetupController : IDisposable
             if (FeatureScope.Supports(job.JobId, Feature.RunnerAutomation))
             {
                 if (changes["RotationPreferences"] is not JObject) changes["RotationPreferences"] = new JObject();
-                changes["RotationPreferences"]![job.JobId.ToString()] = JObject.FromObject(desired.Layouts.Resolve(job.JobId).Rotation);
+                changes["RotationPreferences"]![job.JobId.ToString()] = JObject.FromObject(nativeHold ? desired.Layouts.Resolve(job.JobId).Rotation : desired.EffectiveRotation(job.JobId));
             }
             if (job.JobId >= 19)
             {
@@ -432,16 +615,16 @@ internal sealed class SetupController : IDisposable
             desired.SharedSettingsPrepared = true;
         }
         WrathFork.Contract.SettingsPatch.NormalizePresetMaps(changes, (JObject)snapshot["PresetIds"]!);
-        var pvpJobs = PvP.Pack.Jobs.Where(j => desired.ActiveJobs!.Contains(j.JobId)).ToArray();
+        var affectedIds = selectedJobs.Select(j => j.JobId).ToHashSet();
+        var pvpJobs = PvP.Pack.Jobs.Where(j => affectedIds.Contains(j.JobId)).ToArray();
         var pvpPatch = PvP.Pack.Patch(pvpJobs, desired.SharedPvP(), snapshot);
         changes.Merge(pvpPatch["Settings"], new JsonMergeSettings { MergeArrayHandling = MergeArrayHandling.Replace });
         enable.UnionWith(pvpPatch["Enable"]!.Values<int>());
         disable.UnionWith(pvpPatch["Disable"]!.Values<int>());
         var patch = new JObject { ["Settings"] = changes, ["Enable"] = new JArray(enable.Order()), ["Disable"] = new JArray(disable.Order()) };
-        // Validate locally using the engine's published setting shape, then let the engine validate again.
-        WrathFork.Contract.SettingsPatch.Apply((JObject)snapshot["Settings"]!, patch, snapshot["KnownPresets"]!.Values<int>().ToHashSet());
         engine.Apply(snapshot, patch, desired);
         UpdateEntries();
+        return managedJobs;
     }
 
     private JObject? migrationSnapshot;
@@ -486,12 +669,20 @@ internal sealed class SetupController : IDisposable
 
     internal void SetVariant(VariantId id, bool enabled, bool global = false)
     {
+        using var timing = AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.VariantChange);
         var desired = pendingChoices is null ? CloneSettings() : ConfiguredLayout.Clone(pendingChoices);
         desired.SetAutomation(id, enabled, !global && Player.Available ? Pack.Find((uint)Player.Job)?.JobId ?? 0 : 0, !global && IsPvP);
-        ApplyChoices(desired);
+        if (id == VariantId.RoleMechanics && pendingChoices == null)
+        {
+            AccordDiagnostics.PerformanceTimings.SaveConfig(desired);
+            Plugin.Instance.Settings = desired;
+            WrathSettingsPanel.Invalidate();
+            UpdateEntries();
+            return;
+        }
+        ApplyChoices(desired, variantsOnly: pendingChoices == null || pendingVariantsOnly);
         PvP.Invalidate();
-        if (Settings.LiveMode) RequestCurrentHotbars();
-        else Status = "Variant saved. Static hotbars unchanged; use setup to restore any needed manual buttons.";
+        if (!Settings.LiveMode) Status = "Variant saved. Static hotbars unchanged; use setup to restore any needed manual buttons.";
     }
 
     internal void SetLive(bool live)
@@ -541,13 +732,14 @@ internal sealed class SetupController : IDisposable
         if (Pack.IsActive(job, Settings)) ApplyHotbars([Pack.Find(job)!], job, prepareSettings);
     }
 
-    private unsafe void ApplyHotbars(JobPreset[] selected, uint? currentClass, bool prepareSettings = true)
+    private unsafe void ApplyHotbars(JobPreset[] selected, uint? currentClass, bool prepareSettings = true, bool validated = false)
     {
+        using var timing = AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.HotbarApply);
         if (selected.Length == 0) throw new InvalidOperationException("Select at least one active class first.");
         if (!Player.Available || Svc.PlayerState.ContentId == 0) throw new InvalidOperationException("Log in before applying hotbars.");
         uint job = (uint)Player.Job;
         NativeHotbars.Ready(job);
-        selected = selected.Where(p => p.JobId < 19 || LayoutPlan(p, Settings, true).Valid).ToArray();
+        if (!validated) selected = selected.Where(p => p.JobId < 19 || LayoutPlan(p, Settings, true).Valid).ToArray();
         if (selected.Length == 0) throw new InvalidOperationException("Layout update blocked. Resolve the layout warnings first.");
         var previousChoices = prepareSettings ? CloneSettings() : null;
         var previousEngine = prepareSettings ? engine.Read() : null;
@@ -619,8 +811,64 @@ internal sealed class SetupController : IDisposable
         Status = "Diagnostics saved to " + path;
     }
 
+    private void ToggleWrathOpeners()
+    {
+        if (!Player.Available || IsPvP || !Pack.IsActive((uint)Player.Job, Settings) ||
+            !FeatureScope.Supports((uint)Player.Job, Feature.RunnerAutomation)) return;
+
+        if (engine.HasPending) engine.Recover();
+        var desired = CloneSettings();
+        desired.HoldWrathOpeners = !desired.HoldWrathOpeners;
+        var stamp = engine.Stamp();
+        if (stamp["Hold"] != null && !Settings.OpenerHoldMigrated && Settings.HoldWrathOpeners)
+        {
+            var migrated = CloneSettings();
+            migrated.OpenerHoldMigrated = true;
+            engine.SetOpenerHold(true);
+            ApplySettings(Pack.SelectedJobs(migrated), migrated);
+            desired = CloneSettings();
+            desired.HoldWrathOpeners = false;
+        }
+        if (stamp["Hold"] != null)
+        {
+            desired.OpenerHoldMigrated = true;
+            engine.SetOpenerHold(desired.HoldWrathOpeners);
+            try { AccordDiagnostics.PerformanceTimings.SaveConfig(desired); Plugin.Instance.Settings = desired; }
+            catch { engine.SetOpenerHold(!desired.HoldWrathOpeners); throw; }
+            if (pendingChoices != null) { pendingChoices.OpenerHoldMigrated = true; pendingChoices.HoldWrathOpeners = desired.HoldWrathOpeners; }
+            UpdateEntries();
+            return;
+        }
+        var rotations = new JObject();
+        foreach (var job in Pack.SelectedJobs(desired).Where(j => FeatureScope.Supports(j.JobId, Feature.RunnerAutomation)))
+            rotations[job.JobId.ToString()] = JObject.FromObject(desired.EffectiveRotation(job.JobId));
+
+        var patch = new JObject { ["Settings"] = new JObject { ["RotationPreferences"] = rotations },
+            ["Enable"] = new JArray(), ["Disable"] = new JArray() };
+        engine.Apply(engine.Read(), patch, desired);
+        if (pendingChoices != null) pendingChoices.HoldWrathOpeners = desired.HoldWrathOpeners;
+        UpdateEntries();
+    }
+
+    private (AccordSettings Choices, uint Job, bool PvP, bool Active, bool Hold)? displayedEntries;
     private void UpdateEntries()
     {
+        uint job = Player.Available ? (uint)Player.Job : 0;
+        bool pvp = Player.Available && IsPvP;
+        var display = (pendingChoices ?? Settings, job, pvp, Player.Available &&
+            (pvp ? PvP.Active(job) : Pack.IsActive(job, Settings)), Settings.HoldWrathOpeners);
+        if (displayedEntries == display) return;
+        displayedEntries = display;
+        openers.Shown = Player.Available && !IsPvP && Pack.IsActive((uint)Player.Job, Settings) &&
+            FeatureScope.Supports((uint)Player.Job, Feature.RunnerAutomation);
+        if (openers.Shown)
+        {
+            openers.Text = new SeStringBuilder().AddIcon(BitmapFontIcon.Alarm)
+                .AddText(Settings.HoldWrathOpeners ? " M" : " A").Build();
+            openers.Tooltip = Settings.HoldWrathOpeners
+                ? "Wrath job openers held. Click to restore each job's opener settings."
+                : "Wrath job openers follow each job's settings. Click to hold openers for all managed PvE jobs.";
+        }
         for (int i = 0; i < entries.Count; i++)
         {
             entries[i].Shown = Player.Available && (IsPvP ? PvP.Active((uint)Player.Job) : Pack.IsActive((uint)Player.Job, Settings));
@@ -641,6 +889,7 @@ internal sealed class SetupController : IDisposable
         logout.Dispose();
         engine.Dispose();
         foreach (var definition in VariantDefinitions.All) Svc.DtrBar.Remove("Accord " + definition.Label);
+        openers.Remove();
         Instance = null;
     }
 }

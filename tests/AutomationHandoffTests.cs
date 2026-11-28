@@ -1,0 +1,178 @@
+using Accord;
+using Newtonsoft.Json.Linq;
+using RotationInterop;
+
+internal static class AutomationHandoffTests
+{
+    private sealed class Endpoint : IRunnerEndpoint
+    {
+        internal AutomationLease Lease = new();
+        internal long Now;
+        internal bool Busy, Unavailable, RejectStart, Absent, RunnerStopped;
+        internal string Build = "initial";
+        internal int Starts, Blocks;
+        public RunnerStatus Send(string command, Guid token)
+        {
+            if (Absent) return new(false, false, false, false, "", Absent: true);
+            if (command == "block") Blocks++;
+            if (Unavailable) throw new InvalidOperationException("Disconnected");
+            bool success = command switch
+            {
+                "block" => Lease.Block(token, Now),
+                "renew" => Lease.Renew(token, Now),
+                "start" => Start(token),
+                "release" => Lease.Release(token, Now),
+                "status" => true,
+                _ => false,
+            };
+            return new(success, Lease.OwnedBy(token, Now), Lease.Allowed(Now), Busy, Build, Running: !RunnerStopped);
+        }
+        private bool Start(Guid token) { Starts++; return !RejectStart && Lease.Start(token, Now, Busy); }
+    }
+
+    internal static int Run()
+    {
+        int checks = 0;
+        void Check(bool value, string message) { checks++; if (!value) throw new Exception(message); }
+        var capability = JObject.Parse("{'Success':true,'Version':1,'Build':'build-id','Running':false,'Managed':false}");
+        Check(EngineAvailability.Compatible(true, capability), "Compatible idle fork should be selectable");
+        Check(!EngineAvailability.Compatible(false, capability), "Installed but disabled plugin should not be offered as usable");
+        Check(!EngineAvailability.Compatible(true, null), "Missing fork API should not be offered");
+        Check(!EngineAvailability.Compatible(true, JObject.Parse("{'InternalName':'WrathCombo','Name':'Wrath Combo'}")), "Upstream identity alone is not a compatible engine");
+        capability["Version"] = 2;
+        Check(!EngineAvailability.Compatible(true, capability), "Unknown ownership protocol must not be offered");
+        capability["Version"] = 1; capability.Remove("Running");
+        Check(!EngineAvailability.Compatible(true, capability), "Older API without actual runner-state reporting must not be offered");
+        foreach (AutomationEngine? preference in new AutomationEngine?[] { null, AutomationEngine.Wrath, AutomationEngine.Rsr })
+        {
+            var desiredEngine = preference == AutomationEngine.Wrath ? AutomaticRunner.Wrath : AutomaticRunner.Rsr;
+            Check(EngineAvailability.Resolve(preference, false, false) == AutomaticRunner.Off, "Both engines absent");
+            Check(EngineAvailability.Resolve(preference, true, false) == AutomaticRunner.Wrath, "Wrath-only selection");
+            Check(EngineAvailability.Resolve(preference, false, true) == AutomaticRunner.Rsr, "RSR-only selection");
+            Check(EngineAvailability.Resolve(preference, true, true) == desiredEngine, "Preferred engine was not restored");
+        }
+        foreach (var preferred in new[] { AutomationEngine.Wrath, AutomationEngine.Rsr })
+        {
+            var left = new Endpoint(); var right = new Endpoint();
+            var control = new AutomationHandoff(left, right);
+            var favourite = preferred == AutomationEngine.Wrath ? left : right;
+            var alternate = favourite == left ? right : left;
+            void Step(long now)
+            {
+                left.Now = right.Now = now;
+                var runner = EngineAvailability.Resolve(preferred, !left.Absent, !right.Absent);
+                if (!control.IsCoordinating || control.Requested != runner) control.Request(runner, now);
+                control.Tick(now);
+            }
+            Step(0); Step(500);
+            favourite.Absent = true;
+            Step(1000); Step(1500);
+            Check(alternate.Lease.Allowed(1500), "Missing preferred engine did not hand off");
+            favourite.Absent = false; alternate.Busy = true;
+            Step(2000); Step(2500);
+            Check(!alternate.Lease.Allowed(2500) && !favourite.Lease.Allowed(2500), "Return overlapped a pending action");
+            alternate.Busy = false; Step(3000);
+            Check(favourite.Lease.Allowed(3000) && !alternate.Lease.Allowed(3000), "Preferred engine failed to resume");
+        }
+        var w = new Endpoint(); var r = new Endpoint();
+        var coordinator = new AutomationHandoff(w, r);
+        void Tick(long now) { w.Now = r.Now = now; coordinator.Tick(now); }
+        foreach (var selected in new[] { AutomaticRunner.Wrath, AutomaticRunner.Rsr })
+        {
+            var left = new Endpoint(); var right = new Endpoint();
+            var pvpControl = new AutomationHandoff(left, right);
+            bool paused = false;
+            void Step(long now, bool pvp, bool loading = false, bool enabled = true, uint job = 25)
+            {
+                left.Now = right.Now = now;
+                paused = AutomationPreference.PvPPaused(paused, pvp, loading);
+                var desired = AutomationPreference.Resolve(enabled, selected, paused || AutomationPreference.WaitingForCombatJob(job));
+                if (desired != pvpControl.Requested) pvpControl.Request(desired, now);
+                pvpControl.Tick(now);
+            }
+            Step(0, false);
+            Step(500, true);
+            Check(left.Starts + right.Starts == 0, "PvP entry granted a pending start");
+            Step(1000, false, loading: true);
+            Check(pvpControl.Requested == AutomaticRunner.Off, "Exit loading restarted the runner early");
+            Step(1500, false); Step(2000, false);
+            Check(pvpControl.Owner == selected, "Leaving PvP did not resume the selected engine");
+            Step(2100, true); Step(2600, true);
+            Check(!left.Lease.Allowed(2600) && !right.Lease.Allowed(2600), "PvP left an active runner enabled");
+            Step(3100, false, enabled: false);
+            Check(pvpControl.Owner == AutomaticRunner.Off && left.Starts + right.Starts == 1, "Saved off was lost on PvP exit");
+            Step(3600, false); Step(4100, false);
+            Check(pvpControl.Owner == selected, "Combat job did not acquire the runner");
+            for (uint job = 8; job <= 18; job++)
+            {
+                Step(4500 + 500 * job, false, job: job);
+                Check(pvpControl.Requested == AutomaticRunner.Off && !left.Lease.Allowed(left.Now) && !right.Lease.Allowed(right.Now),
+                    $"Crafter or gatherer {job} kept an active runner");
+            }
+            Step(14000, false, job: 0);
+            Step(14500, false); Step(15000, false);
+            Check(pvpControl.Owner == selected && left.Starts + right.Starts == 3, "Returning from gathering required toggling auto");
+            Step(15500, false, job: 9); Step(16000, false, enabled: false);
+            Check(pvpControl.Requested == AutomaticRunner.Off, "Switching jobs overrode saved off");
+        }
+        coordinator.Request(AutomaticRunner.Rsr, 0);
+        Check(!w.Lease.Allowed(0) && !r.Lease.Allowed(0), "Request started a runner before settling.");
+        w.Busy = true; Tick(500);
+        Check(r.Starts == 0 && coordinator.Owner == AutomaticRunner.Off, "Queued action overlapped the new runner.");
+        w.Busy = false; Tick(1000);
+        Check(coordinator.Owner == AutomaticRunner.Rsr && !w.Lease.Allowed(1000) && r.Lease.Allowed(1000), "RSR handoff failed.");
+        Tick(1500);
+        Check(r.Starts == 1, "Heartbeat repeatedly restarted the native runner.");
+        coordinator.Request(AutomaticRunner.Wrath, 1500); Tick(2000);
+        Check(coordinator.Owner == AutomaticRunner.Wrath && w.Lease.Allowed(2000) && !r.Lease.Allowed(2000), "Reverse handoff failed.");
+        r.Unavailable = true; Tick(2500);
+        Check(coordinator.Owner == AutomaticRunner.Off && !w.Lease.Allowed(2500), "Disconnect left the remaining engine running.");
+        r.Unavailable = false;
+        coordinator.Request(AutomaticRunner.Rsr, 2500); r.RejectStart = true; Tick(3000);
+        Check(!w.Lease.Allowed(3000) && !r.Lease.Allowed(3000), "Rejected start did not stop both engines.");
+        r.RejectStart = false;
+        coordinator.Request(AutomaticRunner.Rsr, 3000); Tick(3500); Tick(6500);
+        Check(coordinator.Owner == AutomaticRunner.Off && !r.Lease.Allowed(6500), "Expired heartbeat restarted automatically.");
+        coordinator.Request(AutomaticRunner.Wrath, 6500); r.Build = "reloaded"; Tick(7000);
+        Check(coordinator.Owner == AutomaticRunner.Off && !w.Lease.Allowed(7000), "Reload was accepted during transfer.");
+        coordinator.Request(AutomaticRunner.Wrath, 7000); w.Busy = true;
+        for (long now = 7500; now <= 22000; now += 500) Tick(now);
+        Check(coordinator.Owner == AutomaticRunner.Off && !w.Lease.Allowed(22000), "Unsettled queue did not time out.");
+        w.Busy = false;
+        coordinator.Request(AutomaticRunner.Off, 22000); Tick(22500);
+        Check(coordinator.Owner == AutomaticRunner.Off && !r.Lease.Allowed(22500), "Off mode enabled automation.");
+        int blocks = r.Blocks;
+        w.Unavailable = true;
+        coordinator.Request(AutomaticRunner.Rsr, 22500);
+        Check(r.Blocks > blocks && !r.Lease.Allowed(22500), "Failed first stop skipped the second engine.");
+        w.Unavailable = false;
+        coordinator.Release(22500);
+        Check(!w.Lease.Managed && !r.Lease.Managed, "Explicit release did not restore native control.");
+        r.Absent = true;
+        coordinator.Request(AutomaticRunner.Wrath, 23000); Tick(23500);
+        Check(coordinator.Owner == AutomaticRunner.Wrath, "Wrath-only installation must run without RSR");
+        r.Absent = false; Tick(24000);
+        Check(coordinator.Owner == AutomaticRunner.Off, "A newly loaded peer must stop existing automation until coordinated");
+        w.Absent = true;
+        coordinator.Request(AutomaticRunner.Rsr, 24000); Tick(24500);
+        Check(coordinator.Owner == AutomaticRunner.Rsr, "RSR-only installation must run without Wrath");
+        r.Absent = true; Tick(25000);
+        Check(coordinator.Owner == AutomaticRunner.Off, "Unloading the active runner must stop coordination");
+        coordinator.Request(AutomaticRunner.Rsr, 25000); Tick(25500);
+        Check(!coordinator.IsCoordinating && coordinator.Owner == AutomaticRunner.Off, "Absent selected runner must never be considered started");
+        w.Absent = false; r.Absent = false; r.Unavailable = true;
+        coordinator.Request(AutomaticRunner.Wrath, 25500); Tick(26000);
+        Check(!coordinator.IsCoordinating && !w.Lease.Allowed(26000), "Loaded incompatible peer must not be treated as absent");
+        r.Unavailable = false; r.Absent = true;
+        coordinator.Request(AutomaticRunner.Wrath, 26000); Tick(26500);
+        coordinator.Release(26500);
+        Check(!w.Lease.Managed, "Single-engine release must release the present engine");
+        coordinator.Request(AutomaticRunner.Wrath, 27000); Tick(27500);
+        w.RunnerStopped = true; Tick(28000);
+        Check(!coordinator.IsCoordinating && coordinator.Status.Contains("still connected"), "Runner stop was misreported as an engine disconnect");
+        w.RunnerStopped = false;
+        coordinator.Request(AutomaticRunner.Wrath, 28500); Tick(29000);
+        Check(coordinator.Owner == AutomaticRunner.Wrath, "Saved intent could not resume a stopped runner");
+        return checks;
+    }
+}

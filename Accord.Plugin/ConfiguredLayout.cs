@@ -20,13 +20,25 @@ internal sealed class ConfiguredLayout
     internal bool InitializeDefaults(LayoutPreferences preferences)
     {
         bool pvpChanged = preferences.PvP.InitializeDefaults();
-        if (preferences.MappingVersion >= 3) return pvpChanged;
+        if (preferences.MappingVersion >= 4) return pvpChanged;
+        if (preferences.MappingVersion == 3)
+        {
+            foreach (var mapping in new[] { preferences.Global.Mapping }
+                .Concat(preferences.Roles.Values.Select(v => v.Mapping))
+                .Concat(preferences.Classes.Values.Select(v => v.Mapping)).Where(m => m != null))
+                AddPull(mapping!);
+            preferences.MappingVersion = 4;
+            return true;
+        }
         if (preferences.MappingVersion == 2)
         {
             // Repair only our unedited shipped default; never overwrite a user's mapping.
             if (JsonConvert.SerializeObject(preferences.Global.Mapping) == JsonConvert.SerializeObject(CreateVersionTwoDefaults()))
                 preferences.Global.Mapping = CreateDefaults();
-            preferences.MappingVersion = 3;
+            AddPull(preferences.Global.Mapping);
+            foreach (var over in preferences.Roles.Values.Concat(preferences.Classes.Values))
+                if (over.Mapping != null) AddPull(over.Mapping);
+            preferences.MappingVersion = 4;
             return true;
         }
         if (preferences.Global.Mapping.JobDefaults.Count > 0 ||
@@ -56,9 +68,13 @@ internal sealed class ConfiguredLayout
             }
         foreach (var over in preferences.Roles.Values)
             if (over.Mapping is { } mapping && mapping.JobDefaults.Count > 0) over.Mapping = CreateDefaults();
+        foreach (var mapping in new[] { preferences.Global.Mapping }
+            .Concat(preferences.Roles.Values.Select(v => v.Mapping))
+            .Concat(preferences.Classes.Values.Select(v => v.Mapping)).Where(m => m != null))
+            AddPull(mapping!);
         preferences.PruneUnusedOverrides();
         preferences.DefaultsInitialized = true;
-        preferences.MappingVersion = 3;
+        preferences.MappingVersion = 4;
         return true;
     }
 
@@ -75,7 +91,20 @@ internal sealed class ConfiguredLayout
             Entries = Entries(ControlIntent.Raise, ControlIntent.Stance, ControlIntent.Shirk) });
         utility.Entries.AddRange(
             Entries(ControlIntent.HealingProtection, ControlIntent.AdditionalBurst, ControlIntent.Recovery, ControlIntent.Cleanse, ControlIntent.Interrupt, ControlIntent.Sprint));
+        AddPull(mapping);
         return mapping;
+    }
+
+    private static void AddPull(IntentMapping mapping)
+    {
+        if (mapping.Areas.SelectMany(a => a.Entries).Any(e => e.Intent == ControlIntent.Pull)) return;
+        foreach (var area in mapping.Areas)
+        {
+            int index = area.Entries.FindLastIndex(e => e.Intent is ControlIntent.SingleTarget or ControlIntent.AreaDamage);
+            if (index < 0) continue;
+            area.Entries.Insert(index + 1, new() { Intent = ControlIntent.Pull });
+            return;
+        }
     }
 
     // Exact released shape, retained to recognize an untouched 0.2.15.6 default.
@@ -147,6 +176,12 @@ internal sealed class ConfiguredLayout
             baseContents[(job.JobId, legacy)] = baselineContents = BuildContents(job, legacy);
         var content = baselineContents.ToDictionary(p => p.Key, p => p.Value.ToList());
         var values = settings.Layouts.Resolve(job.JobId);
+        if (values.JoinedDamage && SupportsJoinedDamage(job.JobId) && content[ControlIntent.SingleTarget].Count > 0)
+        {
+            content[ControlIntent.SingleTarget].Clear();
+            content[ControlIntent.SingleTarget].Add(new(new ActionChoice { Name = "Adaptive rotation", Id = 1000016, Selector = true }));
+            content[ControlIntent.AreaDamage].Clear();
+        }
         if (values.SplitMechanics && SplitActions.TryGetValue(job.JobId, out var split))
         {
             content[ControlIntent.Mechanics].Clear();
@@ -157,6 +192,8 @@ internal sealed class ConfiguredLayout
                 content[ControlIntent.Mechanics].Add(new(new ActionChoice { Name = name, Type = value.Type, Id = value.Id, Automation = VariantId.ClassMechanics }));
             }
         }
+        if (LayoutPreferences.Role(job.JobId) == JobRole.Tank)
+            content[ControlIntent.Pull].Add(new(new() { Name = "Pull", Id = 1000019, Selector = true }));
         content[ControlIntent.Sprint].Add(new(new() { Name = "Sprint", Id = 3, Selector = true }));
         return content;
     }
@@ -264,6 +301,7 @@ internal sealed class ConfiguredLayout
         var unsplit = Clone(settings);
         unsplit.Layouts.Classes.TryAdd(job.JobId, new());
         unsplit.Layouts.Classes[job.JobId].SplitMechanics = false;
+        unsplit.Layouts.Classes[job.JobId].JoinedDamage = false;
         var contents = Contents(job, unsplit);
         var routes = new Dictionary<uint, ActionRoutePolicy>();
         foreach (var exclusion in values.Exclusions)
@@ -297,4 +335,5 @@ internal sealed class ConfiguredLayout
     }
 
     internal static AccordSettings Clone(AccordSettings source) => JsonConvert.DeserializeObject<AccordSettings>(JsonConvert.SerializeObject(source))!;
+    internal static bool SupportsJoinedDamage(uint job) => job is 19 or 20 or 21 or 22 or 23 or 24 or 25 or 27 or 28 or 30 or 31 or 32 or 33 or 34 or 35 or 37 or 38 or 39 or 40 or 41 or 42;
 }

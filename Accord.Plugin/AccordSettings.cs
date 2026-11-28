@@ -4,10 +4,40 @@ using System.Linq;
 
 namespace Accord;
 
-public enum VariantId { Burst, Protection, Support, ClassMechanics }
+public enum AutomationEngine { Wrath, Rsr }
+
+public enum VariantId { Burst, Protection, Support, ClassMechanics, RoleMechanics }
 
 public sealed class AccordSettings : Dalamud.Configuration.IPluginConfiguration
 {
+    public bool OpenerHoldMigrated { get; set; }
+    public bool HoldWrathOpeners { get; set; }
+
+    internal WrathFork.Contract.RotationPreferences EffectiveRotation(uint job)
+    {
+        var rotation = Layouts.Resolve(job).Rotation;
+        if (HoldWrathOpeners) rotation.Openers = false;
+        return rotation;
+    }
+
+    public bool RoleMechanicsMigrated { get; set; }
+    internal bool MigrateRoleMechanics()
+    {
+        if (RoleMechanicsMigrated) return false;
+        if (!Variants.ContainsKey(VariantId.RoleMechanics))
+            Variants[VariantId.RoleMechanics] = WrathPreferences.Value<bool?>("AutoRoleMechanics") ?? false;
+        RoleMechanicsMigrated = true;
+        return true;
+    }
+    internal bool EffectiveRoleMechanics(uint job) => Enabled(VariantId.RoleMechanics, job);
+
+    public bool EmergencyRotation { get; set; }
+    public bool ContinuousDiagnostics { get; set; }
+    public bool AutoRotationEnabled { get; set; }
+    public bool FollowAutoDuty { get; set; }
+    public Newtonsoft.Json.Linq.JObject WrathPreferences { get; set; } = global::Accord.WrathPreferences.Resolve(new());
+    public AutomationEngine? AutomaticEngine { get; set; }
+    public Dictionary<string, bool> RsrPreferences { get; set; } = new();
     public LayoutPreferences Layouts { get; set; } = new();
     public PvPSettings PvP { get; set; } = new();
     public int Version { get; set; } = 1;
@@ -95,6 +125,7 @@ internal static class VariantDefinitions
         new(VariantId.Burst, "Auto burst", "SwordUnsheathed", "Delegate burst initiation; ST/AoE carries out the accepted sequence. Also enables supported activity damage buffs. Direct activity attacks remain included regardless of automation toggles."),
         new(VariantId.Protection, "Auto protection", "Tank", "Use reviewed protection through rotation presses, including supported activity mitigation and enemy control. With Wrath auto-rotation enabled, also enables preventive healer shields and mitigation responses to raidwides/tankbusters."),
         new(VariantId.Support, "Auto support", "Healer", "Use reviewed support, including supported activity healing, resurrection and recovery potions. With Wrath auto-rotation enabled, also enables raises, Esuna, Kardia management, pre-emptive healing and raidwide healing responses."),
+        new(VariantId.RoleMechanics, "Auto role mechanics", "PartyLeader", "Automatically pull selected packs and pick up loose adds as a tank, respecting party and alliance tank ownership."),
         new(VariantId.ClassMechanics, "Auto class mechanics", "GoldStar", "Delegate job mechanics such as dances, cards and songs, plus supported activity utility. Effects depend on the job and activity."),
     ];
 }

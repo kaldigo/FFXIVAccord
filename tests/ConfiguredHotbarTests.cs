@@ -38,6 +38,21 @@ internal static class ConfiguredHotbarTests
             Check(NativeHotbars.Read(23,new(2,11)) == new SlotValue(2,1000455), "item button lost");
             Check(!writer.NeedsConfiguredRefresh(23,preset,false,regular,[1,2,3]), "configured layout never settles");
             Check(writer.ApplyConfigured([(23,preset)],false,plans,[1,2,3]) == "", "unchanged layout replaced recovery backup");
+            regular[new(0,10)] = new(10,4); // Saved/exported General Action Sprint.
+            NativeHotbars.Put(23,new(0,10),new(10,4));
+            writer.ApplyConfigured([(23,preset)],false,plans,[1,2,3]);
+            Check(NativeHotbars.Read(23,new(0,10)) == new SlotValue(1,3), "configured Sprint disagrees with mode updater");
+            int settledWrites = NativeHotbars.Writes;
+            int settledBackups = Directory.GetFiles(root,"*.json",SearchOption.AllDirectories).Length;
+            for (int poll = 0; poll < 4; poll++)
+            {
+                SprintHotbars.Refresh(false);
+                Check(!writer.NeedsConfiguredRefresh(23,preset,false,regular,[1,2,3]), "Sprint refresh restarted layout repair");
+                Check(writer.ApplyConfigured([(23,preset)],false,plans,[1,2,3]) == "", "Sprint refresh generated another backup");
+            }
+            Check(NativeHotbars.Writes == settledWrites, "stable Sprint still writes slots");
+            Check(Directory.GetFiles(root,"*.json",SearchOption.AllDirectories).Length == settledBackups, "stable Sprint still generates backup files");
+            Check(regular[new(0,10)] == new SlotValue(10,4), "planning mutated the saved layout preference");
             var controller = NativeHotbars.Slots.Where(p => p.Key.Position.Bar >= 10).ToDictionary();
             regular[new(0,0)] = new(1,98);
             writer.ApplyConfigured([(23,preset)],false,plans,[1,2,3]);

@@ -11,163 +11,50 @@ namespace Accord;
 
 internal static class AccordUi
 {
-    internal enum Page { General, Automation, Classes, Hotbars, RoleActions, Exclusions, Groups, Overrides, PvPGlobal, PvPOverrides, Preview, Recovery, Rotation }
-    private static Page page;
-    private static string search = "";
-    private static readonly string[] titles = ["General", "Global automation", "Active classes", "Global mapping", "Global role actions", "Global exclusions", "Personal groups", "Mapping overrides", "PvP Global", "PvP overrides", "Preview", "Recovery & tools", "Rotation behaviour"];
-    private static readonly string[] keywords = ["live mode bars shared", "burst protection support mechanics bossmod movement distance ranged melee positional wrath", "jobs enable", "layout slots position manual defaults override", "important role", "exclude manual wrath", "potions roulette items extras", "role class overrides add edit inheritance", "pvp global automation mapping rotation one two", "pvp role class overrides", "preview class result inherited", "backup restore logout diagnostics", "target enemy range aoe activities combat opener potions"];
-
-    internal static void Draw()
+    internal enum Page { General, Hotbars, RoleActions, Exclusions, Groups, Overrides, PvPGlobal, PvPOverrides, Preview }
+    internal static AetherglassUI.Topic[] Managed(SetupController setup)=>[
+        new("Hotbar updates · saved automatically",
+            AccordControls.Flag("live","Update hotbars automatically",()=>setup.Settings.LiveMode,v=>setup.Run(()=>setup.SetLive(v))),
+            AccordControls.Flag("cleanup","Clear other controller and noncombat actions",()=>setup.Settings.ClearOtherActions,v=>setup.Run(()=>setup.SetCleanup(v)),"Shared bars are preserved."),
+            new AetherglassUI.Setting("apply","Set selected class hotbars",()=>{if(ImGui.Button("Apply layout"))setup.Run(setup.ApplyHotbars);},Visible:()=>!setup.Settings.LiveMode)),
+        LayoutEditor.ManagedBars(setup)
+    ];
+    internal static AetherglassUI.Topic[] Recovery(SetupController setup)
     {
-        var setup = SetupController.Instance;
-        if (setup is null) return;
-        LayoutEditor.BeginSession(setup);
-        float scale = ImGuiHelpers.GlobalScale;
-        float footer = 90 * scale;
-        float width = Math.Clamp(ImGui.GetContentRegionAvail().X * .22f, 150 * scale, 205 * scale);
-        if (ImGui.BeginChild("Navigation", new Vector2(width, -footer), true))
-        {
-            ImGui.TextUnformatted("ACCORD");
-            ImGui.TextDisabled(SetupController.IsPvP ? "PvP" : setup.Live ? "Live hotbars" : "Static hotbars");
-            ImGui.Spacing(); ImGui.SetNextItemWidth(-1);
-            ImGui.InputTextWithHint("##find", "Find a setting...", ref search, 80);
-            foreach (var item in new[] { Page.General, Page.Automation, Page.Rotation, Page.Classes, Page.Hotbars, Page.RoleActions, Page.Exclusions, Page.Groups, Page.Overrides, Page.PvPGlobal, Page.PvPOverrides, Page.Preview, Page.Recovery })
-            {
-                int index = (int)item;
-                if (!(titles[index] + " " + keywords[index]).Contains(search, StringComparison.OrdinalIgnoreCase)) continue;
-                if (index is 0 or 3 or 8 or 11) { ImGui.Spacing(); ImGui.TextDisabled(index == 0 ? "SETUP" : index == 3 ? "LAYOUT" : index == 8 ? "PVP" : "TOOLS"); }
-                if (ImGui.Selectable(titles[index], page == item)) page = item;
-            }
-        }
-        ImGui.EndChild(); ImGui.SameLine();
-        if (ImGui.BeginChild("SettingsPage", new Vector2(0, -footer), false))
-        {
-            ImGui.TextUnformatted(titles[(int)page]); ImGui.Separator(); ImGui.Spacing();
-            ImGui.PushItemWidth(Math.Min(300 * scale, ImGui.GetContentRegionAvail().X));
-            switch (page)
-            {
-                case Page.General: DrawGeneral(setup); LayoutEditor.Draw(setup, page); break;
-                case Page.Automation: DrawAutomation(setup); break;
-                case Page.Classes: DrawClassSelection(setup); break;
-                case Page.Recovery: DrawRecovery(setup); break;
-                default: LayoutEditor.Draw(setup, page); break;
-            }
-            ImGui.PopItemWidth();
-        }
-        ImGui.EndChild();
-        ImGui.Separator();
-        LayoutEditor.Footer(setup);
-        ImGui.TextWrapped(setup.Status.Split('\n')[0]);
-        if (ImGui.IsItemHovered()) ImGui.SetTooltip(setup.Status);
-    }
-
-    private static void DrawAutomation(SetupController setup)
-    {
-        ImGui.TextWrapped("Choose the global automation defaults. Class overrides can replace individual options; server-status buttons update an applied override for the active class.");
-        var job = Player.Available ? setup.Pack.Find((uint)Player.Job) : null;
-        if (job is null) ImGui.TextWrapped("Switch to a supported class to see what each variant controls for that class.");
-        foreach (var definition in VariantDefinitions.All)
-        {
-            bool enabled = setup.Settings.Enabled(definition.Id);
-            if (ImGui.Checkbox(definition.Label, ref enabled)) setup.Run(() => setup.SetVariant(definition.Id, enabled, global: true));
-            if (ImGui.IsItemHovered()) ImGui.SetTooltip(definition.Description);
-            if (job is not null)
-            {
-                ImGui.Indent();
-                var pvp = SetupController.IsPvP ? setup.PvP.Pack.Find(job.JobId) : null;
-                ImGui.TextWrapped($"{job.Job}: {(pvp is null ? JobIntents.Describe(job.JobId, definition.Id) : pvp.Descriptions.GetValueOrDefault(definition.Id, "No additional automation for this variant."))}");
-                ImGui.Unindent();
-            }
-        }
-
-        DrawBossModMovement(setup);
-    }
-
-    private static void DrawBossModMovement(SetupController setup)
-    {
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.TextUnformatted("BossMod Reborn movement");
-        var saved = setup.Settings.BossModMovement;
-        var movement = saved;
-        bool useRoleDistances = saved.UseRoleDistances;
-        if (ImGui.Checkbox("Use target distances by role", ref useRoleDistances))
-            movement = movement with { UseRoleDistances = useRoleDistances };
-
-        if (useRoleDistances)
-        {
-            var editable = movement with { UseRoleDistances = true };
-            float meleeMax = editable.Distances(JobRole.Melee)!.Value.Maximum;
-            var (rangedMin, rangedMax) = editable.Distances(JobRole.PhysicalRanged)!.Value;
-            const float gap = BossModMovementSettings.MinimumBand;
-            const float lowerMax = BossModMovementSettings.MinimumMaximum;
-            if (ImGui.SliderFloat("Melee and tank max (yalms)", ref meleeMax, lowerMax, 3, "%.1f"))
-                movement = movement with { MeleeMaximum = meleeMax };
-            if (ImGui.SliderFloat("Ranged and healer min (yalms)", ref rangedMin, gap, rangedMax - gap, "%.1f"))
-                movement = movement with { RangedMinimum = rangedMin };
-            if (ImGui.SliderFloat("Ranged and healer max (yalms)", ref rangedMax, Math.Max(lowerMax, rangedMin + gap), 25, "%.1f"))
-                movement = movement with { RangedMaximum = rangedMax };
-        }
-
-        bool followPositionals = saved.FollowWrathPositionals;
-        if (ImGui.Checkbox("Follow Wrath's rear and flank hints", ref followPositionals))
-            movement = movement with { FollowWrathPositionals = followPositionals };
-        if (movement != saved)
-            setup.Run(() => setup.SetBossModMovement(movement));
-
-        ImGui.TextWrapped("Applies to selected PvE classes. Follow target uses the distance band. Movement presets use the maximum through Stay within range of target and Wrath hints through Goes to specified positional.");
-        if (Plugin.Instance.BossModMovementStatus is { Length: > 0 } status)
-            ImGui.TextWrapped(status);
-    }
-
-    private static void DrawGeneral(SetupController setup)
-    {
-        bool live = setup.Settings.LiveMode;
-        if (ImGui.Checkbox("Update hotbars automatically", ref live)) setup.Run(() => setup.SetLive(live));
-        ImGui.TextWrapped(live ? "Layout and automation changes apply immediately, including in combat."
-            : "Apply your layout manually using the button below.");
-        bool cleanup = setup.Settings.ClearOtherActions;
-        if (ImGui.Checkbox("Clear other controller and noncombat actions", ref cleanup)) setup.Run(() => setup.SetCleanup(cleanup));
-        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Combat regular bars are always fully managed according to the bar selection. This option retains the existing cleanup behaviour for controller, noncombat and PvP layouts. Shared bars are preserved.");
-        if (!setup.Settings.LiveMode && ImGui.Button("Set selected class hotbars")) setup.Run(setup.ApplyHotbars);
-        ImGui.Spacing(); ImGui.Separator(); ImGui.TextUnformatted("Managed bars");
-    }
-
-    private static void DrawRecovery(SetupController setup)
-    {
-        bool manualLogout = setup.Settings.ManualLogoutFallback;
-        if (ImGui.Checkbox("Save manual hotbars before logout", ref manualLogout)) setup.Run(() => setup.SetManualFallback(manualLogout));
-        ImGui.TextWrapped("Saves three-bar manual layouts for selected combat classes before normal logout. Restores your exact previous Accord layouts on login when compatible Wrath is available. Uses regular bars 1–3 and controller pages 1–3; other bars stay unchanged.");
-        if (ImGui.Button("Prepare manual hotbars now")) setup.Run(setup.PrepareManualHotbars);
-        ImGui.SameLine();
-        if (ImGui.Button("Restore Accord hotbars")) setup.Run(setup.RestoreAccordHotbars);
-        ImGui.TextWrapped(setup.ManualStatus);
-        ImGui.Separator();
-        ImGui.TextWrapped(setup.Status);
-        if (setup.HasPendingOperation && ImGui.Button("Keep recovery record and review again")) setup.Run(setup.AbandonPendingOperation);
-            ImGui.TextWrapped("Reapply Accord's default Wrath settings for selected classes. Backs up the previous settings and keeps your variants and hotbars.");
-            if (ImGui.Button("Reset selected classes to Accord defaults")) setup.Run(setup.ResetSelectedSettings);
-            if (!string.IsNullOrWhiteSpace(SetupController.IsPvP ? setup.PvP.Settings.LastHotbarBackup : setup.Settings.LastHotbarBackup))
-            {
-                ImGui.Separator();
-                ImGui.TextWrapped("Restore the saved hotbar layout from before the last Accord hotbar operation, including live updates. Turns live mode off; Wrath settings and variants stay as they are. This is not necessarily your layout from before first using Accord.");
-                if (ImGui.Button("Restore previous hotbar layout")) setup.Run(setup.Restore);
-            }
-            ImGui.Separator();
-            ImGui.TextWrapped("Save Accord and Wrath settings and status to a local file for troubleshooting. Nothing is uploaded.");
-            if (ImGui.Button("Save troubleshooting report")) setup.Run(setup.ExportDiagnostics);
-            foreach (var backup in Directory.EnumerateFiles(Svc.PluginInterface.GetPluginConfigDirectory(), "combined-prototype-*.json").OrderByDescending(File.GetLastWriteTimeUtc))
-                if (ImGui.Button("Review settings from old combined plugin: " + Path.GetFileName(backup)))
-                {
-                    Plugin.Instance.MigrationSource = backup;
-                    Plugin.Instance.MigrationPending = true;
+        AetherglassUI.Setting Command(string id,string title,string button,Action execute,string detail="")=>
+            new(id,title,()=>{if(ImGui.Button(button))setup.Run(execute);},Detail:detail);
+        var root=Svc.PluginInterface.GetPluginConfigDirectory();
+        var imports=new List<AetherglassUI.Setting>{
+            Command("report","Troubleshooting report","Save report",setup.ExportDiagnostics,"Save settings and status locally.")
+        };
+        // Discover old imports only when the import row is visible.
+        imports.Add(new("imports","Import settings from the combined plugin",()=>{}, "migration backup"){
+            ExpandedContent=()=>{
+                foreach(var backup in Directory.EnumerateFiles(root,"combined-prototype-*.json").OrderByDescending(File.GetLastWriteTimeUtc)){
+                    if(!ImGui.Button("Review "+Path.GetFileName(backup)))continue;
+                    Plugin.Instance.MigrationSource=backup;
+                    Plugin.Instance.MigrationPending=true;
                     setup.Run(setup.PreviewMigration);
                 }
+            }
+        });
+        return [new("Manual logout hotbars",
+            AccordControls.Flag("logout","Save manual hotbars before logout",()=>setup.Settings.ManualLogoutFallback,
+                v=>setup.Run(()=>setup.SetManualFallback(v)),"Save bars 1–3 for selected combat classes and restore the previous Accord layout on login."),
+            Command("prepare","Prepare manual hotbars now","Prepare",setup.PrepareManualHotbars),
+            Command("restore","Restore Accord hotbars","Restore",setup.RestoreAccordHotbars),
+            new("status","Manual hotbar status",()=>ImGui.TextWrapped(setup.ManualStatus))),
+            new("Recovery",
+                Command("pending","Keep recovery record and review again","Review",setup.AbandonPendingOperation) with {Visible=()=>setup.HasPendingOperation},
+                Command("reset","Reset selected classes to Accord defaults","Reset classes",setup.ResetSelectedSettings,"Backs up previous Wrath settings and keeps variants and hotbars."),
+                Command("backup","Restore previous hotbar layout","Restore backup",setup.Restore,"Restores the last hotbar backup and turns live mode off.") with {
+                    Visible=()=>!string.IsNullOrWhiteSpace(SetupController.IsPvP?setup.PvP.Settings.LastHotbarBackup:setup.Settings.LastHotbarBackup)},
+                new("status","Setup status",()=>ImGui.TextWrapped(setup.Status))),
+            new("Troubleshooting and import",imports.ToArray())];
     }
 
-    private static void DrawClassSelection(SetupController setup)
+    internal static void DrawClassSelection(SetupController setup)
     {
-        ImGui.TextUnformatted("Active classes");
         ImGui.TextWrapped("Click a class to enable or disable Accord. Base classes follow their job.");
         if (ImGui.Button("Select all")) setup.Run(() => setup.SetActiveJobs(setup.Pack.Data.Jobs.Select(j => j.JobId)));
         ImGui.SameLine();
@@ -210,7 +97,7 @@ internal static class AccordUi
     {
         var setup = SetupController.Instance!;
         var parts = args.Trim().ToLowerInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length == 0) { Plugin.Instance.IsOpen = true; return; }
+        if (parts.Length == 0) { Plugin.Instance.Open(); return; }
         if (Plugin.Instance.MigrationPending) throw new InvalidOperationException("Open /accord to complete separate setup first.");
         switch (parts[0])
         {
@@ -223,7 +110,7 @@ internal static class AccordUi
         var id = parts[0] switch
         {
             "burst" => VariantId.Burst, "protection" => VariantId.Protection,
-            "support" => VariantId.Support, "mechanics" => VariantId.ClassMechanics,
+            "support" => VariantId.Support, "mechanics" => VariantId.ClassMechanics, "role" => VariantId.RoleMechanics,
             _ => throw new ArgumentException("Use /accord manual, normal, selected, restore, live, burst, protection, support or mechanics."),
         };
         setup.SetVariant(id, Value(setup.VariantEnabled(id)));

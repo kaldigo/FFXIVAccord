@@ -48,6 +48,15 @@ internal sealed class SetupPack
         return Data.Jobs.Where(job => ids.Contains(job.JobId)).ToArray();
     }
 
+    internal JobPreset[] CurrentVariantJobs(AccordSettings before, AccordSettings after, uint current)
+    {
+        var job = Find(current);
+        if (job is null || !IsActive(current, after)) return [];
+        return Enum.GetValues<VariantId>().Any(id =>
+            before.Enabled(id, job.JobId) != after.Enabled(id, job.JobId) ||
+            before.Enabled(id, job.JobId, true) != after.Enabled(id, job.JobId, true)) ? [job] : [];
+    }
+
     internal bool IsActive(uint job, AccordSettings settings) =>
         SelectedJobs(settings).Any(selected => selected.JobId == Find(job)?.JobId);
 
@@ -219,6 +228,7 @@ internal sealed class SetupPack
         }
         bool protection = settings.Enabled(VariantId.Protection, job.JobId);
         var layoutValues = settings.Layouts.Resolve(job.JobId);
+        result.JoinedDamage = layoutValues.JoinedDamage && ConfiguredLayout.SupportsJoinedDamage(job.JobId);
         bool keepProtection = layoutValues.KeepManual || layoutValues.Mapping.Areas.SelectMany(a => a.Entries)
             .Any(e => (e.Intent is ControlIntent.Protection or ControlIntent.HealingProtection) && e.KeepManual);
         foreach (int id in ManualProtectionPresets(job.JobId))

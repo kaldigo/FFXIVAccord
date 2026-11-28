@@ -69,14 +69,34 @@ internal sealed class HotbarSetup
             var effectiveMaps = maps;
             bool existingSprint = ModeActions.HasSharedSprint(Protected, p=>NativeHotbars.Read(job,p));
             designActions.Add(new SlotValue(1,3));
-            foreach (var entry in PveLayoutPlan.Create(job, preset, effectiveMaps, Protected, sprint:!existingSprint))
+            var plannedLayout = PveLayoutPlan.Create(job, preset, effectiveMaps, Protected, sprint:!existingSprint);
+            foreach (var entry in plannedLayout)
             {
                 var slot = entry.Slot;
                 var value = slot is null ? default : slot.Action == "Sprint" ? new SlotValue(1,3) : actions.ResolveSlot(preset.Job, slot.Action);
                 var retired = string.IsNullOrEmpty(slot?.RetiredAction) ? default : actions.ResolveSlot(preset.Job, slot.RetiredAction);
+                var adaptive = PveLayoutPlan.DamageValue(preset, slot, value);
+                if (adaptive == default && value != default) retired = value;
+                value = adaptive;
                 if (configured is null) Add(entry.Regular, value, retired, true);
                 if (entry.Cross is { } cross) Add(cross, value, retired);
                 else if (value != default) Notice = " Some controls are keyboard-only because their controller slots are shared or unavailable. Shared bars were preserved.";
+            }
+            var pull = new SlotValue(1, 1000019);
+            if (LayoutPreferences.Role(job) == JobRole.Tank && (configured == null || configured.Values.Contains(pull)))
+            {
+                var rotation = plannedLayout.LastOrDefault(e => e.Slot?.LogicalSlot == 2)?.Cross;
+                if (rotation is { } anchor)
+                    foreach (int offset in Enumerable.Range(1, 16).OrderBy(offset =>
+                        NativeHotbars.Read(job, new Position(anchor.Bar, (anchor.Slot + offset) % 16)) == pull ? 0 : 1))
+                    {
+                        var position = new Position(anchor.Bar, (anchor.Slot + offset) % 16);
+                        if (keep.Contains(position) || Protected(position)) continue;
+                        var previous = NativeHotbars.Read(job, position);
+                        if (previous != default && previous != pull) continue;
+                        Add(position, pull, default);
+                        break;
+                    }
             }
             // Clear recognised assignments at vacated destinations, including
             // positions used by an earlier compact layout or Sprint fallback.
@@ -92,7 +112,10 @@ internal sealed class HotbarSetup
                     for (int slot = 0; slot < 12; slot++)
                     {
                         var position = new Position(bar - 1, slot);
-                        var value = configured.GetValueOrDefault(position);
+                        // Use the same Sprint representation as SprintHotbars.
+                        // Otherwise an exported General Action Sprint is repaired
+                        // back after every mode refresh, causing writes and saves.
+                        var value = ModeActions.ForMode(configured.GetValueOrDefault(position), false);
                         var old = NativeHotbars.Read(job, position);
                         if (old != value) edits[(job, position)] = new(job, position, old, value);
                     }
@@ -124,16 +147,17 @@ internal sealed class HotbarSetup
         if (backup.Edits.Select(e => (e.Job, e.Position)).Distinct().Count() != backup.Edits.Count)
             throw new InvalidDataException("Duplicate backup destinations.");
         HotbarLayoutStore.Ready(false);
+        using (AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.SlotVerify))
         foreach (var edit in backup.Edits)
         {
             if (NativeHotbars.Ready(current)->IsHotbarShared((uint)edit.Position.Bar))
                 throw new InvalidOperationException("A backup destination is now shared. Restore was blocked to protect shared controls.");
+            if (NativeHotbars.Read(edit.Job, edit.Position) != edit.Before) throw new InvalidOperationException("Hotbars changed while preparing the operation.");
         }
         var directory = Path.Combine(Svc.PluginInterface.GetPluginConfigDirectory(), "hotbar-backups", backup.Character);
         var path = Path.Combine(directory, $"{DateTime.UtcNow:yyyyMMdd-HHmmss-ffff}-{Guid.NewGuid():N}.json");
-        foreach (var edit in backup.Edits)
-            if (NativeHotbars.Read(edit.Job, edit.Position) != edit.Before) throw new InvalidOperationException("Hotbars changed while preparing the operation.");
-        JsonStore.Write(path, backup);
+        using (AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.BackupWrite))
+            JsonStore.Write(path, backup);
         try
         {
             HotbarTransaction.Apply(backup.Edits,

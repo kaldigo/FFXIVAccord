@@ -89,6 +89,8 @@ public sealed class PresetSlot
 }
 public sealed class JobPreset
 {
+    [System.Text.Json.Serialization.JsonIgnore, Newtonsoft.Json.JsonIgnore]
+    public bool JoinedDamage { get; set; }
     public uint JobId { get; set; }
     public int SetupRevision { get; set; }=1;
     public string Job { get; set; } = "";

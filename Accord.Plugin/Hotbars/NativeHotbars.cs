@@ -39,15 +39,19 @@ public static unsafe class NativeHotbars
         if(!p.Valid || targetJob is 0 or >42)throw new InvalidDataException("Invalid hotbar write.");
         value=value.Normalized;
         if(!Enum.IsDefined((RaptureHotbarModule.HotbarSlotType)value.Type))throw new InvalidDataException("Unsupported action type.");
-        if(m->PvPHotbarsActive==pvp && (currentJob==targetJob || m->IsHotbarShared((uint)p.Bar)))
-            m->SetAndSaveSlot((uint)p.Bar,(uint)p.Slot,(RaptureHotbarModule.HotbarSlotType)value.Type,value.Id,false,pvp);
-        else
+        using (AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.SlotWrite))
         {
-            // Only command type and ID are consumed by WriteSavedSlot. No live slot is overwritten.
-            var source=new RaptureHotbarModule.HotbarSlot { CommandType=(RaptureHotbarModule.HotbarSlotType)value.Type,CommandId=value.Id };
-            m->WriteSavedSlot(targetJob,(uint)p.Bar,(uint)p.Slot,&source,false,pvp);
+            if(m->PvPHotbarsActive==pvp && (currentJob==targetJob || m->IsHotbarShared((uint)p.Bar)))
+                m->SetAndSaveSlot((uint)p.Bar,(uint)p.Slot,(RaptureHotbarModule.HotbarSlotType)value.Type,value.Id,false,pvp);
+            else
+            {
+                // Only command type and ID are consumed by WriteSavedSlot. No live slot is overwritten.
+                var source=new RaptureHotbarModule.HotbarSlot { CommandType=(RaptureHotbarModule.HotbarSlotType)value.Type,CommandId=value.Id };
+                m->WriteSavedSlot(targetJob,(uint)p.Bar,(uint)p.Slot,&source,false,pvp);
+            }
         }
-        if(Read(targetJob,p,live:(activePvP??pvp)==pvp,pvp:pvp)!=value)throw new InvalidOperationException($"Hotbar verification failed at job {targetJob} {p}.");
+        using (AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.SlotVerify))
+            if(Read(targetJob,p,live:(activePvP??pvp)==pvp,pvp:pvp)!=value)throw new InvalidOperationException($"Hotbar verification failed at job {targetJob} {p}.");
     }
     public static void Apply(uint currentJob,IReadOnlyList<SlotEdit> edits,string backupDirectory,bool pvp=false,bool? activePvP=null)
     {

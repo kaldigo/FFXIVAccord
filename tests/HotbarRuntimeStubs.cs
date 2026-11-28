@@ -107,3 +107,12 @@ namespace Accord
 {
     internal static class FallbackMode { internal static bool Current => HotbarTools.NativeHotbars.Mode; }
 }
+
+namespace AccordDiagnostics
+{
+    internal enum TimedPath { BackupWrite, SlotVerify }
+    internal static class PerformanceTimings
+    {
+        internal static System.IDisposable? Measure(TimedPath _) => null;
+    }
+}

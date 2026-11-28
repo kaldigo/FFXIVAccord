@@ -1,13 +1,25 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0-windows</TargetFramework>
-    <AssemblyName>Accord</AssemblyName><Version>0.2.15</Version>
+    <AetherglassUIProject Condition="'$(AetherglassUIProject)' == '' and Exists('../../../AetherglassUI/Library/AetherglassUI.csproj')">../../../AetherglassUI/Library/AetherglassUI.csproj</AetherglassUIProject>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <AssemblyName>Accord</AssemblyName><Version>0.2.15.48</Version>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
     <Nullable>enable</Nullable><AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>preview</LangVersion><Platforms>x64</Platforms>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <DalamudLibPath>$(appdata)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
   </PropertyGroup>
+  <PropertyGroup>
+    <AetherglassUIProject Condition="'$(AetherglassUIProject)' == '' and Exists('../../AetherglassUI/Library/AetherglassUI.csproj')">../../AetherglassUI/Library/AetherglassUI.csproj</AetherglassUIProject>
+    <AetherglassUIProject Condition="'$(AetherglassUIProject)' == '' and Exists('../../../../AetherglassUI/Library/AetherglassUI.csproj')">../../../../AetherglassUI/Library/AetherglassUI.csproj</AetherglassUIProject>
+    <AetherglassUIProject Condition="'$(AetherglassUIProject)' == ''">../.dependencies/AetherglassUI/Library/AetherglassUI.csproj</AetherglassUIProject>
+  </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="../assets/mark.png" LogicalName="Accord.mark.png" />
+  </ItemGroup>
+  <ItemGroup><ProjectReference Include="$(AetherglassUIProject)" /></ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="../assets/icon.png" LogicalName="Accord.icon.png" />
     <PackageReference Include="DalamudPackager" Version="15.0.0" />
     <ProjectReference Include="../ECommons/ECommons/ECommons.csproj" />
     <Reference Include="InteropGenerator.Runtime"><HintPath>$(DalamudLibPath)InteropGenerator.Runtime.dll</HintPath><Private>false</Private></Reference>

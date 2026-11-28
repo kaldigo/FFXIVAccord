@@ -25,7 +25,7 @@ internal sealed class PvPSetup
     private void Save(AccordSettings desired)
     {
         if(engine.HasPending)throw new InvalidOperationException("Resolve the pending settings operation first.");
-        Svc.PluginInterface.SavePluginConfig(desired);
+        AccordDiagnostics.PerformanceTimings.SaveConfig(desired);
         Plugin.Instance.Settings=desired;
     }
     private void Prepare(AccordSettings desired, PvPProfile[] jobs)
@@ -43,15 +43,14 @@ internal sealed class PvPSetup
         engine.Apply(snapshot,Pack.Patch(jobs,desired.PvP,snapshot),desired);
     }
     private PvPProfile[] Selected(PvPSettings settings) => Pack.Jobs.Where(j=>settings.ActiveJobs.Contains(j.JobId)).ToArray();
-    internal void ApplyChoices(AccordSettings desired, Action prepare)
+    internal void ApplyChoices(AccordSettings desired, Action<JObject> prepare)
     {
         var profile=Pack.Find((uint)Player.Job);
-        if(profile is null || desired.ActiveJobs?.Contains(profile.JobId)!=true) { prepare(); Invalidate(); return; }
+        if(profile is null || desired.ActiveJobs?.Contains(profile.JobId)!=true) { prepare(engine.Read()); Invalidate(); return; }
         var previous=Clone();
         var snapshot=engine.Read();
-        // Validate the complete all-manual layout before changing rotation behavior.
-        hotbars.Apply([profile],desired.SharedPvP(),snapshot,inspect:true);
-        CombinedUpdate.Apply(prepare,()=>Apply([profile],engine.Read()),()=>engine.RestoreSettings(snapshot,previous));
+        // Apply validates the manual profile and builds the effective slot edits from committed settings.
+        CombinedUpdate.Apply(()=>prepare(snapshot),()=>Apply([profile],engine.Read()),()=>engine.RestoreSettings(snapshot,previous));
         Invalidate();
         Status="PvP settings and hotbars updated.";
     }
