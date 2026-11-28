@@ -102,6 +102,7 @@ internal static class WrathSettingsPanel
                 new("Wrath · Tanks · saved automatically",
                     Flag("Paladin","PLD: coordinate burst with the planned GCD and active buffs"),
                     Flag("Warrior","WAR: check buff duration and downtime before burst"),
+                    Flag("TankAoeRangedFallback","Tank AoE ranged fallback","Allow Shield Lob / Holy Spirit, Tomahawk, Unmend or Lightning Shot on tank AoE buttons when the target is out of range. Off preserves single-target ranged attacks, Paladin's normal magic combo and the Pull control."),
                     Flag("Gunbreaker","GNB: use observed No Mercy state and downtime checks"),
                     Flag("DarkKnight","DRK: reserve shield mana for observed incoming damage")),
                 new("Wrath · Healers · saved automatically",

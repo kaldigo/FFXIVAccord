@@ -130,7 +130,6 @@ internal sealed class AccordWindow : Window
             case TaskPage.RoleActions: Layout(Page.RoleActions); break;
             case TaskPage.Groups: Layout(Page.Groups); break;
             case TaskPage.Overrides: Layout(Page.Overrides); break;
-            case TaskPage.CombatOverrides: Layout(Page.Overrides); break;
             case TaskPage.PvPOverrides: Layout(Page.PvPOverrides); break;
             case TaskPage.Preview:
                 Layout(Page.Preview);

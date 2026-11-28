@@ -115,6 +115,7 @@ internal static partial class LayoutEditor
         if (page == AccordUi.Page.Preview) { DrawPreview(setup); return; }
         if (page == AccordUi.Page.Overrides) { Overrides(setup); return; }
         scope = "Global";
+        if (page == AccordUi.Page.RoleActions) { GlobalRoleActions(); return; }
         DrawSettings(setup, page, null, draft.Global);
     }
 
@@ -130,37 +131,6 @@ internal static partial class LayoutEditor
         if (draft.PvP.Global.Automation.TryGetValue(id, out var global)) value = global;
         if (!isRole && draft.PvP.Roles.TryGetValue(roleKey, out var role) && role.Automation.TryGetValue(id, out var byRole)) value = byRole;
         return value;
-    }
-
-    private static void PvPGlobal(SetupController setup)
-    {
-        scope = "Global";
-        ImGui.TextWrapped("PvP settings apply above your normal settings. Role and class exceptions are added on the PvP overrides page. Uncheck Apply to inherit.");
-        int buttons = draft.PvP.RotationButtons == PvPRotationButtons.One ? 0 : 1;
-        if (ImGui.Combo("Rotation buttons", ref buttons, new[] { "One", "Two (ST / AoE)" }, 2))
-            draft.PvP.RotationButtons = buttons == 0 ? PvPRotationButtons.One : PvPRotationButtons.Two;
-        ImGui.TextWrapped("One uses the full supported rotation. Ninja selects ST or AoE by enemy count and keeps that choice during mudras.");
-        if (ImGui.Button("Use compact PvP layout"))
-        {
-            draft.PvP.Global.Mapping = PvPConfiguredLayout.CompactMapping();
-            draft.PvP.RotationButtons = PvPRotationButtons.One;
-        }
-        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Sets the draft mapping to one attack button, retained limit breaks and fixed Recuperate, Guard, Purify and Sprint positions. Job-specific tactical controls remain accessible. Review and apply the draft to update bars.");
-        if (!ImGui.BeginTabBar("PvP Global settings")) return;
-        if (ImGui.BeginTabItem("Automation"))
-        {
-            foreach (var definition in VariantDefinitions.All)
-            {
-                bool? local = draft.PvP.Global.Automation.TryGetValue(definition.Id, out var value) ? value : null;
-                Bool(definition.Label, local ?? setup.Settings.Enabled(definition.Id), local, true,
-                    v => { if (v.HasValue) draft.PvP.Global.Automation[definition.Id] = v.Value; else draft.PvP.Global.Automation.Remove(definition.Id); });
-            }
-            ImGui.EndTabItem();
-        }
-        foreach (var section in new[] { ("Mapping", AccordUi.Page.Hotbars), ("Role actions", AccordUi.Page.RoleActions), ("Exclusions", AccordUi.Page.Exclusions) })
-            if (ImGui.BeginTabItem(section.Item1))
-            { DrawSettings(setup, section.Item2, draft.PvP.Global, draft.Global); ImGui.EndTabItem(); }
-        ImGui.EndTabBar();
     }
 
     private static void DrawSettings(SetupController setup, AccordUi.Page page, LayoutOverride? over, LayoutValues parent)
@@ -201,40 +171,8 @@ internal static partial class LayoutEditor
             ImGui.EndDisabled();
         }
         if (page == AccordUi.Page.Exclusions)
-        {
-            bool applied = over is null || over.Exclusions is not null;
-            if (over is not null && ImGui.Checkbox("Apply##exclusions", ref applied)) over.Exclusions = applied ? Copy(parent.Exclusions) : null;
-            ImGui.BeginDisabled(!applied);
-            var exclusions = over?.Exclusions ?? effective.Exclusions;
-            var routes = Enum.GetValues<ControlIntent>().Where(i => i is not (ControlIntent.ImportantRole or ControlIntent.OtherRole or ControlIntent.Exclusions)).ToArray();
-            ImGui.TextWrapped("Choose an action, then check the buttons that should skip it.");
-            Picker("Add action", a =>
-            {
-                if (!exclusions.Any(e => e.Action.Id == a.Id && e.Action.Type == a.Type))
-                    exclusions.Add(new() { Action = a });
-            }, actionsOnly: true);
-            for (int i = 0; i < exclusions.Count; i++)
-            {
-                var exclusion = exclusions[i];
-                ImGui.PushID(i);
-                if (ImGui.TreeNode($"{exclusion.Action.Name} ({exclusion.ExcludedFrom.Count} excluded)###action"))
-                {
-                    foreach (var route in routes)
-                    {
-                        bool excluded = exclusion.ExcludedFrom.Contains(route);
-                        if (ImGui.Checkbox(Label(route), ref excluded))
-                        {
-                            if (excluded) exclusion.ExcludedFrom.Add(route);
-                            else exclusion.ExcludedFrom.Remove(route);
-                        }
-                    }
-                    if (ImGui.SmallButton("Remove exclusion rule")) exclusions.RemoveAt(i--);
-                    ImGui.TreePop();
-                }
-                ImGui.PopID();
-            }
-            ImGui.EndDisabled();
-        }
+            AetherglassUI.PageControls.Section("global-exclusions", "Rotation button exclusions", () => DrawExclusionRules(draft.Global.Exclusions),
+                "Choose an action and the intent buttons that should skip it. These rules share the hotbar draft.");
     }
 
     internal static AetherglassUI.Topic ManagedBars(SetupController setup)=>new("Managed bars · layout draft",
@@ -246,78 +184,6 @@ internal static partial class LayoutEditor
                 DisabledReason=()=>bar<=3?"Required":shared&&!draft.AdditionalBars.Contains(bar)?"Shared in game":null
             };
         }).ToArray());
-
-    private static void Overrides(SetupController setup, bool pvp = false)
-    {
-        var roles = pvp ? draft.PvP.Roles : draft.Roles;
-        var classes = pvp ? draft.PvP.Classes : draft.Classes;
-        if (selectedOverride is null)
-        {
-            ImGui.TextWrapped("Global applies to every class. Add an override only where you want a role or class to behave differently.");
-            if (ImGui.Button("Add override")) ImGui.OpenPopup("Add override");
-            if (ImGui.BeginPopup("Add override"))
-            {
-                foreach (var role in Enum.GetValues<JobRole>().Where(r => r != JobRole.Noncombat && !roles.ContainsKey(r)))
-                    if (ImGui.Selectable("Role: " + Label(role))) { roles[role] = new(); selectedOverride = "Role: " + role; }
-                foreach (var job in setup.Pack.Data.Jobs.Where(j => j.JobId >= 19 && !classes.ContainsKey(j.JobId)))
-                    if (ImGui.Selectable(job.Job)) { classes[job.JobId] = new(); selectedOverride = job.Job; }
-                ImGui.EndPopup();
-            }
-            if (roles.Count + classes.Count == 0) ImGui.TextDisabled("No overrides. All classes use Global.");
-            foreach (var role in roles.Keys.ToArray()) Row("Role: " + role, "Role: " + Label(role), () => roles.Remove(role));
-            foreach (var job in classes.Keys.ToArray()) Row(setup.Pack.Find(job)!.Job, setup.Pack.Find(job)!.Job, () => classes.Remove(job));
-            return;
-        }
-        if (ImGui.Button("Back to overrides")) { selectedOverride = null; return; }
-        scope = selectedOverride;
-        ImGui.TextUnformatted("Editing " + Label(scope));
-        LayoutValues parent = pvp ? draft.PvP.Global.Over(draft.Global) : draft.Global;
-        LayoutOverride? over;
-        if (scope.StartsWith("Role: "))
-        {
-            var key = Enum.Parse<JobRole>(scope[6..]);
-            if (pvp && draft.Roles.TryGetValue(key, out var normalRole)) parent = draft.PvP.Global.Over(normalRole.Over(draft.Global));
-            roles.TryGetValue(key, out over);
-        }
-        else
-        {
-            var job = setup.Pack.Data.Jobs.First(j => j.Job == scope);
-            if (pvp) parent = draft.PvP.Global.Over(draft.Resolve(job.JobId));
-            if (roles.TryGetValue(LayoutPreferences.Role(job.JobId), out var role)) parent = role.Over(parent);
-            classes.TryGetValue(job.JobId, out over);
-        }
-        if (over is null) { selectedOverride = null; return; }
-        ImGui.TextWrapped("Only checked Apply settings replace inherited values. Mapping is one complete setting.");
-        if (ImGui.BeginTabBar("Override sections"))
-        {
-            string[] tabs = ["Mapping", "Role actions", "Exclusions"];
-            for (int i = 0; i < tabs.Length; i++) if (ImGui.BeginTabItem(tabs[i]))
-            {
-                DrawSettings(setup, i == 0 ? AccordUi.Page.Hotbars : i == 1 ? AccordUi.Page.RoleActions : AccordUi.Page.Exclusions, over, parent);
-                ImGui.EndTabItem();
-            }
-            if (ImGui.BeginTabItem("Automation"))
-            {
-                ImGui.TextWrapped("Apply replaces the inherited option. Server-status buttons change the highest applied layer for the active class and mode.");
-                foreach (var definition in VariantDefinitions.All)
-                {
-                    bool? local = over.Automation.TryGetValue(definition.Id, out var value) ? value : null;
-                    Bool(definition.Label, local ?? InheritedAutomation(setup, definition.Id, pvp, scope), local, true,
-                        v => { if (v.HasValue) over.Automation[definition.Id] = v.Value; else over.Automation.Remove(definition.Id); });
-                }
-                ImGui.EndTabItem();
-            }
-            if (!pvp && ImGui.BeginTabItem("Rotation behaviour"))
-            { DrawRotation(over.Rotation, parent.Rotation, true); ImGui.EndTabItem(); }
-            ImGui.EndTabBar();
-        }
-        void Row(string key, string label, Action remove)
-        {
-            ImGui.PushID(key); ImGui.TextUnformatted(label); ImGui.SameLine();
-            if (ImGui.SmallButton("Edit")) { selectedOverride = key; }
-            ImGui.SameLine(); if (ImGui.SmallButton("Remove")) remove(); ImGui.PopID();
-        }
-    }
 
     private static void DrawPreview(SetupController setup)
     {
@@ -501,69 +367,6 @@ internal static partial class LayoutEditor
         else ImGui.TextDisabled("PERSONAL GROUPS");
         foreach (var group in preferences.Groups)
             if (ImGui.Selectable(group.Name + "##" + group.Id)) selected(new() { GroupId = group.Id });
-    }
-
-    private static void Groups(SetupController setup, LayoutPreferences preferences)
-    {
-        ImGui.TextWrapped("Create named groups for potions, roulettes and other extras, then add them to your hotbar mapping.");
-        if (ImGui.Button("New group")) { preferences.Groups.Add(new()); selectedGroup = preferences.Groups.Count - 1; }
-        if (preferences.Groups.Count == 0) return;
-        selectedGroup = Math.Clamp(selectedGroup, 0, preferences.Groups.Count - 1);
-        if (ImGui.BeginCombo("Group", preferences.Groups[selectedGroup].Name))
-        {
-            for (int i = 0; i < preferences.Groups.Count; i++)
-                if (ImGui.Selectable(preferences.Groups[i].Name + "##" + i, selectedGroup == i)) selectedGroup = i;
-            ImGui.EndCombo();
-        }
-        var group = preferences.Groups[selectedGroup];
-        string name = group.Name;
-        if (ImGui.InputText("Name", ref name, 100)) group.Name = name;
-        ImGui.Checkbox("Edit PvP contents", ref groupPvP);
-        editingPvP = groupPvP;
-        if (groupPvP)
-        {
-            bool applied = group.PvP is not null;
-            if (ImGui.Checkbox("Apply PvP contents", ref applied))
-                group.PvP = applied ? new PersonalGroup { Contents = Copy(group.Contents) } : null;
-            if (group.PvP is null) { ImGui.TextWrapped("Inheriting normal contents. Apply PvP contents to choose different actions for PvP."); return; }
-            group = group.PvP;
-        }
-        if (ImGui.BeginCombo("Contents for", Label(groupScope)))
-        {
-            if (ImGui.Selectable("Global")) groupScope = "Global";
-            foreach (var role in Enum.GetValues<JobRole>().Where(r => r != JobRole.Noncombat))
-                if (ImGui.Selectable("Role: " + Label(role))) groupScope = "Role: " + role;
-            foreach (var job in setup.Pack.Data.Jobs.Where(j => j.JobId >= 19))
-                if (ImGui.Selectable(job.Job)) groupScope = job.Job;
-            ImGui.EndCombo();
-        }
-        var contents = group.Contents;
-        bool editing = true;
-        if (groupScope.StartsWith("Role: "))
-        {
-            var role = Enum.Parse<JobRole>(groupScope[6..]); editing = group.Roles.ContainsKey(role);
-            if (ImGui.Checkbox("Use different contents for this role", ref editing))
-            { if (editing) group.Roles[role] = Copy(group.Contents); else group.Roles.Remove(role); }
-            contents = group.Roles.GetValueOrDefault(role) ?? group.Contents;
-        }
-        else if (groupScope != "Global")
-        {
-            var job = setup.Pack.Data.Jobs.First(j => j.Job == groupScope); editing = group.Classes.ContainsKey(job.JobId);
-            if (ImGui.Checkbox("Use different contents for this class", ref editing))
-            { if (editing) group.Classes[job.JobId] = Copy(group.Resolve(job.JobId).ToList()); else group.Classes.Remove(job.JobId); }
-            contents = group.Resolve(job.JobId).ToList();
-            if (editing) contents = group.Classes[job.JobId];
-        }
-        ImGui.BeginDisabled(!editing); Actions("Contents", contents); ImGui.EndDisabled();
-        if (!editing) ImGui.TextDisabled("Inherited contents. Enable the checkbox above to customize them.");
-        ImGui.Spacing();
-        if (ImGui.Button("Delete group")) ImGui.OpenPopup("Delete group?");
-        if (ImGui.BeginPopup("Delete group?"))
-        {
-            ImGui.TextWrapped("Mappings using this group will need a replacement.");
-            if (ImGui.Button("Delete")) { preferences.Groups.RemoveAt(selectedGroup); selectedGroup = 0; ImGui.CloseCurrentPopup(); }
-            ImGui.EndPopup();
-        }
     }
 
     private static void Actions(string title, List<ActionChoice> actions, bool roleOnly = false)

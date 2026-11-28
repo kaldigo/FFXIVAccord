@@ -5,7 +5,7 @@ using System.Linq;
 namespace Accord;
 
 internal enum Desk { Play, Rules, Bars, Tools, Setup }
-internal enum TaskPage { Home, Permissions, Enemies, Healing, Opener, Reserved, JobTuning, Rsr, Jobs, Managed, Mapping, RoleActions, Groups, Overrides, PvP, PvPOverrides, Preview, DutyLog, Trace, Recovery, Integrations, CombatOverrides }
+internal enum TaskPage { Home, Permissions, Enemies, Healing, Opener, Reserved, JobTuning, Rsr, Jobs, Managed, Mapping, RoleActions, Groups, Overrides, PvP, PvPOverrides, Preview, DutyLog, Trace, Recovery, Integrations }
 internal sealed record Destination(TaskPage Id, Desk Desk, string Group, string Name, string Detail);
 
 // Every original destination retains a stable ID and its existing controller.
@@ -21,7 +21,6 @@ internal static class AccordNavigation
         new(TaskPage.Reserved,Desk.Rules,"Combat","Manual actions","Wrath button exclusions and RSR action permissions"),
         new(TaskPage.JobTuning,Desk.Rules,"Combat","Job preferences","All existing job improvements, forecasts and comparisons"),
         new(TaskPage.Rsr,Desk.Rules,"Combat","RSR rules","Defense, healing thresholds, ground actions and burst"),
-        new(TaskPage.CombatOverrides,Desk.Rules,"Combat","Role & job overrides","Inherited automation and rotation rules; shared override editor"),
         new(TaskPage.Mapping,Desk.Bars,"Hotbars","Layout","Intent assignments, manual visibility, damage and mechanic buttons"),
         new(TaskPage.RoleActions,Desk.Bars,"Hotbars","Role actions","Important and other role-action groups"),
         new(TaskPage.Groups,Desk.Bars,"Hotbars","Personal groups","Actions, items, HQ choices, role/job and PvP contents"),

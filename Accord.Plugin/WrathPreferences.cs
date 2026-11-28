@@ -31,6 +31,7 @@ internal static class WrathPreferences
             ["PvpTargeting"] = true,
             ["Paladin"] = true,
             ["Warrior"] = true,
+            ["TankAoeRangedFallback"] = true,
             ["Gunbreaker"] = true,
             ["DarkKnight"] = true,
             ["CompareDrg"] = false,
@@ -75,6 +76,12 @@ internal static class WrathPreferences
         var before = read();
         // Older Wrath builds can still verify and apply the rest of the profile during an update.
         desired = (JObject)desired.DeepClone();
+        if (!before.ContainsKey("TankAoeRangedFallback"))
+        {
+            if (desired.Value<bool?>("TankAoeRangedFallback") == false)
+                throw new System.InvalidOperationException("Update Wrath to disable ranged fallback on tank AoE buttons.");
+            desired.Remove("TankAoeRangedFallback");
+        }
         foreach (string optional in new[] { "AcquireVisibleEnemy", "AllowPhantomKick", "AllowPhantomRage", "AutoRoleMechanics", "RaiseNearbyPlayers", "HealEncounterPlayers" })
             if (!before.ContainsKey(optional)) desired.Remove(optional);
         var changes = new JObject();

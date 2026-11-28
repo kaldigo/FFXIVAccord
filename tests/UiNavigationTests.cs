@@ -16,7 +16,7 @@ internal static class UiNavigationTests
         Check(AccordNavigation.Areas.SequenceEqual([Desk.Play,Desk.Rules,Desk.Bars,Desk.Setup,Desk.Tools]),"Unexpected workspace navigation");
         foreach(var desk in AccordNavigation.Areas)Check(AccordNavigation.Pages.Any(p=>p.Desk==desk),"Empty workspace: "+desk);
         Check(AccordNavigation.Pages.Single(p=>p.Id==TaskPage.Jobs).Desk==Desk.Setup,"Managed jobs lost their setup home");
-        Check(AccordNavigation.Pages.Single(p=>p.Id==TaskPage.CombatOverrides).Desk==Desk.Rules,"Combat overrides are not discoverable from Combat");
+        Check(AccordNavigation.Pages.Where(p=>p.Id is TaskPage.Overrides or TaskPage.PvPOverrides).All(p=>p.Desk==Desk.Bars),"Hotbar overrides left the Hotbars workspace");
         Check(AccordNavigation.Keywords(TaskPage.Mapping).Contains("joined"),"Legacy mapping search keywords were lost");
         Check(AccordNavigation.Keywords(TaskPage.Recovery).Contains("migration"),"Import recovery lost its search terms");
         return count;

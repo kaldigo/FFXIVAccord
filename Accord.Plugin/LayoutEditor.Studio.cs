@@ -39,12 +39,13 @@ internal static partial class LayoutEditor
             PageControls.Section("resolved","Resolved hotbars",()=>DrawPreview(setup));
         });
     }
-    private static void DrawAssignments(SetupController setup)
+    private static void DrawAssignments(SetupController setup,IntentMapping? overrideMapping=null,bool? keepManual=null)
     {
-        var mapping=draft.Global.Mapping;
+        var mapping=overrideMapping??draft.Global.Mapping;
+        bool keepAll=keepManual??draft.Global.KeepManual;
         Controls.Search("##assignments","Filter assignments...",ref assignmentQuery);
         if(ImGui.CollapsingHeader("Default layout")&&Controls.ActionButton("Restore default intent mapping"))
-        {var defaults=setup.DefaultMapping();mapping.Areas=defaults.Areas;mapping.IntentVersion=defaults.IntentVersion;selectedEntry=null;}
+        {var defaults=editingPvP?PvPConfiguredLayout.DefaultMapping():setup.DefaultMapping();mapping.Areas=defaults.Areas;mapping.IntentVersion=defaults.IntentVersion;selectedEntry=null;}
         if(!string.IsNullOrWhiteSpace(setup.LayoutStatus))ImGui.TextWrapped(setup.LayoutStatus);
         foreach(int bar in draft.ManagedBars.Concat(mapping.Areas.Select(a=>a.Bar)).Distinct().Order())
         {
@@ -76,9 +77,9 @@ internal static partial class LayoutEditor
                                         string name=EntryName(setup,entry,draft);
                                         if(ImGui.Selectable((area.Entries.IndexOf(entry)+1)+". "+name,ReferenceEquals(selectedEntry,entry)))selectedEntry=entry;
                                         if(ImGui.IsItemHovered())ImGui.SetTooltip(name+"\nSelect Preview & details for order, destination and options.");
-                                        ImGui.TableNextColumn();ImGui.BeginDisabled(draft.Global.KeepManual);
-                                        try{bool before=draft.Global.KeepManual||entry.KeepManual;bool after=Controls.Switch("keep",before);if(after!=before)entry.KeepManual=after;}finally{ImGui.EndDisabled();}
-                                        if(ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))ImGui.SetTooltip(draft.Global.KeepManual?"Enabled by Keep manual controls when automated.":"Keep this group's manual controls when automated.");
+                                        ImGui.TableNextColumn();ImGui.BeginDisabled(keepAll);
+                                        try{bool before=keepAll||entry.KeepManual;bool after=Controls.Switch("keep",before);if(after!=before)entry.KeepManual=after;}finally{ImGui.EndDisabled();}
+                                        if(ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))ImGui.SetTooltip(keepAll?"Enabled by Keep manual controls when automated.":"Keep this group's manual controls when automated.");
                                         if(!compact){ImGui.TableNextColumn();ImGui.TextUnformatted(entry.Priority.ToString());}
                                     }
                                     finally{ImGui.PopID();}
@@ -102,9 +103,9 @@ internal static partial class LayoutEditor
             finally{ImGui.PopID();}
         }
     }
-    private static void DrawAssignmentDetails(SetupController setup)
+    private static void DrawAssignmentDetails(SetupController setup,IntentMapping? overrideMapping=null)
     {
-        var mapping=draft.Global.Mapping;
+        var mapping=overrideMapping??draft.Global.Mapping;
         var area=mapping.Areas.FirstOrDefault(a=>selectedEntry!=null&&a.Entries.Contains(selectedEntry));
         if(area==null){selectedEntry=mapping.Areas.SelectMany(a=>a.Entries).FirstOrDefault();area=mapping.Areas.FirstOrDefault(a=>selectedEntry!=null&&a.Entries.Contains(selectedEntry));}
         if(area==null||selectedEntry==null)return;

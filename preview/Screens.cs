@@ -48,6 +48,11 @@ public abstract class Screen : IPreviewScreen
             });
         }
         else if (task == TaskPage.Mapping) LayoutEditor.DrawStudio(setup);
+        else if (task == TaskPage.Overrides) LayoutEditor.DrawOverridePreview(setup,list:Name=="accord-override-list");
+        else if (task == TaskPage.PvPOverrides) LayoutEditor.DrawOverridePreview(setup,pvp:true);
+        else if (task == TaskPage.RoleActions) LayoutEditor.DrawCollectionPreview(setup,"roles");
+        else if (task == TaskPage.Groups) LayoutEditor.DrawCollectionPreview(setup,"groups");
+        else if (task == TaskPage.PvP) LayoutEditor.DrawCollectionPreview(setup,"pvp");
         else if (task == TaskPage.Healing)
         {
             Gw.Heading("Damage buttons · save changes");
@@ -135,4 +140,46 @@ public sealed class RailHover() : Screen(false)
     public override Vector2 WindowSize => new(960, 710);
     private static readonly PreviewInput[] Hover = [new(2, PreviewInputKind.Move, new(34, 128)), new(65, PreviewInputKind.Move, new(34, 128))];
     public override ReadOnlySpan<PreviewInput> Script => Hover;
+}
+public sealed class Overrides : Screen
+{
+    public Overrides() : base(false)=>StartTask(TaskPage.Overrides);
+    public override string Name=>"accord-overrides";
+    public override Vector2 WindowSize=>new(1400,1000);
+}
+public sealed class OverridesCompact : Screen
+{
+    public OverridesCompact() : base(false)=>StartTask(TaskPage.Overrides);
+    public override string Name=>"accord-overrides-compact";
+    public override Vector2 WindowSize=>new(410,760);
+}
+public sealed class OverrideList : Screen
+{
+    public OverrideList() : base(false)=>StartTask(TaskPage.Overrides);
+    public override string Name=>"accord-override-list";
+    public override Vector2 WindowSize=>new(980,760);
+}
+public sealed class PvpOverrides : Screen
+{
+    public PvpOverrides() : base(false)=>StartTask(TaskPage.PvPOverrides);
+    public override string Name=>"accord-pvp-overrides";
+    public override Vector2 WindowSize=>new(1400,1000);
+}
+public sealed class RoleActions : Screen
+{
+    public RoleActions() : base(false)=>StartTask(TaskPage.RoleActions);
+    public override string Name=>"accord-role-actions";
+    public override Vector2 WindowSize=>new(1100,900);
+}
+public sealed class PersonalGroups : Screen
+{
+    public PersonalGroups() : base(false)=>StartTask(TaskPage.Groups);
+    public override string Name=>"accord-personal-groups";
+    public override Vector2 WindowSize=>new(1100,900);
+}
+public sealed class PvpSetup : Screen
+{
+    public PvpSetup() : base(false)=>StartTask(TaskPage.PvP);
+    public override string Name=>"accord-pvp-setup";
+    public override Vector2 WindowSize=>new(1100,900);
 }

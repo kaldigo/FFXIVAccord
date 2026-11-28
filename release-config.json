@@ -1,7 +1,7 @@
 {
   "internal_name": "Accord",
   "repository": "kaldigo/FFXIVAccord",
-  "minimum_version": "0.2.15.48",
+  "minimum_version": "0.2.15.50",
   "project": "Accord.Plugin/Accord.csproj",
   "build": "Accord.Plugin/bin/Release",
   "required_dlls": [
