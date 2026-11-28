@@ -16,17 +16,20 @@ internal sealed class EngineClient : IDisposable
     internal EngineClient(Action changed) { onChanged = _ => changed(); notifications.Subscribe(onChanged); }
     private string Journal => Path.Combine(Svc.PluginInterface.GetPluginConfigDirectory(), "engine-operation.pending.json");
     internal bool HasPending => File.Exists(Journal);
-    internal JObject Discover() => Decode(Svc.PluginInterface.GetIpcSubscriber<string>("WrathFork.Settings.Discover.v2").InvokeFunc());
-    internal JObject Validate(JObject patch) => Decode(Svc.PluginInterface.GetIpcSubscriber<string, string>("WrathFork.Settings.Validate.v2").InvokeFunc(patch.ToString(Formatting.None)));
+    internal JObject Discover() => Decode(AccordDiagnostics.IntegrationTrace.Call("WrathFork.Settings.Discover.v2",
+        Svc.PluginInterface.GetIpcSubscriber<string>("WrathFork.Settings.Discover.v2").InvokeFunc));
+    internal JObject Validate(JObject patch) => Decode(AccordDiagnostics.IntegrationTrace.Call("WrathFork.Settings.Validate.v2",
+        () => Svc.PluginInterface.GetIpcSubscriber<string, string>("WrathFork.Settings.Validate.v2").InvokeFunc(patch.ToString(Formatting.None))));
     internal JObject Stamp()
     {
         using var timing = AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.SettingsStamp);
         var api = Svc.PluginInterface.GetIpcSubscriber<string>("WrathFork.Settings.Stamp.v1");
-        return api.HasFunction ? Decode(api.InvokeFunc()) : Read();
+        return api.HasFunction ? Decode(AccordDiagnostics.IntegrationTrace.Call("WrathFork.Settings.Stamp.v1", api.InvokeFunc)) : Read();
     }
     internal void SetOpenerHold(bool held)
     {
-        if (Svc.PluginInterface.GetIpcSubscriber<bool, bool>("WrathFork.Openers.Hold.v1").InvokeFunc(held) != held)
+        if (AccordDiagnostics.IntegrationTrace.Call("WrathFork.Openers.Hold.v1",
+            () => Svc.PluginInterface.GetIpcSubscriber<bool, bool>("WrathFork.Openers.Hold.v1").InvokeFunc(held), write: true, input: new { Held = held }) != held)
             throw new InvalidOperationException("Wrath did not acknowledge the opener setting.");
     }
     internal JObject Read()
@@ -34,7 +37,8 @@ internal sealed class EngineClient : IDisposable
         using var timing = AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.SettingsRead);
         if (!Svc.PluginInterface.InstalledPlugins.Any(p => p.InternalName == "WrathCombo" && p.IsLoaded))
             throw new InvalidOperationException("Load the Accord-compatible Wrath Combo build. Behaviour and live hotbar updates are unavailable.");
-        var result = Decode(Svc.PluginInterface.GetIpcSubscriber<string>("WrathFork.Settings.Read.v2").InvokeFunc());
+        var result = Decode(AccordDiagnostics.IntegrationTrace.Call("WrathFork.Settings.Read.v2",
+            Svc.PluginInterface.GetIpcSubscriber<string>("WrathFork.Settings.Read.v2").InvokeFunc));
         if (result.Value<string>("Identity") != "WrathFork" || result.Value<int>("ApiVersion") != 2 || result.Value<int>("SettingsSchemaVersion") != 2 ||
             result.Value<string>("EngineVersion") != "1.0.4.27" ||
             Enum.GetNames<Feature>().Except(result["Features"]!.Values<string>()).Any())
@@ -75,8 +79,10 @@ internal sealed class EngineClient : IDisposable
             File.Move(temporary, Journal, true);
         }
         string payload = request.ToString(Formatting.None);
-        var result = Decode(compact.HasFunction ? compact.InvokeFunc(payload) :
-            Svc.PluginInterface.GetIpcSubscriber<string, string>("WrathFork.Settings.Apply.v2").InvokeFunc(payload));
+        var result = Decode(compact.HasFunction
+            ? AccordDiagnostics.IntegrationTrace.Call("WrathFork.Settings.Commit.v1", () => compact.InvokeFunc(payload), write: true)
+            : AccordDiagnostics.IntegrationTrace.Call("WrathFork.Settings.Apply.v2",
+                () => Svc.PluginInterface.GetIpcSubscriber<string, string>("WrathFork.Settings.Apply.v2").InvokeFunc(payload), write: true));
         Acknowledge(desired, result);
     }
 
@@ -93,8 +99,9 @@ internal sealed class EngineClient : IDisposable
         if (!HasPending) return false;
         Read(); // Identity/capability check before replaying an interrupted operation.
         var journal = JObject.Parse(File.ReadAllText(Journal));
-        var result = Decode(Svc.PluginInterface.GetIpcSubscriber<string, string>("WrathFork.Settings.Apply.v2")
-            .InvokeFunc(journal["Request"]!.ToString(Formatting.None)));
+        var result = Decode(AccordDiagnostics.IntegrationTrace.Call("WrathFork.Settings.Apply.v2",
+            () => Svc.PluginInterface.GetIpcSubscriber<string, string>("WrathFork.Settings.Apply.v2")
+                .InvokeFunc(journal["Request"]!.ToString(Formatting.None)), write: true, input: new { Recovery = true }));
         var desired = journal["Desired"]!.ToObject<AccordSettings>()!;
         Acknowledge(desired, result);
         return true;

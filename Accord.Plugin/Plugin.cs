@@ -80,6 +80,10 @@ public sealed class Plugin : IDalamudPlugin
     internal void Open() { window.IsOpen = true; window.BringToFront(); }
     private void Update(IFramework _)
     {
+        AccordDiagnostics.IntegrationTrace.Frame(() => new { Job = PlayerJob(), Territory = Svc.ClientState.TerritoryType,
+            Combat = Svc.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.InCombat],
+            Loading = HotbarLayoutStore.Loading, Target = Svc.Targets.Target?.GameObjectId,
+            Automatic = Settings.AutoRotationEnabled, Movement = bossModMovement.Status });
         AccordDiagnostics.PerformanceTimings.Report();
         using var timing = AccordDiagnostics.PerformanceTimings.Measure(AccordDiagnostics.TimedPath.Framework);
         DiagnosticCapturePanel.Tick();
@@ -87,6 +91,7 @@ public sealed class Plugin : IDalamudPlugin
         setup.Run(setup.Tick);
         bossModMovement.Tick(setup, Automation.UsesRsrPositionals);
     }
+    private static uint PlayerJob() => ECommons.GameHelpers.Player.Available ? (uint)ECommons.GameHelpers.Player.Job : 0;
     private void Draw()
     {
         if (!window.IsOpen) return;

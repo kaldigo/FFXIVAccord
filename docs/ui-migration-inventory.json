@@ -147,7 +147,6 @@
     "Accord.Plugin/LayoutPreferences.cs": "fbec2c2b6a8d4487af5ad0a084b0f22c7df0c2fb3888f5e8a7b0c577a9e820ee",
     "Contract/RotationPreferences.cs": "96e54f5f346c0e7a170b8622d7581efd8be755ac48cc665e71ed24820e42f962",
     "Accord.Plugin/AccordUi.cs": "7265282d6c9ddf01803825846ff14a5674d25481bcae70ba4e8ee7e735efbfde",
-    "Accord.Plugin/RsrSettingsPanel.cs": "29001a1275cdcc233b13e67c0f15ea694950947822aab74350531540c430ee88",
     "Accord.Plugin/RsrPermissionsPanel.cs": "106b386b90dfeae24f3914ea7e83b17320e1f486a8b2a2460e33b9fc34f580c5",
     "Accord.Plugin/RotationTestingPanel.cs": "41dbfb812884075e15c24fac3dbcaa7acf0fd618476791ea2057f354c054bbf6",
     "Accord.Plugin/DiagnosticCapturePanel.cs": "2837a91d7ae105ea0b4ac2af14354056026d115f7521e427cc2ab6f06f39d3f8",
@@ -164,8 +163,14 @@
     },
     "Accord.Plugin/WrathSettingsPanel.cs": {
       "previousSha256": "a05a232d60e504ce0632bf9363d5c90488365bf67cde0bd169ab48db64a6d461",
-      "sha256": "94c2a6f3839bb5862157d30d69a4e80e0577d287f108146945545b081442ab9f",
-      "reason": "Expose the shared tank AoE ranged fallback option under Job preferences / Tanks."
+      "sha256": "4f74bbe962e5c6f6fda692e58daaeeeb8f3376996e82693d61c86a28b163a1c1",
+      "reason": "Expose the shared tank AoE ranged fallback option under Job preferences / Tanks. Reviewed integration-only change: wrap the existing IPC invocation with endpoint timing; request payloads, validation, settings defaults, persistence and UI behavior are unchanged. Frame/IPC and movement regressions cover the diagnostic boundary.",
+      "integrationPreviousSha256": "94c2a6f3839bb5862157d30d69a4e80e0577d287f108146945545b081442ab9f"
+    },
+    "Accord.Plugin/RsrSettingsPanel.cs": {
+      "sha256": "cb48add1c985dcc0d4a7e0f3423463384dd213329ea4df9b1b05c761c623011c",
+      "reason": "Reviewed integration-only change: wrap the existing IPC invocation with endpoint timing; request payloads, validation, settings defaults, persistence and UI behavior are unchanged. Frame/IPC and movement regressions cover the diagnostic boundary.",
+      "integrationPreviousSha256": "29001a1275cdcc233b13e67c0f15ea694950947822aab74350531540c430ee88"
     }
   }
 }

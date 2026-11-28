@@ -33,6 +33,7 @@ internal sealed class BossModMovement : IDisposable
     private readonly PresetOverride rangeStrategy = new("StayCloseToTarget", "range");
     private readonly PresetOverride positionalStrategy = new("GoToPositional", "Positional");
     private long nextUpdate;
+    private (string? Preset, JobRole Role, bool Rsr, bool AutoDuty, bool Distances, bool Positionals)? lastContext;
 
     internal string Status { get; private set; } = "";
 
@@ -85,6 +86,13 @@ internal sealed class BossModMovement : IDisposable
 
             string? preset = role == JobRole.Noncombat ? null : GetPreset();
             bool autoDuty = preset is "AutoDuty" or "AutoDuty Passive";
+            var context = (preset, role, usesRsrPositionals, autoDuty, preferences.UseRoleDistances, preferences.FollowWrathPositionals);
+            if (lastContext != context)
+            {
+                lastContext = context;
+                AccordDiagnostics.DiagnosticLog.Event("Movement.Context", () => new { Preset = preset, Role = role,
+                    UsesRsrPositionals = usesRsrPositionals, AutoDuty = autoDuty, preferences.UseRoleDistances, preferences.FollowWrathPositionals });
+            }
             var distances = autoDuty ? null : preferences.Distances(role);
             minimum.Apply(this, preset is null ? distances?.Minimum.ToString() : null);
             maximum.Apply(this, preset is null ? distances?.Maximum.ToString() : null);
@@ -97,7 +105,8 @@ internal sealed class BossModMovement : IDisposable
                 role == JobRole.Melee && preset is not null && !autoDuty &&
                 Svc.Condition[ConditionFlag.InCombat] && player is { TargetObjectId: > 0 })
             {
-                desired = wrathPositional.InvokeFunc(player.TargetObjectId) switch
+                desired = AccordDiagnostics.IntegrationTrace.Call("WrathCombo.GetMovementPositional",
+                    () => wrathPositional.InvokeFunc(player.TargetObjectId)) switch
                 {
                     1 => "Rear",
                     2 => "Flank",
@@ -137,9 +146,9 @@ internal sealed class BossModMovement : IDisposable
 
     private string? GetPreset()
     {
-        string? preset = activePreset.HasFunction ? activePreset.InvokeFunc() : null;
+        string? preset = activePreset.HasFunction ? AccordDiagnostics.IntegrationTrace.Call("BossMod.Presets.GetActive", activePreset.InvokeFunc) : null;
         if (string.IsNullOrEmpty(preset) && aiPreset.HasFunction)
-            preset = aiPreset.InvokeFunc();
+            preset = AccordDiagnostics.IntegrationTrace.Call("BossMod.AI.GetPreset", aiPreset.InvokeFunc);
         return string.IsNullOrWhiteSpace(preset) ? null : preset;
     }
 
@@ -175,7 +184,8 @@ internal sealed class BossModMovement : IDisposable
         {
             if (value == applied) return;
 
-            var result = owner.read.InvokeFunc([node, field], false);
+            var result = AccordDiagnostics.IntegrationTrace.Call("BossMod.Configuration.Read/" + node + "." + field,
+                () => owner.read.InvokeFunc([node, field], false));
             if (result.Count != 1 || result[0].Contains(' '))
                 throw new InvalidOperationException($"BossMod Reborn could not read {field}.");
             string current = result[0];
@@ -183,21 +193,23 @@ internal sealed class BossModMovement : IDisposable
             {
                 // Restore only this field and leave other plugins' temporary settings alone.
                 if (current == applied && original != current)
-                    Write(owner, original!);
+                    Write(owner, original!, current);
                 Forget();
                 return;
             }
 
             string baseline = current == applied ? original! : current;
             if (current != value)
-                Write(owner, value);
+                Write(owner, value, current);
             original = baseline;
             applied = value;
         }
 
-        private void Write(BossModMovement owner, string value)
+        private void Write(BossModMovement owner, string value, string previous)
         {
-            if (owner.setTransient.InvokeFunc([node, field, value]).Count != 0)
+            if (AccordDiagnostics.IntegrationTrace.Call("BossMod.Configuration.SetTransient/" + node + "." + field,
+                () => owner.setTransient.InvokeFunc([node, field, value]), write: true,
+                input: new { Node = node, Field = field, Previous = previous, Requested = value }).Count != 0)
                 throw new InvalidOperationException($"BossMod Reborn could not set {field}.");
         }
     }
@@ -215,12 +227,16 @@ internal sealed class BossModMovement : IDisposable
         {
             if (preset is not null && (preset != name || value is null))
             {
-                owner.clearStrategy.InvokeFunc(preset, moduleType, track);
+                AccordDiagnostics.IntegrationTrace.Call("BossMod.Presets.ClearTransientStrategy/" + moduleType + "." + track,
+                    () => owner.clearStrategy.InvokeFunc(preset, moduleType, track), write: true,
+                    input: new { Preset = preset, Module = moduleType, Track = track, Previous = applied, Requested = (string?)null });
                 Forget();
             }
             if (name is null || value is null || (preset == name && applied == value))
                 return true;
-            if (!owner.setStrategy.InvokeFunc(name, moduleType, track, value))
+            if (!AccordDiagnostics.IntegrationTrace.Call("BossMod.Presets.AddTransientStrategy/" + moduleType + "." + track,
+                () => owner.setStrategy.InvokeFunc(name, moduleType, track, value), write: true,
+                input: new { Preset = name, Module = moduleType, Track = track, Previous = applied, Requested = value }))
                 return false;
             preset = name;
             applied = value;

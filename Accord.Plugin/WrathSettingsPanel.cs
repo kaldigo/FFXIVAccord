@@ -13,7 +13,8 @@ internal static class WrathSettingsPanel
     private static string status = "Waiting to verify Wrath configuration.";
     private static JObject Call(string request)
     {
-        var response = JObject.Parse(Svc.PluginInterface.GetIpcSubscriber<string, string>("WrathCombo.RotationSettings.v1").InvokeFunc(request));
+        var response = JObject.Parse(AccordDiagnostics.IntegrationTrace.Call("WrathCombo.RotationSettings.v1",
+            () => Svc.PluginInterface.GetIpcSubscriber<string, string>("WrathCombo.RotationSettings.v1").InvokeFunc(request)));
         if (response.Value<bool>("Success") != true || response.Value<int>("Version") != 1)
             throw new InvalidOperationException(response.Value<string>("Error") ?? "Update the Wrath testing plugin: persistent rotation settings API unavailable.");
         return response["Settings"] as JObject ?? throw new InvalidOperationException("Missing Wrath settings.");

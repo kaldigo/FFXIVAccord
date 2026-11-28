@@ -38,8 +38,9 @@ internal static class RsrSettingsPanel
             expected[key] = desired.TryGetValue(key, out var saved) ? saved : Default(key);
         settings = VerifiedSettings.Apply(expected, Read, (key, value) =>
         {
-            var response = JObject.Parse(Svc.PluginInterface.GetIpcSubscriber<string, string, string>("RotationSolverReborn.AccordSetSetting")
-                .InvokeFunc(key, value.ToString(Newtonsoft.Json.Formatting.None)));
+            var response = JObject.Parse(AccordDiagnostics.IntegrationTrace.Call("RotationSolverReborn.AccordSetSetting",
+                () => Svc.PluginInterface.GetIpcSubscriber<string, string, string>("RotationSolverReborn.AccordSetSetting")
+                    .InvokeFunc(key, value.ToString(Newtonsoft.Json.Formatting.None)), write: true, input: new { Key = key }));
             if (!response.Value<bool>("Success")) throw new InvalidOperationException(response.Value<string>("Error") ?? "RSR rejected " + key);
         });
         status = "Accord settings applied and verified in RSR.";
@@ -48,7 +49,8 @@ internal static class RsrSettingsPanel
     private static bool Default(string key) => key is not ("AutoBurst" or "UseGroundBeneficialAbilityWhenMoving" or "UseGroundBeneficialAbilityOnlySelf");
     private static JObject Read()
     {
-        var response = JObject.Parse(Svc.PluginInterface.GetIpcSubscriber<string>("RotationSolverReborn.AccordReadSettings").InvokeFunc());
+        var response = JObject.Parse(AccordDiagnostics.IntegrationTrace.Call("RotationSolverReborn.AccordReadSettings",
+            Svc.PluginInterface.GetIpcSubscriber<string>("RotationSolverReborn.AccordReadSettings").InvokeFunc));
         if (!response.Value<bool>("Success") || response.Value<int>("ApiVersion") != 1)
             throw new InvalidOperationException(response.Value<string>("Error") ?? "Unsupported RSR settings API.");
         return response["Settings"] as JObject ?? throw new InvalidOperationException("Missing RSR settings.");
